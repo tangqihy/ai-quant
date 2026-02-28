@@ -147,6 +147,28 @@ async def run_backtest_api(config: BacktestRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/backtest/strategies")
+async def get_strategies():
+    """获取可用策略列表"""
+    return {
+        "success": True,
+        "data": [
+            {
+                "id": "ma_cross",
+                "name": "MA交叉策略",
+                "params": ["short_window", "long_window"],
+                "description": "短期均线上穿长期均线买入，下穿卖出"
+            },
+            {
+                "id": "dual_ma",
+                "name": "双MA策略",
+                "params": ["short_window", "long_window"],
+                "description": "经典双均线策略"
+            }
+        ]
+    }
+
+
 @router.get("/backtest/{task_id}")
 async def get_backtest_result(task_id: str):
     """获取回测结果"""
@@ -182,26 +204,4 @@ async def delete_backtest_result(task_id: str):
     return {
         "success": True,
         "message": "删除成功"
-    }
-
-
-@router.get("/backtest/strategies")
-async def get_strategies():
-    """获取可用策略列表"""
-    return {
-        "success": True,
-        "data": [
-            {
-                "id": "ma_cross",
-                "name": "MA交叉策略",
-                "params": ["short_window", "long_window"],
-                "description": "短期均线上穿长期均线买入，下穿卖出"
-            },
-            {
-                "id": "dual_ma",
-                "name": "双MA策略",
-                "params": ["short_window", "long_window"],
-                "description": "经典双均线策略"
-            }
-        ]
     }
