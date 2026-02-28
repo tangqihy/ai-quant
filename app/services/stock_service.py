@@ -1,5 +1,5 @@
 """
-股票数据服务 - 带缓存和重试
+股票数据服务 - 本地缓存 + 腾讯数据源降级
 """
 import warnings
 warnings.filterwarnings('ignore')
@@ -11,13 +11,19 @@ except ImportError:
 
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 import time
 import threading
+import json
+import os
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
 
 
 class DataCache:
-    """简单的内存缓存"""
+    """内存缓存"""
     def __init__(self):
         self._cache = {}
         self._lock = threading.Lock()
@@ -38,49 +44,81 @@ class DataCache:
 cache = DataCache()
 
 
-def retry(func, retries=3, delay=1):
-    """重试装饰器"""
+def retry(func, retries=2, delay=1):
     for i in range(retries):
         try:
             return func()
         except Exception as e:
             if i == retries - 1:
                 raise e
-            time.sleep(delay * (i + 1))
+            time.sleep(delay)
+
+
+def _fetch_single_quote(symbol: str) -> Dict:
+    """用腾讯数据源获取单只股票最新数据"""
+    try:
+        prefix = "sh" if symbol.startswith("6") else "sz"
+        ts = f"{prefix}{symbol}"
+        end = datetime.now().strftime("%Y%m%d")
+        start = (datetime.now() - timedelta(days=5)).strftime("%Y%m%d")
+        df = ak.stock_zh_a_daily(symbol=ts, start_date=start, end_date=end, adjust="")
+        if df.empty:
+            return None
+        row = df.iloc[-1]
+        prev_close = df.iloc[-2]["close"] if len(df) > 1 else row["open"]
+        change = row["close"] - prev_close
+        change_pct = (change / prev_close * 100) if prev_close else 0
+        return {
+            "symbol": symbol,
+            "price": float(row["close"]),
+            "open": float(row["open"]),
+            "high": float(row["high"]),
+            "low": float(row["low"]),
+            "volume": float(row["volume"]),
+            "amount": float(row["amount"]),
+            "change_pct": round(change_pct, 2),
+            "change_amount": round(change, 2),
+            "turnover": round(float(row.get("turnover", 0)) * 100, 2),
+        }
+    except Exception:
+        return None
 
 
 class StockService:
-    """股票数据服务类"""
+    """股票数据服务"""
 
     @staticmethod
     def get_stock_list(market: str = "沪深A股") -> List[Dict]:
-        if ak is None:
-            raise Exception("AkShare 未安装")
-
-        cached = cache.get(f"stock_list_{market}", max_age=3600)
+        cached = cache.get("stock_list", max_age=86400)
         if cached:
             return cached
 
+        # 优先从本地文件加载
+        local_file = os.path.join(DATA_DIR, "stock_list.json")
+        if os.path.exists(local_file):
+            with open(local_file, "r", encoding="utf-8") as f:
+                stocks = json.load(f)
+            result = [{"symbol": s["symbol"], "name": s["name"], "market": market} for s in stocks]
+            cache.set("stock_list", result)
+            return result
+
+        # 降级到 AkShare
+        if ak is None:
+            return []
         try:
             df = retry(lambda: ak.stock_info_a_code_name())
-            stocks = [
-                {"symbol": row.get("code", ""), "name": row.get("name", ""), "market": market}
-                for _, row in df.iterrows()
-            ]
-            cache.set(f"stock_list_{market}", stocks)
+            stocks = [{"symbol": row.get("code", ""), "name": row.get("name", ""), "market": market}
+                      for _, row in df.iterrows()]
+            cache.set("stock_list", stocks)
             return stocks
-        except Exception as e:
-            raise Exception(f"获取股票列表失败: {str(e)}")
+        except Exception:
+            return []
 
     @staticmethod
-    def get_stock_history(
-        symbol: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        adjust: str = "qfq"
-    ) -> List[Dict]:
+    def get_stock_history(symbol: str, start_date: Optional[str] = None,
+                          end_date: Optional[str] = None, adjust: str = "qfq") -> List[Dict]:
         if ak is None:
-            raise Exception("AkShare 未安装")
+            return []
 
         cache_key = f"history_{symbol}_{start_date}_{end_date}_{adjust}"
         cached = cache.get(cache_key, max_age=600)
@@ -92,153 +130,114 @@ class StockService:
         if not start_date:
             start_date = (datetime.now() - timedelta(days=365)).strftime("%Y%m%d")
 
+        # 先试东方财富
         try:
-            df = None
-            # 先尝试东方财富数据源
-            try:
-                df = retry(lambda: ak.stock_zh_a_hist(
-                    symbol=symbol, period="daily",
-                    start_date=start_date, end_date=end_date, adjust=adjust
-                ), retries=1, delay=1)
-            except Exception:
-                pass
-
-            # 降级到腾讯数据源
-            if df is None or df.empty:
-                prefix = "sh" if symbol.startswith("6") else "sz"
-                tencent_symbol = f"{prefix}{symbol}"
-                df = retry(lambda: ak.stock_zh_a_daily(
-                    symbol=tencent_symbol, start_date=start_date,
-                    end_date=end_date, adjust=adjust if adjust else ""
-                ), retries=2, delay=1)
-                # 腾讯数据源字段名不同
-                klines = []
-                for _, row in df.iterrows():
-                    klines.append({
-                        "date": str(row.get("date", "")),
-                        "open": float(row.get("open", 0)),
-                        "close": float(row.get("close", 0)),
-                        "high": float(row.get("high", 0)),
-                        "low": float(row.get("low", 0)),
-                        "volume": float(row.get("volume", 0)),
-                        "amount": float(row.get("amount", 0)),
-                        "amplitude": 0,
-                        "change_pct": 0,
-                        "change_amount": 0,
-                        "turnover": float(row.get("turnover", 0))
-                    })
+            df = retry(lambda: ak.stock_zh_a_hist(
+                symbol=symbol, period="daily",
+                start_date=start_date, end_date=end_date, adjust=adjust
+            ), retries=1, delay=1)
+            if df is not None and not df.empty:
+                klines = [{"date": str(r.get("日期", "")), "open": float(r.get("开盘", 0)),
+                           "close": float(r.get("收盘", 0)), "high": float(r.get("最高", 0)),
+                           "low": float(r.get("最低", 0)), "volume": float(r.get("成交量", 0)),
+                           "amount": float(r.get("成交额", 0)), "change_pct": float(r.get("涨跌幅", 0)),
+                           "turnover": float(r.get("换手率", 0))} for _, r in df.iterrows()]
                 cache.set(cache_key, klines)
                 return klines
+        except Exception:
+            pass
 
-            klines = []
-            for _, row in df.iterrows():
-                klines.append({
-                    "date": str(row.get("日期", "")),
-                    "open": float(row.get("开盘", 0)),
-                    "close": float(row.get("收盘", 0)),
-                    "high": float(row.get("最高", 0)),
-                    "low": float(row.get("最低", 0)),
-                    "volume": float(row.get("成交量", 0)),
-                    "amount": float(row.get("成交额", 0)),
-                    "amplitude": float(row.get("振幅", 0)),
-                    "change_pct": float(row.get("涨跌幅", 0)),
-                    "change_amount": float(row.get("涨跌额", 0)),
-                    "turnover": float(row.get("换手率", 0))
-                })
+        # 降级腾讯
+        try:
+            prefix = "sh" if symbol.startswith("6") else "sz"
+            df = retry(lambda: ak.stock_zh_a_daily(
+                symbol=f"{prefix}{symbol}", start_date=start_date,
+                end_date=end_date, adjust=adjust if adjust else ""
+            ))
+            klines = [{"date": str(r.get("date", "")), "open": float(r.get("open", 0)),
+                       "close": float(r.get("close", 0)), "high": float(r.get("high", 0)),
+                       "low": float(r.get("low", 0)), "volume": float(r.get("volume", 0)),
+                       "amount": float(r.get("amount", 0)), "change_pct": 0,
+                       "turnover": round(float(r.get("turnover", 0)) * 100, 2)} for _, r in df.iterrows()]
             cache.set(cache_key, klines)
             return klines
         except Exception as e:
             raise Exception(f"获取历史K线失败: {str(e)}")
 
     @staticmethod
-    def get_realtime_quote(symbol: str) -> Dict:
+    def get_realtime_quotes(symbols: List[str]) -> List[Dict]:
+        """并发获取实时行情（腾讯数据源）"""
         if ak is None:
-            raise Exception("AkShare 未安装")
+            return []
 
-        # 复用批量行情的缓存
-        cached = cache.get("realtime_all", max_age=60)
-        if cached is None:
-            try:
-                df = retry(lambda: ak.stock_zh_a_spot_em(), retries=2, delay=2)
+        cache_key = f"quotes_{'_'.join(sorted(symbols[:5]))}"
+        cached = cache.get(cache_key, max_age=120)
+        if cached:
+            return cached
+
+        # 先试东方财富全量
+        try:
+            df = retry(lambda: ak.stock_zh_a_spot_em(), retries=1, delay=1)
+            if df is not None and not df.empty:
                 cache.set("realtime_all", df)
-                cached = df
-            except Exception:
-                return {"symbol": symbol, "name": "", "price": 0, "change_pct": 0,
-                        "change_amount": 0, "open": 0, "high": 0, "low": 0,
-                        "volume": 0, "amount": 0, "amplitude": 0, "turnover": 0,
-                        "pe": None, "pb": None, "market_cap": None,
-                        "circulating_cap": None, "timestamp": datetime.now().isoformat()}
+                stocks = df[df["代码"].isin(symbols)]
+                results = [{"symbol": r.get("代码", ""), "name": r.get("名称", ""),
+                            "price": float(r.get("最新价", 0)), "change_pct": float(r.get("涨跌幅", 0)),
+                            "change_amount": float(r.get("涨跌额", 0)), "open": float(r.get("今开", 0)),
+                            "high": float(r.get("最高", 0)), "low": float(r.get("最低", 0)),
+                            "volume": float(r.get("成交量", 0)), "amount": float(r.get("成交额", 0)),
+                            "turnover": float(r.get("换手率", 0))} for _, r in stocks.iterrows()]
+                cache.set(cache_key, results)
+                return results
+        except Exception:
+            pass
 
-        stock = cached[cached["代码"] == symbol]
-        if stock.empty:
-            raise ValueError(f"未找到股票: {symbol}")
+        # 降级：并发用腾讯数据源逐只获取
+        stock_list = StockService.get_stock_list()
+        name_map = {s["symbol"]: s["name"] for s in stock_list}
 
-        row = stock.iloc[0]
-        return {
-            "symbol": symbol,
-            "name": row.get("名称", ""),
-            "price": float(row.get("最新价", 0)),
-            "change_pct": float(row.get("涨跌幅", 0)),
-            "change_amount": float(row.get("涨跌额", 0)),
-            "open": float(row.get("今开", 0)),
-            "high": float(row.get("最高", 0)),
-            "low": float(row.get("最低", 0)),
-            "volume": float(row.get("成交量", 0)),
-            "amount": float(row.get("成交额", 0)),
-            "amplitude": float(row.get("振幅", 0)),
-            "turnover": float(row.get("换手率", 0)),
-            "pe": float(row.get("市盈率-动态", 0)) if pd.notna(row.get("市盈率-动态")) else None,
-            "pb": float(row.get("市净率", 0)) if pd.notna(row.get("市净率")) else None,
-            "market_cap": float(row.get("总市值", 0)) if pd.notna(row.get("总市值")) else None,
-            "circulating_cap": float(row.get("流通市值", 0)) if pd.notna(row.get("流通市值")) else None,
-            "timestamp": datetime.now().isoformat()
-        }
+        results = []
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            futures = {executor.submit(_fetch_single_quote, s): s for s in symbols}
+            for future in as_completed(futures):
+                s = futures[future]
+                try:
+                    data = future.result()
+                    if data:
+                        data["name"] = name_map.get(s, "")
+                        results.append(data)
+                    else:
+                        results.append({"symbol": s, "name": name_map.get(s, ""), "price": 0,
+                                        "change_pct": 0, "change_amount": 0, "open": 0, "high": 0,
+                                        "low": 0, "volume": 0, "amount": 0, "turnover": 0})
+                except Exception:
+                    results.append({"symbol": s, "name": name_map.get(s, ""), "price": 0,
+                                    "change_pct": 0, "change_amount": 0, "open": 0, "high": 0,
+                                    "low": 0, "volume": 0, "amount": 0, "turnover": 0})
+
+        # 按原始顺序排序
+        order = {s: i for i, s in enumerate(symbols)}
+        results.sort(key=lambda x: order.get(x["symbol"], 999))
+        cache.set(cache_key, results)
+        return results
 
     @staticmethod
-    def get_realtime_quotes(symbols: List[str]) -> List[Dict]:
-        if ak is None:
-            raise Exception("AkShare 未安装")
-
-        cached = cache.get("realtime_all", max_age=60)
-        if cached is None:
-            try:
-                df = retry(lambda: ak.stock_zh_a_spot_em(), retries=2, delay=2)
-                cache.set("realtime_all", df)
-                cached = df
-            except Exception:
-                # 降级：返回空行情，不阻塞页面
-                return [{"symbol": s, "name": "", "price": 0, "change_pct": 0,
-                         "change_amount": 0, "open": 0, "high": 0, "low": 0,
-                         "volume": 0, "amount": 0, "turnover": 0} for s in symbols]
-
-        stocks = cached[cached["代码"].isin(symbols)]
-        results = []
-        for _, row in stocks.iterrows():
-            results.append({
-                "symbol": row.get("代码", ""),
-                "name": row.get("名称", ""),
-                "price": float(row.get("最新价", 0)),
-                "change_pct": float(row.get("涨跌幅", 0)),
-                "change_amount": float(row.get("涨跌额", 0)),
-                "open": float(row.get("今开", 0)),
-                "high": float(row.get("最高", 0)),
-                "low": float(row.get("最低", 0)),
-                "volume": float(row.get("成交量", 0)),
-                "amount": float(row.get("成交额", 0)),
-                "turnover": float(row.get("换手率", 0)),
-            })
-        return results
+    def get_realtime_quote(symbol: str) -> Dict:
+        quotes = StockService.get_realtime_quotes([symbol])
+        if quotes:
+            q = quotes[0]
+            q["timestamp"] = datetime.now().isoformat()
+            return q
+        return {"symbol": symbol, "name": "", "price": 0, "timestamp": datetime.now().isoformat()}
 
     @staticmethod
     def get_stock_info(symbol: str) -> Dict:
         if ak is None:
-            raise Exception("AkShare 未安装")
-
+            return {"symbol": symbol}
         cache_key = f"info_{symbol}"
         cached = cache.get(cache_key, max_age=3600)
         if cached:
             return cached
-
         try:
             df = retry(lambda: ak.stock_individual_info_em(symbol=symbol))
             info = {"symbol": symbol}
@@ -246,8 +245,8 @@ class StockService:
                 info[row.get("item", "")] = row.get("value", "")
             cache.set(cache_key, info)
             return info
-        except Exception as e:
-            raise Exception(f"获取股票信息失败: {str(e)}")
+        except Exception:
+            return {"symbol": symbol}
 
 
 stock_service = StockService()
