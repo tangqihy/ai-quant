@@ -16,30 +16,30 @@
 
 | 任务 | 负责人 | 状态 | 备注 |
 |------|--------|------|------|
-| 前端 API 服务层搭建 | 小猪 | 🔄 进行中 | axios 封装，对接后端 |
-| 服务器部署环境准备 | 小猪 | 🔄 进行中 | pm2 + nginx |
+| BacktestConfig 对接回测 API | 小猪 | 🔄 进行中 | 需要 minimax 完善回测引擎 |
+| Analysis 收益分析对接 | 小猪 | 🔄 进行中 | 需要回测结果 API |
 
 ---
 
 ## 待办 📋
 
 ### Phase 1: 部署 & CI/CD
-- [ ] 配置 GitHub Secrets（SERVER_HOST, SERVER_USER, SERVER_SSH_KEY）— 需要 tq 协助
+- [x] 配置 GitHub Secrets — tq ✅
 - [x] 小猪服务器 clone 代码 — 小猪 ✅
 - [x] 小猪服务器环境搭建（Python、Node、pnpm、pm2）— 小猪 ✅
 - [x] 前后端 build 验证通过 — 小猪 ✅
-- [ ] nginx 反向代理配置 — 小猪
-- [ ] pm2 进程管理配置 — 小猪
+- [x] nginx 反向代理配置（端口3000）— 小猪 ✅
+- [x] pm2 进程管理配置 — 小猪 ✅
 - [ ] 后端 pytest 集成到 CI — 小猪
-- [ ] 首次完整部署测试 — 小猪
+- [ ] 首次完整 CI/CD 部署测试 — 小猪
 
 ### Phase 2: 前后端联调
-- [ ] 创建前端 API 服务层（axios 封装）— 小猪
-- [ ] Dashboard 仪表盘对接后端实时数据 — 小猪
-- [ ] StockList 股票列表对接 `/api/stocks` + `/api/quotes/realtime` — 小猪
-- [ ] K线图组件对接 `/api/stocks/{symbol}/history` — 小猪
-- [ ] BacktestConfig 回测配置对接 `/api/backtest` — 小猪
-- [ ] Analysis 收益分析对接回测结果 API — 小猪
+- [x] 创建前端 API 服务层（axios 封装）— 小猪 ✅
+- [x] Dashboard 仪表盘对接后端实时数据 — 小猪 ✅
+- [x] StockList 股票列表对接 `/api/stocks` + `/api/quotes/realtime` — 小猪 ✅
+- [x] K线图组件对接 `/api/stocks/{symbol}/history` — 小猪 ✅
+- [ ] BacktestConfig 回测配置对接 `/api/backtest` — 小猪（⚠️ 等 minimax 完善回测引擎）
+- [ ] Analysis 收益分析对接回测结果 API — 小猪（⚠️ 等 minimax 完善回测引擎）
 
 ### Phase 3: 功能完善
 - [ ] 完善回测引擎（目前 `/api/backtest` 只是占位）— minimax
@@ -56,3 +56,5 @@
 |------|----------|--------|
 | 2026-02-28 | 初始化项目 + CI/CD | minimax |
 | 2026-02-28 | 服务器环境搭建 + build 验证 | 小猪 |
+| 2026-02-28 | GitHub Secrets 配置 | tq |
+| 2026-02-28 | nginx + pm2 部署，前端API对接（StockList/Dashboard/KLineChart）| 小猪 |
