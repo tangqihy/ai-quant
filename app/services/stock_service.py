@@ -1,13 +1,5 @@
 """
-股票数据服务
-使用 AkShare 获取A股市场数据
-
-注意: 首次使用需要安装依赖
-    pip install akshare pandas
-    
-运行环境设置:
-    # 如果遇到 /app 权限问题，使用:
-    PYTHONPATH=/workspace/quant-backend:/workspace:/usr/lib/python311.zip:/usr/lib/python3.11:/usr/lib/python3.11/lib-dynload:/usr/local/lib/python3.11/dist-packages:/usr/lib/python3/dist-packages
+股票数据服务 - 带缓存和重试
 """
 import warnings
 warnings.filterwarnings('ignore')
@@ -20,86 +12,92 @@ except ImportError:
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import pandas as pd
-import json
+import time
+import threading
+
+
+class DataCache:
+    """简单的内存缓存"""
+    def __init__(self):
+        self._cache = {}
+        self._lock = threading.Lock()
+
+    def get(self, key: str, max_age: int = 300):
+        with self._lock:
+            if key in self._cache:
+                data, ts = self._cache[key]
+                if time.time() - ts < max_age:
+                    return data
+        return None
+
+    def set(self, key: str, data):
+        with self._lock:
+            self._cache[key] = (data, time.time())
+
+
+cache = DataCache()
+
+
+def retry(func, retries=3, delay=1):
+    """重试装饰器"""
+    for i in range(retries):
+        try:
+            return func()
+        except Exception as e:
+            if i == retries - 1:
+                raise e
+            time.sleep(delay * (i + 1))
 
 
 class StockService:
     """股票数据服务类"""
-    
+
     @staticmethod
     def get_stock_list(market: str = "沪深A股") -> List[Dict]:
-        """
-        获取股票列表
-        
-        Args:
-            market: 市场类型 (沪深A股/沪深京A股)
-            
-        Returns:
-            股票列表
-        """
         if ak is None:
-            raise Exception("AkShare 未安装，请运行: pip install akshare")
-        
+            raise Exception("AkShare 未安装")
+
+        cached = cache.get(f"stock_list_{market}", max_age=3600)
+        if cached:
+            return cached
+
         try:
-            # 获取A股股票列表
-            df = ak.stock_info_a_code_name()
-            
-            # 转换为字典列表
-            stocks = []
-            for _, row in df.iterrows():
-                stocks.append({
-                    "symbol": row.get("code", ""),
-                    "name": row.get("name", ""),
-                    "market": market
-                })
-            
+            df = retry(lambda: ak.stock_info_a_code_name())
+            stocks = [
+                {"symbol": row.get("code", ""), "name": row.get("name", ""), "market": market}
+                for _, row in df.iterrows()
+            ]
+            cache.set(f"stock_list_{market}", stocks)
             return stocks
         except Exception as e:
             raise Exception(f"获取股票列表失败: {str(e)}")
-    
+
     @staticmethod
     def get_stock_history(
-        symbol: str, 
-        start_date: Optional[str] = None, 
+        symbol: str,
+        start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         adjust: str = "qfq"
     ) -> List[Dict]:
-        """
-        获取股票历史K线数据（日线）
-        
-        Args:
-            symbol: 股票代码 (如: 000001)
-            start_date: 开始日期 (YYYYMMDD)
-            end_date: 结束日期 (YYYYMMDD)
-            adjust: 复权类型 (qfq-前复权, hfq-后复权, 空字符串-不复权)
-            
-        Returns:
-            K线数据列表
-        """
         if ak is None:
-            raise Exception("AkShare 未安装，请运行: pip install akshare")
-        
+            raise Exception("AkShare 未安装")
+
+        cache_key = f"history_{symbol}_{start_date}_{end_date}_{adjust}"
+        cached = cache.get(cache_key, max_age=600)
+        if cached:
+            return cached
+
+        if not end_date:
+            end_date = datetime.now().strftime("%Y%m%d")
+        if not start_date:
+            start_date = (datetime.now() - timedelta(days=365)).strftime("%Y%m%d")
+
         try:
-            # 规范化股票代码
-            if not symbol.startswith(('000', '001', '002', '003', '300', '600', '601', '603', '605', '688', '689', '8', '4')):
-                raise ValueError(f"无效的股票代码: {symbol}")
-            
-            # 设置默认日期范围（最近1年）
-            if not end_date:
-                end_date = datetime.now().strftime("%Y%m%d")
-            if not start_date:
-                start_date = (datetime.now() - timedelta(days=365)).strftime("%Y%m%d")
-            
-            # 获取历史数据
-            df = ak.stock_zh_a_hist(
-                symbol=symbol,
-                period="daily",
-                start_date=start_date,
-                end_date=end_date,
-                adjust=adjust
-            )
-            
-            # 转换为字典列表
+            df = retry(lambda: ak.stock_zh_a_hist(
+                symbol=symbol, period="daily",
+                start_date=start_date, end_date=end_date, adjust=adjust
+            ))
+
             klines = []
             for _, row in df.iterrows():
                 klines.append({
@@ -115,39 +113,77 @@ class StockService:
                     "change_amount": float(row.get("涨跌额", 0)),
                     "turnover": float(row.get("换手率", 0))
                 })
-            
+            cache.set(cache_key, klines)
             return klines
         except Exception as e:
             raise Exception(f"获取历史K线失败: {str(e)}")
-    
+
     @staticmethod
     def get_realtime_quote(symbol: str) -> Dict:
-        """
-        获取股票实时行情
-        
-        Args:
-            symbol: 股票代码
-            
-        Returns:
-            实时行情数据
-        """
         if ak is None:
-            raise Exception("AkShare 未安装，请运行: pip install akshare")
-        
-        try:
-            # 获取实时行情
-            df = ak.stock_zh_a_spot_em()
-            
-            # 筛选指定股票
-            stock = df[df["代码"] == symbol]
-            
-            if stock.empty:
-                raise ValueError(f"未找到股票: {symbol}")
-            
-            row = stock.iloc[0]
-            
-            return {
-                "symbol": symbol,
+            raise Exception("AkShare 未安装")
+
+        # 复用批量行情的缓存
+        cached = cache.get("realtime_all", max_age=60)
+        if cached is None:
+            try:
+                df = retry(lambda: ak.stock_zh_a_spot_em(), retries=2, delay=2)
+                cache.set("realtime_all", df)
+                cached = df
+            except Exception:
+                return {"symbol": symbol, "name": "", "price": 0, "change_pct": 0,
+                        "change_amount": 0, "open": 0, "high": 0, "low": 0,
+                        "volume": 0, "amount": 0, "amplitude": 0, "turnover": 0,
+                        "pe": None, "pb": None, "market_cap": None,
+                        "circulating_cap": None, "timestamp": datetime.now().isoformat()}
+
+        stock = cached[cached["代码"] == symbol]
+        if stock.empty:
+            raise ValueError(f"未找到股票: {symbol}")
+
+        row = stock.iloc[0]
+        return {
+            "symbol": symbol,
+            "name": row.get("名称", ""),
+            "price": float(row.get("最新价", 0)),
+            "change_pct": float(row.get("涨跌幅", 0)),
+            "change_amount": float(row.get("涨跌额", 0)),
+            "open": float(row.get("今开", 0)),
+            "high": float(row.get("最高", 0)),
+            "low": float(row.get("最低", 0)),
+            "volume": float(row.get("成交量", 0)),
+            "amount": float(row.get("成交额", 0)),
+            "amplitude": float(row.get("振幅", 0)),
+            "turnover": float(row.get("换手率", 0)),
+            "pe": float(row.get("市盈率-动态", 0)) if pd.notna(row.get("市盈率-动态")) else None,
+            "pb": float(row.get("市净率", 0)) if pd.notna(row.get("市净率")) else None,
+            "market_cap": float(row.get("总市值", 0)) if pd.notna(row.get("总市值")) else None,
+            "circulating_cap": float(row.get("流通市值", 0)) if pd.notna(row.get("流通市值")) else None,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    @staticmethod
+    def get_realtime_quotes(symbols: List[str]) -> List[Dict]:
+        if ak is None:
+            raise Exception("AkShare 未安装")
+
+        cached = cache.get("realtime_all", max_age=60)
+        if cached is None:
+            try:
+                df = retry(lambda: ak.stock_zh_a_spot_em(), retries=2, delay=2)
+                cache.set("realtime_all", df)
+                cached = df
+            except Exception:
+                # 降级：返回空行情，不阻塞页面
+                return [{"symbol": s, "name": "", "price": 0, "change_pct": 0,
+                         "change_amount": 0, "open": 0, "high": 0, "low": 0,
+                         "volume": 0, "amount": 0, "turnover": 0} for s in symbols]
+
+        stocks = cached[cached["代码"].isin(symbols)]
+        results = []
+        for _, row in stocks.iterrows():
+            results.append({
+                "symbol": row.get("代码", ""),
                 "name": row.get("名称", ""),
                 "price": float(row.get("最新价", 0)),
                 "change_pct": float(row.get("涨跌幅", 0)),
@@ -157,85 +193,29 @@ class StockService:
                 "low": float(row.get("最低", 0)),
                 "volume": float(row.get("成交量", 0)),
                 "amount": float(row.get("成交额", 0)),
-                "amplitude": float(row.get("振幅", 0)),
-                "high_limit": float(row.get("最高", 0)),
-                "low_limit": float(row.get("最低", 0)),
                 "turnover": float(row.get("换手率", 0)),
-                "pe": float(row.get("市盈率-动态", 0)) if pd.notna(row.get("市盈率-动态")) else None,
-                "pb": float(row.get("市净率", 0)) if pd.notna(row.get("市净率")) else None,
-                "market_cap": float(row.get("总市值", 0)) if pd.notna(row.get("总市值")) else None,
-                "circulating_cap": float(row.get("流通市值", 0)) if pd.notna(row.get("流通市值")) else None,
-                "timestamp": datetime.now().isoformat()
-            }
-        except Exception as e:
-            raise Exception(f"获取实时行情失败: {str(e)}")
-    
-    @staticmethod
-    def get_realtime_quotes(symbols: List[str]) -> List[Dict]:
-        """
-        批量获取股票实时行情
-        
-        Args:
-            symbols: 股票代码列表
-            
-        Returns:
-            实时行情列表
-        """
-        if ak is None:
-            raise Exception("AkShare 未安装，请运行: pip install akshare")
-        
-        try:
-            # 获取实时行情
-            df = ak.stock_zh_a_spot_em()
-            
-            # 筛选指定股票
-            stocks = df[df["代码"].isin(symbols)]
-            
-            results = []
-            for _, row in stocks.iterrows():
-                results.append({
-                    "symbol": row.get("代码", ""),
-                    "name": row.get("名称", ""),
-                    "price": float(row.get("最新价", 0)),
-                    "change_pct": float(row.get("涨跌幅", 0)),
-                    "change_amount": float(row.get("涨跌额", 0)),
-                    "open": float(row.get("今开", 0)),
-                    "high": float(row.get("最高", 0)),
-                    "low": float(row.get("最低", 0)),
-                    "volume": float(row.get("成交量", 0)),
-                    "amount": float(row.get("成交额", 0)),
-                    "turnover": float(row.get("换手率", 0)),
-                })
-            
-            return results
-        except Exception as e:
-            raise Exception(f"批量获取实时行情失败: {str(e)}")
-    
+            })
+        return results
+
     @staticmethod
     def get_stock_info(symbol: str) -> Dict:
-        """
-        获取股票基本信息
-        
-        Args:
-            symbol: 股票代码
-            
-        Returns:
-            股票基本信息
-        """
         if ak is None:
-            raise Exception("AkShare 未安装，请运行: pip install akshare")
-        
+            raise Exception("AkShare 未安装")
+
+        cache_key = f"info_{symbol}"
+        cached = cache.get(cache_key, max_age=3600)
+        if cached:
+            return cached
+
         try:
-            df = ak.stock_individual_info_em(symbol=symbol)
-            
+            df = retry(lambda: ak.stock_individual_info_em(symbol=symbol))
             info = {"symbol": symbol}
             for _, row in df.iterrows():
                 info[row.get("item", "")] = row.get("value", "")
-            
+            cache.set(cache_key, info)
             return info
         except Exception as e:
             raise Exception(f"获取股票信息失败: {str(e)}")
 
 
-# 创建服务实例
 stock_service = StockService()
