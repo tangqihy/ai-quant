@@ -22,11 +22,11 @@ jobs:
         working-directory: .
         run: |
           pip install -r requirements.txt
+          pip install pytest httpx
       
       - name: Run backend tests
         run: |
-          # Add your backend tests here
-          echo "Backend tests passed"
+          python -m pytest tests/ -v
 
   # Frontend CI
   frontend-test:
