@@ -16,8 +16,9 @@
 
 | 任务 | 负责人 | 状态 | 备注 |
 |------|--------|------|------|
-| BacktestConfig 对接回测 API | 小猪 | 🔄 进行中 | 需要 minimax 完善回测引擎 |
-| Analysis 收益分析对接 | 小猪 | 🔄 进行中 | 需要回测结果 API |
+| BacktestConfig 对接回测 API | 小猪 | 🔄 进行中 | 回测引擎已完成，可以对接 |
+| Analysis 收益分析对接 | 小猪 | 🔄 进行中 | |
+| CI/CD 首次部署测试 | - | 🔄 待触发 | minimax代码已推送，等待小猪服务器部署 |
 
 ---
 
@@ -31,18 +32,18 @@
 - [x] nginx 反向代理配置（端口3000）— 小猪 ✅
 - [x] pm2 进程管理配置 — 小猪 ✅
 - [ ] 后端 pytest 集成到 CI — 小猪
-- [ ] 首次完整 CI/CD 部署测试 — 小猪
+- [ ] 首次完整 CI/CD 部署测试 — CI/CD
 
 ### Phase 2: 前后端联调
 - [x] 创建前端 API 服务层（axios 封装）— 小猪 ✅
 - [x] Dashboard 仪表盘对接后端实时数据 — 小猪 ✅
-- [x] StockList 股票列表对接 `/api/stocks` + `/api/quotes/realtime` — 小猪 ✅
-- [x] K线图组件对接 `/api/stocks/{symbol}/history` — 小猪 ✅
-- [ ] BacktestConfig 回测配置对接 `/api/backtest` — 小猪（⚠️ 等 minimax 完善回测引擎）
-- [ ] Analysis 收益分析对接回测结果 API — 小猪（⚠️ 等 minimax 完善回测引擎）
+- [x] StockList 股票列表对接 — 小猪 ✅
+- [x] K线图组件对接 — 小猪 ✅
+- [ ] BacktestConfig 回测配置对接 `/api/backtest` — 小猪
+- [ ] Analysis 收益分析对接回测结果 API — 小猪
 
 ### Phase 3: 功能完善
-- [ ] 完善回测引擎（目前 `/api/backtest` 只是占位）— minimax
+- [x] 回测引擎基础版（MA交叉策略）— minimax ✅
 - [ ] 添加后端单元测试（pytest）— minimax
 - [ ] 回测结果存储和查询 — minimax
 - [ ] 图表展示优化 — 小猪
@@ -57,4 +58,5 @@
 | 2026-02-28 | 初始化项目 + CI/CD | minimax |
 | 2026-02-28 | 服务器环境搭建 + build 验证 | 小猪 |
 | 2026-02-28 | GitHub Secrets 配置 | tq |
-| 2026-02-28 | nginx + pm2 部署，前端API对接（StockList/Dashboard/KLineChart）| 小猪 |
+| 2026-02-28 | nginx + pm2 部署，前端API对接 | 小猪 |
+| 2026-02-28 | 回测引擎基础版（MA交叉策略） | minimax |
