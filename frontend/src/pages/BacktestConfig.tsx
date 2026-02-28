@@ -47,6 +47,8 @@ const BacktestConfig: React.FC = () => {
       
       if (backtestResult.success) {
         setResult(backtestResult);
+        // 保存到localStorage，供Analysis页面展示
+        localStorage.setItem('lastBacktestResult', JSON.stringify(backtestResult));
         message.success('回测执行完成！');
       } else {
         message.error(backtestResult.error || '回测失败');
