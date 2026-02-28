@@ -2,10 +2,23 @@
 API routes
 """
 from fastapi import APIRouter, Query, HTTPException
-from typing import Optional, List
+from typing import Optional, List, Dict
+from pydantic import BaseModel
 from app.services.stock_service import stock_service
+from app.services.backtest_service import run_backtest
 
 router = APIRouter()
+
+
+# 回测请求模型
+class BacktestRequest(BaseModel):
+    symbol: str
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    strategy: str = "ma_cross"
+    short_window: int = 5
+    long_window: int = 20
+    initial_capital: float = 1000000
 
 
 @router.get("/stocks")
@@ -94,12 +107,56 @@ async def get_realtime_quotes(
 
 
 @router.post("/backtest")
-async def run_backtest(config: dict):
+async def run_backtest_api(config: BacktestRequest):
     """运行回测"""
-    return {"result": "backtest started"}
+    try:
+        # 获取历史数据
+        data = stock_service.get_stock_history(
+            symbol=config.symbol,
+            start_date=config.start_date,
+            end_date=config.end_date,
+            adjust=""
+        )
+        
+        if not data or len(data) < 50:
+            return {
+                "success": False,
+                "error": "数据不足，需要至少50条K线数据"
+            }
+            
+        # 运行回测
+        result = run_backtest(
+            symbol=config.symbol,
+            data=data,
+            strategy=config.strategy,
+            short_window=config.short_window,
+            long_window=config.long_window,
+            initial_capital=config.initial_capital
+        )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/backtest/{task_id}")
-async def get_backtest_result(task_id: str):
-    """获取回测结果"""
-    return {"task_id": task_id, "status": "completed"}
+@router.get("/backtest/strategies")
+async def get_strategies():
+    """获取可用策略列表"""
+    return {
+        "success": True,
+        "data": [
+            {
+                "id": "ma_cross",
+                "name": "MA交叉策略",
+                "params": ["short_window", "long_window"],
+                "description": "短期均线上穿长期均线买入，下穿卖出"
+            },
+            {
+                "id": "dual_ma",
+                "name": "双MA策略",
+                "params": ["short_window", "long_window"],
+                "description": "经典双均线策略"
+            }
+        ]
+    }
