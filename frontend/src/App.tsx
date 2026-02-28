@@ -10,7 +10,7 @@ import Analysis from './pages/Analysis';
 function App() {
   return (
     <ConfigProvider locale={zhCN}>
-      <BrowserRouter>
+      <BrowserRouter basename="/quant">
         <MainLayout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
