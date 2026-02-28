@@ -26,15 +26,26 @@ class BacktestRequest(BaseModel):
 @router.get("/stocks")
 async def get_stocks(
     market: str = Query("沪深A股", description="市场类型"),
-    limit: int = Query(100, description="返回数量限制")
+    page: int = Query(1, description="页码"),
+    page_size: int = Query(50, description="每页数量", ge=1, le=100)
 ):
-    """获取股票列表"""
+    """获取股票列表（分页）"""
     try:
         stocks = stock_service.get_stock_list(market=market)
+        total = len(stocks)
+        
+        # 分页
+        start = (page - 1) * page_size
+        end = start + page_size
+        data = stocks[start:end]
+        
         return {
             "success": True,
-            "data": stocks[:limit],
-            "total": len(stocks)
+            "data": data,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": (total + page_size - 1) // page_size
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

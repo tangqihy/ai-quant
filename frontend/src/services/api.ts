@@ -5,9 +5,9 @@ const api = axios.create({
   timeout: 30000,
 });
 
-// 股票列表
-export async function getStocks(market = '沪深A股', limit = 100) {
-  const { data } = await api.get('/stocks', { params: { market, limit } });
+// 股票列表（分页）
+export async function getStocks(market = '沪深A股', page = 1, pageSize = 50) {
+  const { data } = await api.get('/stocks', { params: { market, page, page_size: pageSize } });
   return data;
 }
 
