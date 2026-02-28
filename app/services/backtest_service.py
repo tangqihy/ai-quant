@@ -117,7 +117,18 @@ class BacktestEngine:
         if len(self.daily_values) > 0:
             start_date = self.daily_values[0]['date']
             end_date = self.daily_values[-1]['date']
-            days = (datetime.strptime(end_date, '%Y%m%d') - datetime.strptime(start_date, '%Y%m%d')).days
+            # 支持多种日期格式
+            for fmt in ('%Y%m%d', '%Y-%m-%d'):
+                try:
+                    d_start = datetime.strptime(start_date, fmt)
+                    d_end = datetime.strptime(end_date, fmt)
+                    break
+                except ValueError:
+                    continue
+            else:
+                d_start = datetime.strptime(start_date[:10], '%Y-%m-%d')
+                d_end = datetime.strptime(end_date[:10], '%Y-%m-%d')
+            days = (d_end - d_start).days
             years = max(days / 365, 0.01)
             annual_return = ((1 + total_return/100) ** (1/years) - 1) * 100
         else:
