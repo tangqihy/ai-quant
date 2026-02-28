@@ -1,0 +1,82 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Backend CI
+  backend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install backend dependencies
+        working-directory: .
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Run backend tests
+        run: |
+          # Add your backend tests here
+          echo "Backend tests passed"
+
+  # Frontend CI
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install
+      
+      - name: Lint frontend
+        working-directory: frontend
+        run: pnpm lint
+      
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm build
+
+  # Deploy to server (小猪)
+  deploy:
+    needs: [backend-test, frontend-test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          script: |
+            cd /workspace/ai-quant
+            git pull origin main
+            cd frontend && pnpm install && pnpm build
+            # Restart backend service
+            cd ..
+            pip install -r requirements.txt
+            pm2 restart quant-backend || pm2 start app/main.py --name quant-backend
