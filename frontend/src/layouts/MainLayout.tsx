@@ -19,26 +19,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
 
   const menuItems = [
-    {
-      key: '/',
-      icon: <DashboardOutlined />,
-      label: '仪表盘',
-    },
-    {
-      key: '/stocks',
-      icon: <StockOutlined />,
-      label: '股票列表',
-    },
-    {
-      key: '/backtest',
-      icon: <ExperimentOutlined />,
-      label: '回测配置',
-    },
-    {
-      key: '/analysis',
-      icon: <LineChartOutlined />,
-      label: '收益分析',
-    },
+    { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
+    { key: '/stocks', icon: <StockOutlined />, label: '股票列表' },
+    { key: '/backtest', icon: <ExperimentOutlined />, label: '回测配置' },
+    { key: '/analysis', icon: <LineChartOutlined />, label: '收益分析' },
   ];
 
   return (
@@ -46,18 +30,23 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <Sider
         breakpoint="lg"
         collapsedWidth="0"
-        style={{ background: '#001529' }}
+        style={{
+          background: 'linear-gradient(180deg, #001529 0%, #002140 100%)',
+          boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
+        }}
       >
-        <div style={{ 
-          height: 64, 
-          display: 'flex', 
-          alignItems: 'center', 
+        <div style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
-          color: '#fff',
-          fontSize: 18,
-          fontWeight: 'bold'
+          gap: 8,
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}>
-          量化交易系统
+          <LineChartOutlined style={{ color: '#1890ff', fontSize: 22 }} />
+          <span style={{ color: '#fff', fontSize: 16, fontWeight: 700, letterSpacing: 1 }}>
+            AI 量化系统
+          </span>
         </div>
         <Menu
           theme="dark"
@@ -65,21 +54,48 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
-          style={{ background: '#001529' }}
+          style={{
+            background: 'transparent',
+            marginTop: 8,
+            borderRight: 'none',
+          }}
         />
+        <div style={{
+          position: 'absolute',
+          bottom: 16,
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          color: 'rgba(255,255,255,0.3)',
+          fontSize: 11,
+        }}>
+          v1.0.0 · Powered by AkShare
+        </div>
       </Sider>
       <Layout>
-        <Header style={{ 
-          background: '#fff', 
+        <Header style={{
+          background: '#fff',
           padding: '0 24px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+          zIndex: 1,
         }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>量化交易系统</h2>
-          <span style={{ color: '#888' }}>Quantitative Trading System</span>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#262626' }}>
+            A股量化交易回测系统
+          </h2>
+          <span style={{ color: '#8c8c8c', fontSize: 13 }}>
+            Quantitative Trading System
+          </span>
         </Header>
-        <Content style={{ margin: '24px 16px', padding: 24, background: '#fff', minHeight: 280 }}>
+        <Content style={{
+          margin: 16,
+          padding: 24,
+          background: '#f5f7fa',
+          minHeight: 280,
+          borderRadius: 8,
+        }}>
           {children}
         </Content>
       </Layout>

@@ -93,10 +93,42 @@ class StockService:
             start_date = (datetime.now() - timedelta(days=365)).strftime("%Y%m%d")
 
         try:
-            df = retry(lambda: ak.stock_zh_a_hist(
-                symbol=symbol, period="daily",
-                start_date=start_date, end_date=end_date, adjust=adjust
-            ))
+            df = None
+            # 先尝试东方财富数据源
+            try:
+                df = retry(lambda: ak.stock_zh_a_hist(
+                    symbol=symbol, period="daily",
+                    start_date=start_date, end_date=end_date, adjust=adjust
+                ), retries=1, delay=1)
+            except Exception:
+                pass
+
+            # 降级到腾讯数据源
+            if df is None or df.empty:
+                prefix = "sh" if symbol.startswith("6") else "sz"
+                tencent_symbol = f"{prefix}{symbol}"
+                df = retry(lambda: ak.stock_zh_a_daily(
+                    symbol=tencent_symbol, start_date=start_date,
+                    end_date=end_date, adjust=adjust if adjust else ""
+                ), retries=2, delay=1)
+                # 腾讯数据源字段名不同
+                klines = []
+                for _, row in df.iterrows():
+                    klines.append({
+                        "date": str(row.get("date", "")),
+                        "open": float(row.get("open", 0)),
+                        "close": float(row.get("close", 0)),
+                        "high": float(row.get("high", 0)),
+                        "low": float(row.get("low", 0)),
+                        "volume": float(row.get("volume", 0)),
+                        "amount": float(row.get("amount", 0)),
+                        "amplitude": 0,
+                        "change_pct": 0,
+                        "change_amount": 0,
+                        "turnover": float(row.get("turnover", 0))
+                    })
+                cache.set(cache_key, klines)
+                return klines
 
             klines = []
             for _, row in df.iterrows():
