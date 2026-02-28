@@ -26,22 +26,26 @@ class BacktestRequest(BaseModel):
 @router.get("/stocks")
 async def get_stocks(
     market: str = Query("沪深A股", description="市场类型"),
-    page: int = Query(1, description="页码"),
-    page_size: int = Query(50, description="每页数量", ge=1, le=100)
+    page: int = Query(1, description="页码", ge=1),
+    page_size: int = Query(20, description="每页数量", ge=1, le=100),
+    search: str = Query("", description="搜索关键词(代码或名称)")
 ):
     """获取股票列表（分页）"""
     try:
         stocks = stock_service.get_stock_list(market=market)
+
+        # 搜索过滤
+        if search:
+            stocks = [s for s in stocks if search in s.get("symbol", "") or search in s.get("name", "")]
+
         total = len(stocks)
-        
-        # 分页
         start = (page - 1) * page_size
         end = start + page_size
-        data = stocks[start:end]
-        
+        page_data = stocks[start:end]
+
         return {
             "success": True,
-            "data": data,
+            "data": page_data,
             "total": total,
             "page": page,
             "page_size": page_size,

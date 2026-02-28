@@ -6,8 +6,8 @@ const api = axios.create({
 });
 
 // 股票列表（分页）
-export async function getStocks(market = '沪深A股', page = 1, pageSize = 50) {
-  const { data } = await api.get('/stocks', { params: { market, page, page_size: pageSize } });
+export async function getStocks(page = 1, pageSize = 20, search = '') {
+  const { data } = await api.get('/stocks', { params: { page, page_size: pageSize, search } });
   return data;
 }
 

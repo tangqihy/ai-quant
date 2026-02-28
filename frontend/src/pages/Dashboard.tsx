@@ -24,7 +24,7 @@ const Dashboard: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await getStocks('沪深A股', 10);
+        const res = await getStocks(1, 10);
         if (res.success) {
           setTotalStocks(res.total);
           const symbols = res.data.map((s: any) => s.symbol);
