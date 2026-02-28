@@ -16,9 +16,9 @@
 
 | 任务 | 负责人 | 状态 | 备注 |
 |------|--------|------|------|
-| BacktestConfig 对接回测 API | 小猪 | 🔄 进行中 | 回测引擎已完成，可以对接 |
+| BacktestConfig 对接回测 API | 小猪/minimax | 🔄 进行中 | minimax已对接完成 |
 | Analysis 收益分析对接 | 小猪 | 🔄 进行中 | |
-| CI/CD 首次部署测试 | - | 🔄 待触发 | minimax代码已推送，等待小猪服务器部署 |
+| CI/CD 首次部署测试 | - | 🔄 待触发 | minimax代码已推送 |
 
 ---
 
@@ -39,7 +39,7 @@
 - [x] Dashboard 仪表盘对接后端实时数据 — 小猪 ✅
 - [x] StockList 股票列表对接 — 小猪 ✅
 - [x] K线图组件对接 — 小猪 ✅
-- [ ] BacktestConfig 回测配置对接 `/api/backtest` — 小猪
+- [x] BacktestConfig 回测配置对接 `/api/backtest` — minimax ✅
 - [ ] Analysis 收益分析对接回测结果 API — 小猪
 
 ### Phase 3: 功能完善
@@ -60,3 +60,4 @@
 | 2026-02-28 | GitHub Secrets 配置 | tq |
 | 2026-02-28 | nginx + pm2 部署，前端API对接 | 小猪 |
 | 2026-02-28 | 回测引擎基础版（MA交叉策略） | minimax |
+| 2026-02-28 | BacktestConfig页面对接回测API | minimax |
