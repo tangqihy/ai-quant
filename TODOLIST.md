@@ -16,9 +16,7 @@
 
 | 任务 | 负责人 | 状态 | 备注 |
 |------|--------|------|------|
-| BacktestConfig 对接回测 API | 小猪/minimax | 🔄 进行中 | minimax已对接完成 |
-| Analysis 收益分析对接 | 小猪 | ✅ 完成 | |
-| CI/CD 首次部署测试 | - | 🔄 待触发 | minimax代码已推送 |
+| AkShare 网络问题排查 | 小猪 | ⚠️ 阻塞 | 东方财富数据源连接被拒，可能是服务器IP限流 |
 
 ---
 
@@ -32,22 +30,30 @@
 - [x] nginx 反向代理配置（端口3000）— 小猪 ✅
 - [x] pm2 进程管理配置 — 小猪 ✅
 - [ ] 后端 pytest 集成到 CI — 小猪
-- [ ] 首次完整 CI/CD 部署测试 — CI/CD
+- [ ] 首次完整 CI/CD 部署测试 — 待触发
 
 ### Phase 2: 前后端联调
 - [x] 创建前端 API 服务层（axios 封装）— 小猪 ✅
 - [x] Dashboard 仪表盘对接后端实时数据 — 小猪 ✅
 - [x] StockList 股票列表对接 — 小猪 ✅
 - [x] K线图组件对接 — 小猪 ✅
-- [x] BacktestConfig 回测配置对接 `/api/backtest` — minimax ✅
-- [ ] Analysis 收益分析对接回测结果 API — 小猪
+- [x] BacktestConfig 回测配置对接 — minimax ✅
+- [x] Analysis 收益分析对接回测API — 小猪 ✅
 
 ### Phase 3: 功能完善
 - [x] 回测引擎基础版（MA交叉策略）— minimax ✅
+- [x] 修复 backtest_service 日期格式兼容 — 小猪 ✅
 - [ ] 添加后端单元测试（pytest）— minimax
 - [ ] 回测结果存储和查询 — minimax
 - [ ] 图表展示优化 — 小猪
+- [ ] AkShare 网络稳定性优化（重试/缓存）— 待定
 - [ ] README 更新 — 待定
+
+---
+
+## 已知问题 ⚠️
+
+- AkShare 东方财富数据源在服务器上连接不稳定（RemoteDisconnected），可能需要加代理或换数据源
 
 ---
 
@@ -58,6 +64,6 @@
 | 2026-02-28 | 初始化项目 + CI/CD | minimax |
 | 2026-02-28 | 服务器环境搭建 + build 验证 | 小猪 |
 | 2026-02-28 | GitHub Secrets 配置 | tq |
-| 2026-02-28 | nginx + pm2 部署，前端API对接 | 小猪 |
-| 2026-02-28 | 回测引擎基础版（MA交叉策略） | minimax |
-| 2026-02-28 | BacktestConfig页面对接回测API | minimax |
+| 2026-02-28 | nginx + pm2 部署，前端API对接(Dashboard/StockList/KLine) | 小猪 |
+| 2026-02-28 | 回测引擎基础版 + BacktestConfig对接 | minimax |
+| 2026-02-28 | Analysis收益分析对接 + 日期格式bug修复 + dayjs依赖 | 小猪 |
