@@ -44,10 +44,38 @@ export async function getRealtimeQuotes(symbols: string[]) {
   return data;
 }
 
+// 回测结果类型
+export interface BacktestResult {
+  success: boolean;
+  symbol: string;
+  strategy: string;
+  initial_capital: number;
+  final_value: number;
+  total_return: number;
+  annual_return: number;
+  max_drawdown: number;
+  total_trades: number;
+  win_rate: number;
+  trades: any[];
+  daily_values: any[];
+  error?: string;
+}
+
+// 回测配置类型
+export interface BacktestConfig {
+  symbol: string;
+  start_date?: string;
+  end_date?: string;
+  strategy?: string;
+  short_window?: number;
+  long_window?: number;
+  initial_capital?: number;
+}
+
 // 运行回测
-export async function runBacktest(config: Record<string, unknown>) {
+export async function runBacktest(config: BacktestConfig) {
   const { data } = await api.post('/backtest', config);
-  return data;
+  return data as BacktestResult;
 }
 
 // 获取回测结果
