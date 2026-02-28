@@ -6,6 +6,7 @@ from typing import Optional, List, Dict
 from pydantic import BaseModel
 from app.services.stock_service import stock_service
 from app.services.backtest_service import run_backtest
+from app.services.storage_service import backtest_storage
 
 router = APIRouter()
 
@@ -19,6 +20,7 @@ class BacktestRequest(BaseModel):
     short_window: int = 5
     long_window: int = 20
     initial_capital: float = 1000000
+    save_result: bool = True  # 是否保存结果
 
 
 @router.get("/stocks")
@@ -134,10 +136,53 @@ async def run_backtest_api(config: BacktestRequest):
             initial_capital=config.initial_capital
         )
         
+        # 保存结果
+        if config.save_result:
+            task_id = backtest_storage.save_result(result)
+            result['task_id'] = task_id
+        
         return result
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/backtest/{task_id}")
+async def get_backtest_result(task_id: str):
+    """获取回测结果"""
+    result = backtest_storage.get_result(task_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="回测结果不存在")
+    return {
+        "success": True,
+        "data": result
+    }
+
+
+@router.get("/backtest")
+async def list_backtest_results(
+    limit: int = Query(20, description="返回数量"),
+    symbol: Optional[str] = Query(None, description="股票代码过滤")
+):
+    """列出回测历史"""
+    results = backtest_storage.list_results(limit=limit, symbol=symbol)
+    return {
+        "success": True,
+        "data": results,
+        "total": len(results)
+    }
+
+
+@router.delete("/backtest/{task_id}")
+async def delete_backtest_result(task_id: str):
+    """删除回测结果"""
+    success = backtest_storage.delete_result(task_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="回测结果不存在")
+    return {
+        "success": True,
+        "message": "删除成功"
+    }
 
 
 @router.get("/backtest/strategies")
