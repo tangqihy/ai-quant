@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, message, Spin, Tag } from 'antd';
+import { Card, Row, Col, Table, message, Spin, Tag } from 'antd';
 import {
   StockOutlined,
   RiseOutlined,
   FallOutlined,
   ThunderboltOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
+import { motion } from 'framer-motion';
 import { getStocks, getRealtimeQuotes } from '../services/api';
 import RevenueChart from '../components/charts/RevenueChart';
+import { AnimatedCard, PulseIndicator } from '../components/common/AnimatedCard';
+import { StaggerContainer, StaggerItem } from '../components/common/PageTransition';
 
 interface HoldingStock {
   key: string;
@@ -91,81 +95,115 @@ const Dashboard: React.FC = () => {
   const cardStyle = {
     borderRadius: 12,
     boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-    transition: 'all 0.3s ease',
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.5s ease' }}>
-      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <ThunderboltOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* 标题区域 */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}
+      >
+        <motion.div
+          animate={{ rotate: [0, 10, -10, 0] }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
+          <ThunderboltOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+        </motion.div>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>仪表盘概览</h2>
-      </div>
+      </motion.div>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={8}>
-          <Card style={cardStyle} hoverable>
-            <Statistic
-              title={<span style={{ fontSize: 14, color: '#8c8c8c' }}>A股总数</span>}
-              value={totalStocks}
-              prefix={<StockOutlined style={{ color: '#1890ff' }} />}
-              suffix="只"
-              valueStyle={{ fontSize: 32, fontWeight: 700, color: '#1890ff' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card style={cardStyle} hoverable>
-            <Statistic
-              title={<span style={{ fontSize: 14, color: '#8c8c8c' }}>系统状态</span>}
-              value="运行中"
-              valueStyle={{ fontSize: 32, fontWeight: 700, color: '#52c41a' }}
-            />
-            <div style={{ marginTop: 8 }}>
-              <Tag color="success">后端正常</Tag>
-              <Tag color="processing">数据源: 腾讯/东方财富</Tag>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={8}>
-          <Card style={cardStyle} hoverable>
-            <Statistic
-              title={<span style={{ fontSize: 14, color: '#8c8c8c' }}>支持策略</span>}
-              value={3}
-              suffix="种"
-              valueStyle={{ fontSize: 32, fontWeight: 700, color: '#722ed1' }}
-            />
-            <div style={{ marginTop: 8 }}>
-              <Tag color="purple">MA交叉</Tag>
-              <Tag color="purple">RSI</Tag>
-              <Tag color="purple">MACD</Tag>
-            </div>
-          </Card>
-        </Col>
-      </Row>
+      {/* 统计卡片区域 */}
+      <StaggerContainer staggerDelay={0.1}>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={12} lg={8}>
+            <StaggerItem>
+              <AnimatedCard
+                title="A股总数"
+                value={totalStocks}
+                prefix={<StockOutlined style={{ marginRight: 8 }} />}
+                suffix="只"
+                color="#1890ff"
+                delay={0}
+              />
+            </StaggerItem>
+          </Col>
+          <Col xs={24} sm={12} lg={8}>
+            <StaggerItem>
+              <AnimatedCard
+                title="系统状态"
+                value="运行中"
+                prefix={<PulseIndicator color="#52c41a" size={10} />}
+                color="#52c41a"
+                delay={0.1}
+              />
+            </StaggerItem>
+          </Col>
+          <Col xs={24} sm={12} lg={8}>
+            <StaggerItem>
+              <AnimatedCard
+                title="支持策略"
+                value={3}
+                suffix="种"
+                color="#722ed1"
+                delay={0.2}
+              />
+            </StaggerItem>
+          </Col>
+        </Row>
+      </StaggerContainer>
 
+      {/* 图表和表格区域 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} lg={14}>
-          <Card title="收益曲线（示例）" style={{ ...cardStyle, height: 420 }}
-            headStyle={{ fontWeight: 600, borderBottom: '2px solid #f0f0f0' }}>
-            <RevenueChart />
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            whileHover={{ scale: 1.005 }}
+          >
+            <Card 
+              title="收益曲线（示例）" 
+              style={{ ...cardStyle, height: 420 }}
+              headStyle={{ fontWeight: 600, borderBottom: '2px solid #f0f0f0' }}
+            >
+              <RevenueChart />
+            </Card>
+          </motion.div>
         </Col>
         <Col xs={24} lg={10}>
-          <Card title="热门股票" style={{ ...cardStyle, height: 420 }}
-            headStyle={{ fontWeight: 600, borderBottom: '2px solid #f0f0f0' }}>
-            <Spin spinning={loading}>
-              <Table
-                columns={stockColumns}
-                dataSource={topStocks}
-                pagination={false}
-                size="small"
-                scroll={{ y: 300 }}
-              />
-            </Spin>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            whileHover={{ scale: 1.005 }}
+          >
+            <Card 
+              title="热门股票" 
+              style={{ ...cardStyle, height: 420 }}
+              headStyle={{ fontWeight: 600, borderBottom: '2px solid #f0f0f0' }}
+            >
+              <Spin spinning={loading}>
+                <Table
+                  columns={stockColumns}
+                  dataSource={topStocks}
+                  pagination={false}
+                  size="small"
+                  scroll={{ y: 300 }}
+                  rowClassName={() => 'animated-row'}
+                />
+              </Spin>
+            </Card>
+          </motion.div>
         </Col>
       </Row>
-    </div>
+    </motion.div>
   );
 };
 
