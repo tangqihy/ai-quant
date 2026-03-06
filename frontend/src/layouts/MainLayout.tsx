@@ -6,6 +6,7 @@ import {
   StockOutlined,
   ExperimentOutlined,
   LineChartOutlined,
+  StarFilled,
 } from '@ant-design/icons';
 
 const { Header, Sider, Content } = Layout;

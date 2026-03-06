@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Table, Card, Input, Button, Tag, Space, message } from 'antd';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Table, Card, Input, Button, Tag, Space, message, Tooltip } from 'antd';
+import { SearchOutlined, ReloadOutlined, StarOutlined, StarFilled } from '@ant-design/icons';
 import { getStocks, getRealtimeQuotes } from '../services/api';
+import { useWatchlist } from '../hooks/useWatchlist';
+import { AddToWatchlistModal } from '../components/watchlist/AddToWatchlistModal';
 
 interface StockData {
   key: string;

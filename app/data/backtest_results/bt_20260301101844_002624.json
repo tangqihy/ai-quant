@@ -1,0 +1,617 @@
+{
+  "success": true,
+  "symbol": "002624",
+  "strategy": "dual_ma",
+  "initial_capital": 1000000.0,
+  "final_value": 1000000.0,
+  "total_return": 0.0,
+  "annual_return": 0.0,
+  "max_drawdown": 0,
+  "total_trades": 0,
+  "trades": [],
+  "daily_values": [
+    {
+      "date": "2025-08-06",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-07",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-08",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-11",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-12",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-13",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-14",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-15",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-18",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-19",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-20",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-21",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-22",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-25",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-26",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-27",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-28",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-08-29",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-01",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-02",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-03",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-04",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-05",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-08",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-09",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-10",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-11",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-12",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-15",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-16",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-17",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-18",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-19",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-22",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-23",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-24",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-25",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-26",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-29",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-09-30",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-09",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-10",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-13",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-14",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-15",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-16",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-17",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-20",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-21",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-22",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-23",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-24",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-27",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-28",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-29",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-30",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-10-31",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-03",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-04",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-05",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-06",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-07",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-10",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-11",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-12",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-13",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-14",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-17",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-18",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-19",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-20",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-21",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-24",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-25",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-26",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-27",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-11-28",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-01",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-02",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-03",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-04",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-05",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-08",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-09",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-10",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-11",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-12",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-15",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-16",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-17",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-18",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-19",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-22",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-23",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-24",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-25",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-26",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-29",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-30",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-12-31",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    }
+  ],
+  "win_rate": 0,
+  "task_id": "bt_20260301101844_002624",
+  "created_at": "2026-03-01T10:18:44.210409"
+}
