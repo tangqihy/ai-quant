@@ -8,23 +8,41 @@ import {
   LineChartOutlined,
   StarFilled,
 } from '@ant-design/icons';
+import { ThemeToggle } from '../components/common/ThemeToggle';
 
 const { Header, Sider, Content } = Layout;
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  isDark?: boolean;
+  onThemeToggle?: () => void;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ 
+  children, 
+  isDark = false, 
+  onThemeToggle 
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const menuItems = [
     { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
     { key: '/stocks', icon: <StockOutlined />, label: '股票列表' },
+    { key: '/watchlist', icon: <StarFilled />, label: '我的自选' },
     { key: '/backtest', icon: <ExperimentOutlined />, label: '回测配置' },
     { key: '/analysis', icon: <LineChartOutlined />, label: '收益分析' },
   ];
+
+  // 暗色模式样式
+  const siderBg = isDark 
+    ? 'linear-gradient(180deg, #000000 0%, #141414 100%)'
+    : 'linear-gradient(180deg, #001529 0%, #002140 100%)';
+  
+  const headerBg = isDark ? '#1f1f1f' : '#ffffff';
+  const contentBg = isDark ? '#000000' : '#f5f7fa';
+  const textColor = isDark ? '#ffffff' : '#262626';
+  const secondaryTextColor = isDark ? '#a6a6a6' : '#8c8c8c';
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -32,7 +50,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         breakpoint="lg"
         collapsedWidth="0"
         style={{
-          background: 'linear-gradient(180deg, #001529 0%, #002140 100%)',
+          background: siderBg,
           boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
         }}
       >
@@ -75,7 +93,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </Sider>
       <Layout>
         <Header style={{
-          background: '#fff',
+          background: headerBg,
           padding: '0 24px',
           display: 'flex',
           alignItems: 'center',
@@ -83,19 +101,25 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
           zIndex: 1,
         }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#262626' }}>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: textColor }}>
             A股量化交易回测系统
           </h2>
-          <span style={{ color: '#8c8c8c', fontSize: 13 }}>
-            Quantitative Trading System
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ color: secondaryTextColor, fontSize: 13 }}>
+              Quantitative Trading System
+            </span>
+            {onThemeToggle && (
+              <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
+            )}
+          </div>
         </Header>
         <Content style={{
           margin: 16,
           padding: 24,
-          background: '#f5f7fa',
+          background: contentBg,
           minHeight: 280,
           borderRadius: 8,
+          transition: 'background-color 0.3s ease',
         }}>
           {children}
         </Content>
