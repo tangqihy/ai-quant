@@ -1,16 +1,17 @@
 """
-回测引擎服务 - 向量化计算 + 滑点/手续费
+回测引擎服务 - 向量化计算 + 滑点/手续费，策略插件化
 """
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 import json
-import random
+
+from app.strategies import get as get_strategy
 
 
 class BacktestEngine:
-    """简单回测引擎（Pandas 向量化 + 滑点/手续费）"""
+    """简单回测引擎（策略插件 + 滑点/手续费）"""
 
     def __init__(self, initial_capital: float = 1000000):
         self.initial_capital = initial_capital
@@ -30,29 +31,41 @@ class BacktestEngine:
         slippage_bps: int = 5,
         commission_rate: float = 0.0003,
         min_commission: float = 5.0,
+        **strategy_params: Any,
     ) -> Dict:
         """
-        运行回测。使用 Pandas 向量化计算信号，再按日应用交易与滑点/手续费。
-        slippage_bps: 滑点（基点），买入价=close*(1+slippage_bps/10000)，卖出价=close*(1-slippage_bps/10000)
-        commission_rate: 佣金率（按成交金额）
-        min_commission: 最低佣金（元）
+        运行回测。从策略注册表获取策略并生成信号，再按日应用交易与滑点/手续费。
+        strategy: 策略 id（ma_cross, rsi 等）
+        strategy_params: 策略参数（如 period, oversold, overbought 等），与 short_window/long_window 一并传入策略
         """
         if not data:
             return {"error": "No data provided"}
 
+        # 从注册表获取策略
+        strategy_obj = get_strategy(strategy)
+        if strategy_obj is None:
+            return {"error": f"Unknown strategy: {strategy}"}
+
         df = pd.DataFrame(data)
         df = df.sort_values("date").reset_index(drop=True)
 
-        # 向量化计算技术指标
-        if strategy == "ma_cross":
-            df["ma_short"] = df["close"].rolling(window=short_window).mean()
-            df["ma_long"] = df["close"].rolling(window=long_window).mean()
-            # 向量化信号：金叉买入、死叉卖出
-            df["buy_signal"] = (df["ma_short"] > df["ma_long"]) & (df["ma_short"].shift(1) <= df["ma_long"].shift(1))
-            df["sell_signal"] = (df["ma_short"] < df["ma_long"]) & (df["ma_short"].shift(1) >= df["ma_long"].shift(1))
-        else:
+        # 构建策略参数（兼容旧接口 short_window / long_window）
+        params = dict(strategy_params)
+        if "short_window" not in params:
+            params["short_window"] = short_window
+        if "long_window" not in params:
+            params["long_window"] = long_window
+
+        # 由策略生成买卖信号
+        df = strategy_obj.generate_signals(df, **params)
+
+        # 确保信号列存在
+        if "buy_signal" not in df.columns:
             df["buy_signal"] = False
+        if "sell_signal" not in df.columns:
             df["sell_signal"] = False
+        df["buy_signal"] = df["buy_signal"].fillna(False)
+        df["sell_signal"] = df["sell_signal"].fillna(False)
 
         # 滑点：买入价上浮、卖出价下浮（单位：bps）
         df["buy_price"] = df["close"] * (1 + slippage_bps / 10000.0)
@@ -74,35 +87,34 @@ class BacktestEngine:
             buy_price = row["buy_price"]
             sell_price = row["sell_price"]
 
-            if strategy == "ma_cross":
-                if not in_position and row["buy_signal"]:
-                    shares = int(self.capital * 0.95 / buy_price)
-                    if shares > 0:
-                        amount = shares * buy_price
-                        commission = max(amount * commission_rate, min_commission)
-                        self.capital -= amount + commission
-                        self.position = shares
-                        self.trades.append({
-                            "date": date,
-                            "action": "BUY",
-                            "price": round(buy_price, 2),
-                            "shares": shares,
-                            "cost": round(amount + commission, 2),
-                        })
-                        in_position = True
-                elif in_position and row["sell_signal"]:
-                    proceeds = self.position * sell_price
-                    commission = max(proceeds * commission_rate, min_commission)
-                    self.capital += proceeds - commission
+            if not in_position and row["buy_signal"]:
+                shares = int(self.capital * 0.95 / buy_price)
+                if shares > 0:
+                    amount = shares * buy_price
+                    commission = max(amount * commission_rate, min_commission)
+                    self.capital -= amount + commission
+                    self.position = shares
                     self.trades.append({
                         "date": date,
-                        "action": "SELL",
-                        "price": round(sell_price, 2),
-                        "shares": self.position,
-                        "proceeds": round(proceeds - commission, 2),
+                        "action": "BUY",
+                        "price": round(buy_price, 2),
+                        "shares": shares,
+                        "cost": round(amount + commission, 2),
                     })
-                    in_position = False
-                    self.position = 0
+                    in_position = True
+            elif in_position and row["sell_signal"]:
+                proceeds = self.position * sell_price
+                commission = max(proceeds * commission_rate, min_commission)
+                self.capital += proceeds - commission
+                self.trades.append({
+                    "date": date,
+                    "action": "SELL",
+                    "price": round(sell_price, 2),
+                    "shares": self.position,
+                    "proceeds": round(proceeds - commission, 2),
+                })
+                in_position = False
+                self.position = 0
 
             position_value = self.position * close
             total_value = self.capital + position_value
@@ -201,12 +213,14 @@ def run_backtest(
     slippage_bps: int = 5,
     commission_rate: float = 0.0003,
     min_commission: float = 5.0,
+    **strategy_params: Any,
 ) -> Dict:
-    """运行回测的入口函数（含滑点与手续费默认参数）"""
+    """运行回测的入口函数（含滑点与手续费默认参数，支持策略插件及额外策略参数）"""
     engine = BacktestEngine(initial_capital)
     return engine.run(
         symbol, data, strategy, short_window, long_window,
         slippage_bps=slippage_bps,
         commission_rate=commission_rate,
         min_commission=min_commission,
+        **strategy_params,
     )

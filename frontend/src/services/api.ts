@@ -30,6 +30,19 @@ export async function getStockHistory(
   return data;
 }
 
+// K 线 + 叠加指标（MA、布林带等），供 K 线图使用
+export async function getIndicators(
+  symbol: string,
+  indicators: string = 'ma',
+  startDate?: string,
+  endDate?: string
+) {
+  const { data } = await api.get(`/indicators/${symbol}`, {
+    params: { indicators, start_date: startDate, end_date: endDate },
+  });
+  return data;
+}
+
 // 单个股票实时行情
 export async function getRealtimeQuote(symbol: string) {
   const { data } = await api.get(`/stocks/${symbol}/realtime`);

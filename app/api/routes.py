@@ -7,11 +7,13 @@ from pydantic import BaseModel
 from app.services.stock_service import stock_service
 from app.services.backtest_service import run_backtest
 from app.services.storage_service import backtest_storage
+from app.services.indicator_service import indicator_service
+from app.strategies import list_for_api as get_strategies_list
 
 router = APIRouter()
 
 
-# 回测请求模型
+# 回测请求模型（兼容旧字段，策略参数可扩展）
 class BacktestRequest(BaseModel):
     symbol: str
     start_date: Optional[str] = None
@@ -21,6 +23,10 @@ class BacktestRequest(BaseModel):
     long_window: int = 20
     initial_capital: float = 1000000
     save_result: bool = True  # 是否保存结果
+    # RSI 等策略参数（可选）
+    period: Optional[int] = None
+    oversold: Optional[int] = None
+    overbought: Optional[int] = None
 
 
 @router.get("/stocks")
@@ -125,6 +131,61 @@ async def get_realtime_quotes(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/indicators/{symbol}")
+async def get_indicators(
+    symbol: str,
+    start_date: Optional[str] = Query(None, description="开始日期 YYYYMMDD"),
+    end_date: Optional[str] = Query(None, description="结束日期 YYYYMMDD"),
+    indicators: str = Query("ma", description="指标名，逗号分隔，如 ma,boll,rsi,macd"),
+):
+    """
+    获取指定股票的 K 线及叠加指标数据，供 K 线图叠加使用。
+    返回 data 数组中每项为一条 K 线并附带该日各指标值（如 ma5, ma10, ma20, boll_upper 等）。
+    """
+    try:
+        klines = stock_service.get_stock_history(
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date,
+            adjust="qfq",
+        )
+        if not klines:
+            return {"success": True, "symbol": symbol, "data": [], "total": 0}
+        names = [s.strip().lower() for s in indicators.split(",") if s.strip()]
+        if not names:
+            names = ["ma"]
+        # 为每个指标计算序列，并合并到每行
+        result_rows = []
+        for i, row in enumerate(klines):
+            out = dict(row)
+            result_rows.append(out)
+        for ind_name in names:
+            if ind_name not in ("ma", "rsi", "macd", "boll"):
+                continue
+            params = {}
+            if ind_name == "ma":
+                params = {"periods": [5, 10, 20]}
+            elif ind_name == "rsi":
+                params = {"period": 14}
+            elif ind_name == "macd":
+                params = {"fast": 12, "slow": 26, "signal": 9}
+            elif ind_name == "boll":
+                params = {"period": 20, "std_mult": 2.0}
+            ind_result = indicator_service.get_indicator(klines, ind_name, params)
+            for key, values in ind_result.items():
+                for i, v in enumerate(values):
+                    if i < len(result_rows):
+                        result_rows[i][key] = round(v, 4) if v is not None and isinstance(v, (int, float)) else v
+        return {
+            "success": True,
+            "symbol": symbol,
+            "data": result_rows,
+            "total": len(result_rows),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/backtest")
 async def run_backtest_api(config: BacktestRequest):
     """运行回测"""
@@ -144,14 +205,24 @@ async def run_backtest_api(config: BacktestRequest):
             }
             
         # 运行回测
+        strategy_params = {}
+        if config.period is not None:
+            strategy_params["period"] = config.period
+        if config.oversold is not None:
+            strategy_params["oversold"] = config.oversold
+        if config.overbought is not None:
+            strategy_params["overbought"] = config.overbought
         result = run_backtest(
             symbol=config.symbol,
             data=data,
             strategy=config.strategy,
             short_window=config.short_window,
             long_window=config.long_window,
-            initial_capital=config.initial_capital
+            initial_capital=config.initial_capital,
+            **strategy_params,
         )
+        if "error" in result:
+            return {"success": False, "error": result["error"]}
         
         # 保存结果
         if config.save_result:
@@ -166,23 +237,10 @@ async def run_backtest_api(config: BacktestRequest):
 
 @router.get("/backtest/strategies")
 async def get_strategies():
-    """获取可用策略列表"""
+    """获取可用策略列表（从策略注册表动态返回）"""
     return {
         "success": True,
-        "data": [
-            {
-                "id": "ma_cross",
-                "name": "MA交叉策略",
-                "params": ["short_window", "long_window"],
-                "description": "短期均线上穿长期均线买入，下穿卖出"
-            },
-            {
-                "id": "dual_ma",
-                "name": "双MA策略",
-                "params": ["short_window", "long_window"],
-                "description": "经典双均线策略"
-            }
-        ]
+        "data": get_strategies_list(),
     }
 
 
