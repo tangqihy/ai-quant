@@ -15,10 +15,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 import time
 import threading
-import json
 import os
 
 from app.services.kline_store import get as kline_store_get, save as kline_store_save
+from app.services.stock_list_store import (
+    ensure_initialized as stock_list_ensure_initialized,
+    get_page as stock_list_get_page,
+    get_all as stock_list_get_all,
+    get_symbol_name_map as stock_list_get_symbol_name_map,
+)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -97,41 +102,29 @@ class StockService:
         search: Optional[str] = None,
     ) -> Union[List[Dict], Dict]:
         """
-        获取股票列表。支持内存分页，避免一次性加载全部数据到调用方。
+        获取股票列表。优先从本地 SQLite 分页/搜索，避免重复拉取 AkShare。
+        - 首次启动或数据过期时自动从 AkShare 拉取并写入本地（每日最多刷新一次）。
         - 当 page 与 page_size 均为 None 时：返回 List[Dict]（保持原有接口）。
-        - 当 page、page_size 均传入时：返回 {"data": List[Dict], "total": int}，仅包含当前页数据。
-        - search：可选，按代码或名称过滤后再分页。
+        - 当 page、page_size 均传入时：返回 {"data": List[Dict], "total": int}，数据库层分页与搜索。
         """
-        cached = cache.get("stock_list", max_age=86400)
-        if cached is None:
-            local_file = os.path.join(DATA_DIR, "stock_list.json")
-            if os.path.exists(local_file):
-                with open(local_file, "r", encoding="utf-8") as f:
-                    stocks = json.load(f)
-                cached = [{"symbol": s["symbol"], "name": s["name"], "market": market} for s in stocks]
-            else:
-                if ak is None:
-                    cached = []
-                else:
-                    try:
-                        df = retry(lambda: ak.stock_info_a_code_name())
-                        cached = [
-                            {"symbol": row.get("code", ""), "name": row.get("name", ""), "market": market}
-                            for _, row in df.iterrows()
-                        ]
-                    except Exception:
-                        cached = []
-            cache.set("stock_list", cached)
+        def _fetch_from_ak() -> List[Dict]:
+            if ak is None:
+                return []
+            try:
+                df = retry(lambda: ak.stock_info_a_code_name())
+                return [
+                    {"symbol": row.get("code", ""), "name": row.get("name", ""), "market": market}
+                    for _, row in df.iterrows()
+                ]
+            except Exception:
+                return []
 
-        if search:
-            cached = [s for s in cached if search in s.get("symbol", "") or search in s.get("name", "")]
+        stock_list_ensure_initialized(_fetch_from_ak)
 
-        total = len(cached)
         if page is not None and page_size is not None:
-            start = (page - 1) * page_size
-            end = start + page_size
-            return {"data": cached[start:end], "total": total}
-        return cached
+            data, total = stock_list_get_page(page=page, page_size=page_size, search=search, market=market)
+            return {"data": data, "total": total}
+        return stock_list_get_all(market=market)
 
     @staticmethod
     def _normalize_klines_from_api(df, source: str) -> List[Dict]:
@@ -237,8 +230,7 @@ class StockService:
             pass
 
         # 降级：并发用腾讯数据源逐只获取
-        stock_list = StockService.get_stock_list()
-        name_map = {s["symbol"]: s["name"] for s in stock_list}
+        name_map = stock_list_get_symbol_name_map()
 
         results = []
         with ThreadPoolExecutor(max_workers=5) as executor:
