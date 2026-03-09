@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -95,8 +96,10 @@ export const StockDetail: React.FC = () => {
         });
       }
 
-      // 获取K线数据
-      const historyRes = await getStockHistory(symbol, 'daily');
+      // 获取K线数据（最近一年）
+      const endDate = dayjs().format('YYYYMMDD');
+      const startDate = dayjs().subtract(1, 'year').format('YYYYMMDD');
+      const historyRes = await getStockHistory(symbol, startDate, endDate);
       if (historyRes.success) {
         setKlineData(historyRes.data || []);
       }

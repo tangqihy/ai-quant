@@ -4,36 +4,36 @@
 import pytest
 import json
 import os
+import shutil
 from datetime import datetime
 from pathlib import Path
 
-# 必须在导入服务前设置测试环境
-os.environ['TESTING'] = 'true'
-
-from app.services.storage_service import BacktestStorage, STORAGE_DIR
+from app.services import storage_service
+from app.services.storage_service import BacktestStorage
 
 
 class TestBacktestStorage:
     """回测存储服务测试"""
 
     @pytest.fixture(autouse=True)
-    def setup_teardown(self):
-        """测试前后清理"""
-        # 保存原始目录
-        self.original_dir = STORAGE_DIR
+    def setup_teardown(self, monkeypatch):
+        """测试前后清理 - 使用临时目录"""
         # 使用临时测试目录
         self.test_dir = Path(__file__).parent / "test_backtest_results"
+        
+        # 清理并创建测试目录
+        if self.test_dir.exists():
+            shutil.rmtree(self.test_dir)
         self.test_dir.mkdir(exist_ok=True)
 
-        # 清理测试文件
-        for f in self.test_dir.glob("*.json"):
-            f.unlink()
+        # Mock STORAGE_DIR 到测试目录
+        monkeypatch.setattr(storage_service, 'STORAGE_DIR', self.test_dir)
 
         yield
 
-        # 清理
-        for f in self.test_dir.glob("*.json"):
-            f.unlink()
+        # 清理测试目录
+        if self.test_dir.exists():
+            shutil.rmtree(self.test_dir)
 
     def test_save_result(self):
         """测试保存回测结果"""
@@ -53,8 +53,8 @@ class TestBacktestStorage:
         assert task_id.startswith("bt_")
         assert "000001" in task_id
 
-        # 验证文件已创建
-        file_path = STORAGE_DIR / f"{task_id}.json"
+        # 验证文件已创建（使用测试目录）
+        file_path = self.test_dir / f"{task_id}.json"
         assert file_path.exists()
 
         # 验证内容

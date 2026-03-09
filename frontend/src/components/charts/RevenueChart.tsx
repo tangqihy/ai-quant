@@ -1,35 +1,26 @@
 import React from 'react';
 import ReactECharts from 'echarts-for-react';
+import { Empty } from 'antd';
 
-const RevenueChart: React.FC = () => {
-  // 模拟收益数据
-  const dates = [];
-  const baseDate = new Date('2024-01-01');
-  for (let i = 0; i < 365; i++) {
-    const date = new Date(baseDate);
-    date.setDate(date.getDate() + i);
-    dates.push(date.toISOString().slice(0, 10));
+interface RevenueChartProps {
+  dailyValues?: { date: string; value: number }[];
+  taskId?: string;
+}
+
+const RevenueChart: React.FC<RevenueChartProps> = ({ dailyValues }) => {
+  // 如果没有数据，显示空状态
+  if (!dailyValues || dailyValues.length === 0) {
+    return (
+      <Empty
+        description="暂无回测数据"
+        style={{ padding: '40px 0' }}
+      />
+    );
   }
 
-  // 生成模拟的累计收益曲线
-  const generateRevenueData = () => {
-    const data = [];
-    let value = 0;
-    for (let i = 0; i < dates.length; i++) {
-      // 模拟收益率波动
-      const randomReturn = (Math.random() - 0.45) * 3; // 略微偏向正收益
-      value = value + randomReturn;
-      data.push(value);
-    }
-    return data;
-  };
-
-  const revenueData = generateRevenueData();
-  
-  // 基准收益（沪深300）
-  const benchmarkData = revenueData.map((_, i) => {
-    return (Math.random() - 0.48) * 2 + (i * 0.01);
-  });
+  // 使用真实数据
+  const dates = dailyValues.map(d => d.date);
+  const revenueData = dailyValues.map(d => d.value);
 
   const option = {
     tooltip: {
@@ -115,18 +106,6 @@ const RevenueChart: React.FC = () => {
             { type: 'max', name: '最大值' },
             { type: 'min', name: '最小值' },
           ],
-        },
-      },
-      {
-        name: '基准收益 (沪深300)',
-        type: 'line',
-        smooth: true,
-        symbol: 'none',
-        data: benchmarkData,
-        lineStyle: {
-          width: 2,
-          color: '#faad14',
-          type: 'dashed',
         },
       },
     ],

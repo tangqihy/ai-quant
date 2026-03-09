@@ -2,8 +2,19 @@ import React, { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { getStockHistory } from '../../services/api';
 
+interface KLineData {
+  date: string;
+  open: number;
+  close: number;
+  high: number;
+  low: number;
+  volume: number;
+}
+
 interface KLineChartProps {
   symbol?: string;
+  data?: KLineData[];
+  height?: number;
 }
 
 function calcMA(data: number[], period: number) {
@@ -20,13 +31,30 @@ function calcMA(data: number[], period: number) {
   return result;
 }
 
-const KLineChart: React.FC<KLineChartProps> = ({ symbol = '600519' }) => {
+const KLineChart: React.FC<KLineChartProps> = ({ symbol = '600519', data: propData, height = 400 }) => {
   const [dates, setDates] = useState<string[]>([]);
   const [ohlcData, setOhlcData] = useState<number[][]>([]);
   const [volumes, setVolumes] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // 如果提供了 data prop，直接使用
+    if (propData && propData.length > 0) {
+      const d: string[] = [];
+      const ohlc: number[][] = [];
+      const vol: number[] = [];
+      propData.forEach((item: KLineData) => {
+        d.push(item.date);
+        ohlc.push([item.open, item.close, item.low, item.high]);
+        vol.push(item.volume);
+      });
+      setDates(d);
+      setOhlcData(ohlc);
+      setVolumes(vol);
+      return;
+    }
+
+    // 否则通过 symbol 获取数据
     const fetch = async () => {
       setLoading(true);
       try {
@@ -51,7 +79,7 @@ const KLineChart: React.FC<KLineChartProps> = ({ symbol = '600519' }) => {
       }
     };
     fetch();
-  }, [symbol]);
+  }, [symbol, propData]);
 
   const closeData = ohlcData.map((d) => d[1]);
   const ma5 = calcMA(closeData, 5);
@@ -136,11 +164,11 @@ const KLineChart: React.FC<KLineChartProps> = ({ symbol = '600519' }) => {
     ],
   };
 
-  if (loading) {
+  if (loading && !propData) {
     return <div style={{ textAlign: 'center', padding: 40 }}>加载中...</div>;
   }
 
-  return <ReactECharts option={option} style={{ height: '100%', width: '100%' }} />;
+  return <ReactECharts option={option} style={{ height, width: '100%' }} />;
 };
 
 export default KLineChart;
