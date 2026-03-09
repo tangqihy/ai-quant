@@ -1,7 +1,7 @@
 """
 API routes
 """
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 from app.services.stock_service import stock_service
@@ -9,8 +9,9 @@ from app.services.backtest_service import run_backtest
 from app.services.storage_service import backtest_storage
 from app.services.indicator_service import indicator_service
 from app.strategies import list_for_api as get_strategies_list
+from app.api.deps import require_auth
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_auth)])
 
 
 # 回测请求模型（兼容旧字段，策略参数可扩展）

@@ -9,22 +9,41 @@ import BacktestConfig from './pages/BacktestConfig';
 import Analysis from './pages/Analysis';
 import WatchlistManager from './pages/WatchlistManager';
 import StockDetail from './pages/StockDetail';
+import Login from './pages/Login';
 import { PageTransition } from './components/common/PageTransition';
 import { useTheme } from './hooks/useTheme';
+import { getToken } from './services/auth';
+
+const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  if (!getToken()) return <Login />;
+  return <>{children}</>;
+};
 
 // 路由配置
-const AppRoutes: React.FC = () => {
+const AppRoutes: React.FC<{ isDark: boolean; onThemeToggle: () => void }> = ({ isDark, onThemeToggle }) => {
   const location = useLocation();
 
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><Dashboard /></PageTransition>} />
-        <Route path="/stocks" element={<PageTransition><StockList /></PageTransition>} />
-        <Route path="/stocks/:symbol" element={<PageTransition><StockDetail /></PageTransition>} />
-        <Route path="/watchlist" element={<PageTransition><WatchlistManager /></PageTransition>} />
-        <Route path="/backtest" element={<PageTransition><BacktestConfig /></PageTransition>} />
-        <Route path="/analysis" element={<PageTransition><Analysis /></PageTransition>} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/*"
+          element={
+            <RequireAuth>
+              <MainLayout isDark={isDark} onThemeToggle={onThemeToggle}>
+                <Routes location={location} key={`in-${location.pathname}`}>
+                  <Route path="/" element={<PageTransition><Dashboard /></PageTransition>} />
+                  <Route path="/stocks" element={<PageTransition><StockList /></PageTransition>} />
+                  <Route path="/stocks/:symbol" element={<PageTransition><StockDetail /></PageTransition>} />
+                  <Route path="/watchlist" element={<PageTransition><WatchlistManager /></PageTransition>} />
+                  <Route path="/backtest" element={<PageTransition><BacktestConfig /></PageTransition>} />
+                  <Route path="/analysis" element={<PageTransition><Analysis /></PageTransition>} />
+                </Routes>
+              </MainLayout>
+            </RequireAuth>
+          }
+        />
       </Routes>
     </AnimatePresence>
   );
@@ -42,9 +61,7 @@ function App() {
       }}
     >
       <BrowserRouter basename="/quant">
-        <MainLayout isDark={isDark} onThemeToggle={toggleTheme}>
-          <AppRoutes />
-        </MainLayout>
+        <AppRoutes isDark={isDark} onThemeToggle={toggleTheme} />
       </BrowserRouter>
     </ConfigProvider>
   );

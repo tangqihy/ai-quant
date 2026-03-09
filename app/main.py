@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import routes
+from app.api import auth_routes
 
 
 def _preload_stock_list():
@@ -53,7 +54,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 注册路由
+# 注册路由（auth 不鉴权，其余 /api/* 需 token）
+app.include_router(auth_routes.router, prefix="/api/auth", tags=["auth"])
 app.include_router(routes.router, prefix="/api")
 
 

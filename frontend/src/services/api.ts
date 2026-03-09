@@ -1,9 +1,12 @@
 import axios from 'axios';
+import { setupAuthInterceptor } from './auth';
 
 const api = axios.create({
   baseURL: '/quant/api',
   timeout: 30000,
 });
+
+setupAuthInterceptor(api);
 
 // 股票列表（分页）
 export async function getStocks(page = 1, pageSize = 20, search = '') {
@@ -94,6 +97,19 @@ export async function runBacktest(config: BacktestConfig) {
 // 获取回测结果
 export async function getBacktestResult(taskId: string) {
   const { data } = await api.get(`/backtest/${taskId}`);
+  return data;
+}
+
+// ---------- 鉴权 ----------
+export async function loginApi(password: string) {
+  const { data } = await api.post<{ success: boolean; token?: string }>('/auth/login', {
+    password,
+  });
+  return data;
+}
+
+export async function verifyAuthApi() {
+  const { data } = await api.get<{ success: boolean; valid?: boolean }>('/auth/verify');
   return data;
 }
 

@@ -87,6 +87,9 @@ source venv/bin/activate  # Linux/Mac
 # 安装依赖
 pip install -r requirements.txt
 
+# 配置访问密码（可选，未设置则无法登录）
+export QUANT_AUTH_PASSWORD=your_password
+
 # 启动服务
 uvicorn app.main:app --reload --port 8000
 ```
@@ -95,8 +98,12 @@ API文档：http://localhost:8000/docs
 
 ## API 接口
 
+除鉴权接口外，所有 `/api/*` 接口均需在请求头中携带有效 token：`Authorization: Bearer <token>`。
+
 | 接口 | 方法 | 说明 |
 |------|------|------|
+| `/api/auth/login` | POST | 登录，body: `{"password":"xxx"}`，返回 `token` |
+| `/api/auth/verify` | GET | 验证当前 token 是否有效 |
 | `/api/stocks` | GET | 获取股票列表 |
 | `/api/stocks/{symbol}/history` | GET | 获取历史K线 |
 | `/api/quotes/realtime` | GET | 批量实时行情 |
