@@ -179,40 +179,51 @@ class StockService:
                 cache.set(cache_key, local, max_age=600)
                 return local
 
-        # 2）本地无或未覆盖，从 API 拉取并增量更新
+        # 2）本地无或未覆盖，优先从 JoinQuant 拉取（回测用旧数据更合适）
         cache_key = f"history_{symbol}_{start_date}_{end_date}_{adjust}"
         cached = cache.get(cache_key, max_age=600)
         if cached:
             return cached
 
-        if ak is None:
-            return []
-
+        # 优先使用 JoinQuant（历史数据稳定，适合回测）
         try:
-            df = retry(lambda: ak.stock_zh_a_hist(
-                symbol=symbol, period="daily",
-                start_date=start_date, end_date=end_date, adjust=adjust
-            ), retries=1, delay=1)
-            if df is not None and not df.empty:
-                klines = StockService._normalize_klines_from_api(df, "em")
+            klines = jq_service.get_stock_history(symbol, start_date, end_date, adjust)
+            if klines:
                 kline_store_save(symbol, klines, adjust)
                 cache.set(cache_key, klines)
                 return klines
-        except Exception:
-            pass
-
-        try:
-            prefix = "sh" if symbol.startswith("6") else "sz"
-            df = retry(lambda: ak.stock_zh_a_daily(
-                symbol=f"{prefix}{symbol}", start_date=start_date,
-                end_date=end_date, adjust=adjust if adjust else ""
-            ))
-            klines = StockService._normalize_klines_from_api(df, "daily")
-            kline_store_save(symbol, klines, adjust)
-            cache.set(cache_key, klines)
-            return klines
         except Exception as e:
-            raise Exception(f"获取历史K线失败: {str(e)}")
+            logger.warning(f"JoinQuant history failed: {e}")
+
+        # 降级到 AkShare
+        if ak is not None:
+            try:
+                df = retry(lambda: ak.stock_zh_a_hist(
+                    symbol=symbol, period="daily",
+                    start_date=start_date, end_date=end_date, adjust=adjust
+                ), retries=1, delay=1)
+                if df is not None and not df.empty:
+                    klines = StockService._normalize_klines_from_api(df, "em")
+                    kline_store_save(symbol, klines, adjust)
+                    cache.set(cache_key, klines)
+                    return klines
+            except Exception:
+                pass
+
+            try:
+                prefix = "sh" if symbol.startswith("6") else "sz"
+                df = retry(lambda: ak.stock_zh_a_daily(
+                    symbol=f"{prefix}{symbol}", start_date=start_date,
+                    end_date=end_date, adjust=adjust if adjust else ""
+                ))
+                klines = StockService._normalize_klines_from_api(df, "daily")
+                kline_store_save(symbol, klines, adjust)
+                cache.set(cache_key, klines)
+                return klines
+            except Exception as e:
+                raise Exception(f"获取历史K线失败: {str(e)}")
+
+        return []
 
     @staticmethod
     def get_realtime_quotes(symbols: List[str]) -> List[Dict]:
@@ -225,35 +236,8 @@ class StockService:
         if cached:
             return cached
 
-        # 1. 优先使用 JoinQuant (如果配置了)
-        try:
-            jq_results = jq_service.get_realtime_quotes(symbols)
-            if jq_results:
-                logger.info(f"JoinQuant returned {len(jq_results)} quotes")
-                cache.set(cache_key, jq_results)
-                return jq_results
-        except Exception as e:
-            logger.warning(f"JoinQuant failed: {e}")
-
-        # 2. 降级到东方财富
+        # 实时行情只用腾讯数据源（JoinQuant 只有旧数据，不适合实时）
         if ak is not None:
-            try:
-                df = retry(lambda: ak.stock_zh_a_spot_em(), retries=1, delay=1)
-                if df is not None and not df.empty:
-                    cache.set("realtime_all", df)
-                    stocks = df[df["代码"].isin(symbols)]
-                    results = [{"symbol": r.get("代码", ""), "name": r.get("名称", ""),
-                                "price": float(r.get("最新价", 0)), "change_pct": float(r.get("涨跌幅", 0)),
-                                "change_amount": float(r.get("涨跌额", 0)), "open": float(r.get("今开", 0)),
-                                "high": float(r.get("最高", 0)), "low": float(r.get("最低", 0)),
-                                "volume": float(r.get("成交量", 0)), "amount": float(r.get("成交额", 0)),
-                                "turnover": float(r.get("换手率", 0))} for _, r in stocks.iterrows()]
-                    cache.set(cache_key, results)
-                    return results
-            except Exception as e:
-                logger.warning(f"Eastmoney failed: {e}")
-
-        # 3. 最后降级到腾讯数据源
         if ak is not None:
             name_map = stock_list_get_symbol_name_map()
             results = []
