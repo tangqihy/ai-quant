@@ -179,13 +179,13 @@ class StockService:
                 cache.set(cache_key, local, max_age=600)
                 return local
 
-        # 2）本地无或未覆盖，优先从 JoinQuant 拉取（回测用旧数据更合适）
+        # 2）本地无或未覆盖，从 JoinQuant 拉取（只用 JoinQuant 做回测）
         cache_key = f"history_{symbol}_{start_date}_{end_date}_{adjust}"
         cached = cache.get(cache_key, max_age=600)
         if cached:
             return cached
 
-        # 优先使用 JoinQuant（历史数据稳定，适合回测）
+        # 只用 JoinQuant（历史数据稳定，适合回测）
         try:
             klines = jq_service.get_stock_history(symbol, start_date, end_date, adjust)
             if klines:
@@ -194,78 +194,32 @@ class StockService:
                 return klines
         except Exception as e:
             logger.warning(f"JoinQuant history failed: {e}")
-
-        # 降级到 AkShare
-        if ak is not None:
-            try:
-                df = retry(lambda: ak.stock_zh_a_hist(
-                    symbol=symbol, period="daily",
-                    start_date=start_date, end_date=end_date, adjust=adjust
-                ), retries=1, delay=1)
-                if df is not None and not df.empty:
-                    klines = StockService._normalize_klines_from_api(df, "em")
-                    kline_store_save(symbol, klines, adjust)
-                    cache.set(cache_key, klines)
-                    return klines
-            except Exception:
-                pass
-
-            try:
-                prefix = "sh" if symbol.startswith("6") else "sz"
-                df = retry(lambda: ak.stock_zh_a_daily(
-                    symbol=f"{prefix}{symbol}", start_date=start_date,
-                    end_date=end_date, adjust=adjust if adjust else ""
-                ))
-                klines = StockService._normalize_klines_from_api(df, "daily")
-                kline_store_save(symbol, klines, adjust)
-                cache.set(cache_key, klines)
-                return klines
-            except Exception as e:
-                raise Exception(f"获取历史K线失败: {str(e)}")
-
-        return []
+            raise Exception(f"获取历史K线失败: {str(e)}")
 
     @staticmethod
     def get_realtime_quotes(symbols: List[str]) -> List[Dict]:
-        """获取实时行情 - 优先级: JoinQuant > 东方财富 > 腾讯"""
+        """获取实时行情 - 不显示实时行情，返回空数据占位"""
         if not symbols:
             return []
 
-        cache_key = f"quotes_{'_'.join(sorted(symbols[:5]))}"
-        cached = cache.get(cache_key, max_age=120)
-        if cached:
-            return cached
-
-        # 实时行情只用腾讯数据源（JoinQuant 只有旧数据，不适合实时）
-        if ak is not None:
-        if ak is not None:
-            name_map = stock_list_get_symbol_name_map()
-            results = []
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                futures = {executor.submit(_fetch_single_quote, s): s for s in symbols}
-                for future in as_completed(futures):
-                    s = futures[future]
-                    try:
-                        data = future.result()
-                        if data:
-                            data["name"] = name_map.get(s, "")
-                            results.append(data)
-                        else:
-                            results.append({"symbol": s, "name": name_map.get(s, ""), "price": 0,
-                                            "change_pct": 0, "change_amount": 0, "open": 0, "high": 0,
-                                            "low": 0, "volume": 0, "amount": 0, "turnover": 0})
-                    except Exception:
-                        results.append({"symbol": s, "name": name_map.get(s, ""), "price": 0,
-                                        "change_pct": 0, "change_amount": 0, "open": 0, "high": 0,
-                                        "low": 0, "volume": 0, "amount": 0, "turnover": 0})
-
-            # 按原始顺序排序
-            order = {s: i for i, s in enumerate(symbols)}
-            results.sort(key=lambda x: order.get(x["symbol"], 999))
-            cache.set(cache_key, results)
-            return results
-
-        return []
+        # 不获取实时行情，只返回占位数据
+        name_map = stock_list_get_symbol_name_map()
+        results = []
+        for s in symbols:
+            results.append({
+                "symbol": s,
+                "name": name_map.get(s, ""),
+                "price": 0,
+                "change_pct": 0,
+                "change_amount": 0,
+                "open": 0,
+                "high": 0,
+                "low": 0,
+                "volume": 0,
+                "amount": 0,
+                "turnover": 0
+            })
+        return results
 
     @staticmethod
     def get_realtime_quote(symbol: str) -> Dict:
