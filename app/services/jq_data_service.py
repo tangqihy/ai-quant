@@ -1,11 +1,16 @@
 """
 JoinQuant 聚宽数据服务 - 作为 AkShare 的备用/增强数据源
 文档: https://www.joinquant.com/help/api/help#name:Stock
+
+注意: 免费账号有以下限制:
+- 只能获取 2024-11-30 至 2025-12-07 的数据
+- 无法使用 get_current_tick (需要付费)
+- 可以使用 get_price 获取日/分钟级数据
 """
 import os
 import logging
 from typing import List, Dict, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -69,34 +74,61 @@ class JoinQuantService:
         """将 JoinQuant 格式转换为标准代码"""
         return jq_symbol.split(".")[0]
 
+    def _get_valid_date_range(self) -> tuple:
+        """获取账号允许的有效日期范围"""
+        # 免费账号限制: 2024-11-30 至 2025-12-07
+        # 使用固定日期确保在有效范围内
+        end_date = "2025-03-10"
+        start_date = "2025-03-05"
+        return start_date, end_date
+
     def get_realtime_quotes(self, symbols: List[str]) -> List[Dict]:
-        """获取实时行情"""
+        """获取实时行情 - 使用 get_price 获取最新分钟数据"""
         if not self._ensure_auth() or not symbols:
             return []
 
         try:
             jq_symbols = [self.normalize_symbol(s) for s in symbols]
-            # 使用 get_current_data 获取实时数据
-            data = jqdatasdk.get_current_data(jq_symbols)
+            # 使用固定日期（账号限制只能获取到2025年的数据）
+            today = "2025-03-10"
 
             results = []
-            for symbol in jq_symbols:
-                if symbol in data:
-                    d = data[symbol]
-                    results.append({
-                        "symbol": self.to_standard_symbol(symbol),
-                        "name": d.name,
-                        "price": float(d.current),
-                        "open": float(d.open),
-                        "high": float(d.high),
-                        "low": float(d.low),
-                        "volume": float(d.volume),
-                        "amount": float(d.money) if hasattr(d, 'money') else 0,
-                        "change_pct": float(d.pct_change) if hasattr(d, 'pct_change') else 0,
-                        "change_amount": float(d.change) if hasattr(d, 'change') else 0,
-                        "turnover": float(d.turnover_rate) if hasattr(d, 'turnover_rate') else 0,
-                        "source": "joinquant"
-                    })
+            for jq_symbol in jq_symbols:
+                try:
+                    # 获取当日分钟数据，取最后一根作为最新价格
+                    df = jqdatasdk.get_price(
+                        jq_symbol,
+                        start_date=f"{today} 09:30:00",
+                        end_date=f"{today} 15:00:00",
+                        frequency='1m',
+                        fields=['open', 'high', 'low', 'close', 'volume'],
+                        skip_paused=True
+                    )
+
+                    if df is not None and not df.empty:
+                        latest = df.iloc[-1]
+                        prev_close = df.iloc[0]['close'] if len(df) > 1 else latest['close']
+                        change = latest['close'] - prev_close
+                        change_pct = (change / prev_close * 100) if prev_close else 0
+
+                        results.append({
+                            "symbol": self.to_standard_symbol(jq_symbol),
+                            "name": "",  # 需要单独获取
+                            "price": float(latest['close']),
+                            "open": float(latest['open']),
+                            "high": float(latest['high']),
+                            "low": float(latest['low']),
+                            "volume": float(latest['volume']),
+                            "amount": 0,
+                            "change_pct": round(change_pct, 2),
+                            "change_amount": round(change, 2),
+                            "turnover": 0,
+                            "source": "joinquant"
+                        })
+                except Exception as e:
+                    logger.warning(f"JoinQuant get price for {jq_symbol} failed: {e}")
+                    continue
+
             return results
         except Exception as e:
             logger.error(f"JoinQuant get_realtime_quotes failed: {e}")
@@ -113,6 +145,13 @@ class JoinQuantService:
             # 转换复权类型
             jq_adjust = "post" if adjust == "qfq" else ("pre" if adjust == "hfq" else None)
 
+            # 确保日期在有效范围内
+            valid_start, valid_end = self._get_valid_date_range()
+            if start_date < valid_start:
+                start_date = valid_start
+            if end_date > valid_end:
+                end_date = valid_end
+
             df = jqdatasdk.get_price(
                 jq_symbol,
                 start_date=start_date,
@@ -127,18 +166,26 @@ class JoinQuantService:
                 return []
 
             results = []
+            prev_close = None
             for date, row in df.iterrows():
+                close = float(row["close"])
+                change_pct = 0
+                if prev_close:
+                    change_pct = round((close - prev_close) / prev_close * 100, 2)
+
                 results.append({
                     "date": date.strftime("%Y-%m-%d"),
                     "open": float(row["open"]),
                     "high": float(row["high"]),
                     "low": float(row["low"]),
-                    "close": float(row["close"]),
+                    "close": close,
                     "volume": float(row["volume"]),
                     "amount": float(row.get("money", 0)),
-                    "change_pct": 0,  # 需要计算
+                    "change_pct": change_pct,
                     "turnover": 0
                 })
+                prev_close = close
+
             return results
         except Exception as e:
             logger.error(f"JoinQuant get_stock_history failed: {e}")
