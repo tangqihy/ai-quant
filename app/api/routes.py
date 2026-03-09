@@ -30,22 +30,24 @@ async def get_stocks(
     page_size: int = Query(20, description="每页数量", ge=1, le=100),
     search: str = Query("", description="搜索关键词(代码或名称)")
 ):
-    """获取股票列表（分页）"""
+    """获取股票列表（分页，服务端分页避免一次性加载全部）"""
     try:
-        stocks = stock_service.get_stock_list(market=market)
-
-        # 搜索过滤
-        if search:
-            stocks = [s for s in stocks if search in s.get("symbol", "") or search in s.get("name", "")]
-
-        total = len(stocks)
+        result = stock_service.get_stock_list(market=market, page=page, page_size=page_size, search=search or None)
+        if isinstance(result, dict):
+            return {
+                "success": True,
+                "data": result["data"],
+                "total": result["total"],
+                "page": page,
+                "page_size": page_size,
+                "total_pages": (result["total"] + page_size - 1) // page_size
+            }
+        total = len(result)
         start = (page - 1) * page_size
         end = start + page_size
-        page_data = stocks[start:end]
-
         return {
             "success": True,
-            "data": page_data,
+            "data": result[start:end],
             "total": total,
             "page": page,
             "page_size": page_size,

@@ -1,5 +1,5 @@
 """
-股票数据服务 - 本地缓存 + 腾讯数据源降级
+股票数据服务 - 本地缓存 + 腾讯数据源降级 + K线本地库优先
 """
 import warnings
 warnings.filterwarnings('ignore')
@@ -10,13 +10,15 @@ except ImportError:
     ak = None
 
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 import time
 import threading
 import json
 import os
+
+from app.services.kline_store import get as kline_store_get, save as kline_store_save
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -88,77 +90,119 @@ class StockService:
     """股票数据服务"""
 
     @staticmethod
-    def get_stock_list(market: str = "沪深A股") -> List[Dict]:
+    def get_stock_list(
+        market: str = "沪深A股",
+        page: Optional[int] = None,
+        page_size: Optional[int] = None,
+        search: Optional[str] = None,
+    ) -> Union[List[Dict], Dict]:
+        """
+        获取股票列表。支持内存分页，避免一次性加载全部数据到调用方。
+        - 当 page 与 page_size 均为 None 时：返回 List[Dict]（保持原有接口）。
+        - 当 page、page_size 均传入时：返回 {"data": List[Dict], "total": int}，仅包含当前页数据。
+        - search：可选，按代码或名称过滤后再分页。
+        """
         cached = cache.get("stock_list", max_age=86400)
-        if cached:
-            return cached
+        if cached is None:
+            local_file = os.path.join(DATA_DIR, "stock_list.json")
+            if os.path.exists(local_file):
+                with open(local_file, "r", encoding="utf-8") as f:
+                    stocks = json.load(f)
+                cached = [{"symbol": s["symbol"], "name": s["name"], "market": market} for s in stocks]
+            else:
+                if ak is None:
+                    cached = []
+                else:
+                    try:
+                        df = retry(lambda: ak.stock_info_a_code_name())
+                        cached = [
+                            {"symbol": row.get("code", ""), "name": row.get("name", ""), "market": market}
+                            for _, row in df.iterrows()
+                        ]
+                    except Exception:
+                        cached = []
+            cache.set("stock_list", cached)
 
-        # 优先从本地文件加载
-        local_file = os.path.join(DATA_DIR, "stock_list.json")
-        if os.path.exists(local_file):
-            with open(local_file, "r", encoding="utf-8") as f:
-                stocks = json.load(f)
-            result = [{"symbol": s["symbol"], "name": s["name"], "market": market} for s in stocks]
-            cache.set("stock_list", result)
-            return result
+        if search:
+            cached = [s for s in cached if search in s.get("symbol", "") or search in s.get("name", "")]
 
-        # 降级到 AkShare
-        if ak is None:
+        total = len(cached)
+        if page is not None and page_size is not None:
+            start = (page - 1) * page_size
+            end = start + page_size
+            return {"data": cached[start:end], "total": total}
+        return cached
+
+    @staticmethod
+    def _normalize_klines_from_api(df, source: str) -> List[Dict]:
+        """将 API 返回的 DataFrame 统一为 K 线字典列表"""
+        if df is None or df.empty:
             return []
-        try:
-            df = retry(lambda: ak.stock_info_a_code_name())
-            stocks = [{"symbol": row.get("code", ""), "name": row.get("name", ""), "market": market}
-                      for _, row in df.iterrows()]
-            cache.set("stock_list", stocks)
-            return stocks
-        except Exception:
-            return []
+        if source == "em":
+            return [
+                {"date": str(r.get("日期", "")), "open": float(r.get("开盘", 0)), "close": float(r.get("收盘", 0)),
+                 "high": float(r.get("最高", 0)), "low": float(r.get("最低", 0)), "volume": float(r.get("成交量", 0)),
+                 "amount": float(r.get("成交额", 0)), "change_pct": float(r.get("涨跌幅", 0)),
+                 "turnover": float(r.get("换手率", 0))}
+                for _, r in df.iterrows()
+            ]
+        return [
+            {"date": str(r.get("date", "")), "open": float(r.get("open", 0)), "close": float(r.get("close", 0)),
+             "high": float(r.get("high", 0)), "low": float(r.get("low", 0)), "volume": float(r.get("volume", 0)),
+             "amount": float(r.get("amount", 0)), "change_pct": 0,
+             "turnover": round(float(r.get("turnover", 0)) * 100, 2)}
+            for _, r in df.iterrows()
+        ]
 
     @staticmethod
     def get_stock_history(symbol: str, start_date: Optional[str] = None,
                           end_date: Optional[str] = None, adjust: str = "qfq") -> List[Dict]:
-        if ak is None:
-            return []
-
-        cache_key = f"history_{symbol}_{start_date}_{end_date}_{adjust}"
-        cached = cache.get(cache_key, max_age=600)
-        if cached:
-            return cached
-
+        """获取历史 K 线。优先从本地 SQLite 读取；缺失或未覆盖时从 API 拉取并增量写入。"""
         if not end_date:
             end_date = datetime.now().strftime("%Y%m%d")
         if not start_date:
             start_date = (datetime.now() - timedelta(days=365)).strftime("%Y%m%d")
 
-        # 先试东方财富
+        # 1）优先查本地数据库
+        local = kline_store_get(symbol=symbol, start_date=start_date, end_date=end_date, adjust=adjust)
+        if local:
+            first_date = local[0]["date"]
+            last_date = local[-1]["date"]
+            if (not start_date or first_date <= start_date) and (not end_date or last_date >= end_date):
+                cache_key = f"history_{symbol}_{start_date}_{end_date}_{adjust}"
+                cache.set(cache_key, local, max_age=600)
+                return local
+
+        # 2）本地无或未覆盖，从 API 拉取并增量更新
+        cache_key = f"history_{symbol}_{start_date}_{end_date}_{adjust}"
+        cached = cache.get(cache_key, max_age=600)
+        if cached:
+            return cached
+
+        if ak is None:
+            return []
+
         try:
             df = retry(lambda: ak.stock_zh_a_hist(
                 symbol=symbol, period="daily",
                 start_date=start_date, end_date=end_date, adjust=adjust
             ), retries=1, delay=1)
             if df is not None and not df.empty:
-                klines = [{"date": str(r.get("日期", "")), "open": float(r.get("开盘", 0)),
-                           "close": float(r.get("收盘", 0)), "high": float(r.get("最高", 0)),
-                           "low": float(r.get("最低", 0)), "volume": float(r.get("成交量", 0)),
-                           "amount": float(r.get("成交额", 0)), "change_pct": float(r.get("涨跌幅", 0)),
-                           "turnover": float(r.get("换手率", 0))} for _, r in df.iterrows()]
+                klines = StockService._normalize_klines_from_api(df, "em")
+                kline_store_save(symbol, klines, adjust)
                 cache.set(cache_key, klines)
                 return klines
         except Exception:
             pass
 
-        # 降级腾讯
         try:
             prefix = "sh" if symbol.startswith("6") else "sz"
             df = retry(lambda: ak.stock_zh_a_daily(
                 symbol=f"{prefix}{symbol}", start_date=start_date,
                 end_date=end_date, adjust=adjust if adjust else ""
             ))
-            klines = [{"date": str(r.get("date", "")), "open": float(r.get("open", 0)),
-                       "close": float(r.get("close", 0)), "high": float(r.get("high", 0)),
-                       "low": float(r.get("low", 0)), "volume": float(r.get("volume", 0)),
-                       "amount": float(r.get("amount", 0)), "change_pct": 0,
-                       "turnover": round(float(r.get("turnover", 0)) * 100, 2)} for _, r in df.iterrows()]
+            klines = StockService._normalize_klines_from_api(df, "daily")
+            kline_store_save(symbol, klines, adjust)
             cache.set(cache_key, klines)
             return klines
         except Exception as e:
