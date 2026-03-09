@@ -4,12 +4,12 @@ type Theme = 'light' | 'dark';
 
 const THEME_STORAGE_KEY = 'ai-quant-theme-v1';
 
-// 获取系统主题偏好
+// 获取系统主题偏好（富途风格默认深色）
 const getSystemTheme = (): Theme => {
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return 'dark';
   }
-  return 'light';
+  return 'dark'; // 专业交易风格默认深色
 };
 
 // 从 localStorage 读取主题
@@ -98,7 +98,7 @@ export const cssVariables = {
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => {
-    return getStoredTheme() || getSystemTheme();
+    return getStoredTheme() ?? getSystemTheme();
   });
 
   // 应用 CSS 变量

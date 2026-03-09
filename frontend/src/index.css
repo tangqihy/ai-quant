@@ -34,9 +34,24 @@
   transition: all 0.3s ease;
 }
 
-/* 表格行悬浮 */
+/* 表格行悬浮 - 深色主题 */
 .ant-table-tbody > tr:hover > td {
-  background: #f0f5ff !important;
+  background: rgba(24, 144, 255, 0.08) !important;
+}
+
+/* 富途风格表格深色 */
+.futu-table .ant-table,
+.futu-table .ant-table-thead > tr > th {
+  background: #141414 !important;
+  color: rgba(255,255,255,0.85) !important;
+  border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+.futu-table .ant-table-tbody > tr > td {
+  background: #141414 !important;
+  border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+.futu-table .ant-table-tbody > tr:hover > td {
+  background: rgba(24, 144, 255, 0.12) !important;
 }
 
 /* 按钮过渡 */
@@ -72,12 +87,13 @@
   width: 6px;
   height: 6px;
 }
+/* 滚动条美化 - 深色 */
 ::-webkit-scrollbar-thumb {
-  background: #d9d9d9;
+  background: rgba(255,255,255,0.2);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #bfbfbf;
+  background: rgba(255,255,255,0.3);
 }
 
 img {

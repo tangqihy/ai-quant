@@ -12,7 +12,7 @@ import {
   Spin,
   Statistic,
   Typography,
-  Tabs,
+  Modal,
   Empty,
 } from 'antd';
 import {
@@ -61,14 +61,14 @@ export const StockDetail: React.FC = () => {
 
   useEffect(() => {
     if (!symbol) {
-      navigate('/stocks');
+      navigate('/');
       return;
     }
 
-    // 如果不在自选中，提示并跳转
+    // 如果不在自选中，提示并跳转首页
     if (!isInWatchlist(symbol)) {
       message.warning('该股票不在您的自选列表中，请先添加');
-      navigate('/stocks');
+      navigate('/');
       return;
     }
 
@@ -116,10 +116,12 @@ export const StockDetail: React.FC = () => {
     Modal.confirm({
       title: '移除自选',
       content: `确定将 ${quote?.name || symbol} 从自选列表移除吗？`,
+      okText: '确定',
+      cancelText: '取消',
       onOk: () => {
         removeStock(symbol);
         message.success('已移除');
-        navigate('/watchlist');
+        navigate('/');
       },
     });
   };
@@ -137,8 +139,8 @@ export const StockDetail: React.FC = () => {
       <Empty
         description="股票不在自选列表中"
         extra={
-          <Button type="primary" onClick={() => navigate('/stocks')}>
-            去添加自选
+          <Button type="primary" onClick={() => navigate('/')}>
+            返回自选
           </Button>
         }
       />
@@ -279,15 +281,6 @@ export const StockDetail: React.FC = () => {
       )}
     </div>
   );
-};
-
-// 简单的 Modal 确认对话框
-const Modal = {
-  confirm: ({ title, content, onOk }: { title: string; content: string; onOk: () => void }) => {
-    if (window.confirm(`${title}\n${content}`)) {
-      onOk();
-    }
-  },
 };
 
 export default StockDetail;

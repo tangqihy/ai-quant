@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Card, Form, Input, Select, InputNumber, DatePicker, Button, Space, Divider, Row, Col, message, Spin } from 'antd';
-import { PlayCircleOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Select, InputNumber, DatePicker, Button, Space, Divider, Row, Col, message, Spin, Dropdown } from 'antd';
+import { PlayCircleOutlined, SaveOutlined, UndoOutlined, DownOutlined } from '@ant-design/icons';
 import { runBacktest, BacktestResult } from '../services/api';
+import { useWatchlist } from '../hooks/useWatchlist';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -22,6 +23,7 @@ const BacktestConfig: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BacktestResult | null>(null);
+  const { stocks } = useWatchlist();
 
   const onFinish = async (values: any) => {
     console.log('回测配置:', values);
@@ -77,7 +79,7 @@ const BacktestConfig: React.FC = () => {
           layout="vertical"
           onFinish={onFinish}
           initialValues={{
-            stockCode: '600519',
+            stockCode: stocks[0]?.symbol ?? '600519',
             dateRange: [dayjs('20230101'), dayjs('20231231')],
             initialCapital: 1000000,
             strategyType: 'ma_cross',
@@ -89,8 +91,25 @@ const BacktestConfig: React.FC = () => {
             {/* 基础配置 */}
             <Col xs={24} lg={12}>
               <Card title="基础配置" size="small">
-                <Form.Item label="股票代码" name="stockCode" rules={[{ required: true, message: '请输入股票代码' }]}>
-                  <Input placeholder="例如: 600519" />
+                <Form.Item
+                  label="股票代码"
+                  name="stockCode"
+                  rules={[{ required: true, message: '请输入或选择股票代码' }]}
+                >
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input placeholder="例如 600519，或从自选选择" style={{ flex: 1 }} />
+                    <Dropdown
+                      menu={{
+                        items: stocks.map((s) => ({ key: s.symbol, label: `${s.symbol} ${s.name}` })),
+                        onClick: ({ key }) => form.setFieldValue('stockCode', key),
+                      }}
+                      disabled={stocks.length === 0}
+                    >
+                      <Button style={{ minWidth: 90 }}>
+                        从自选 <DownOutlined />
+                      </Button>
+                    </Dropdown>
+                  </Space.Compact>
                 </Form.Item>
                 
                 <Form.Item label="回测时间范围" name="dateRange" rules={[{ required: true, message: '请选择时间范围' }]}>

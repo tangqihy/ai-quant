@@ -302,7 +302,7 @@ export const WatchlistManager: React.FC = () => {
           dataSource={displayedStocks.map(s => ({ ...s, key: s.symbol }))}
           pagination={{ pageSize: 10 }}
           size="small"
-          locale={{ emptyText: '暂无自选股票，去股票列表添加吧' }}
+          locale={{ emptyText: '暂无自选股票，请使用顶部搜索添加' }}
         />
       </Card>
 
