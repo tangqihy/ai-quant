@@ -39,7 +39,7 @@
   background: rgba(24, 144, 255, 0.08) !important;
 }
 
-/* 富途风格表格深色 */
+/* 富途风格表格深色 - A 股红涨绿跌 */
 .futu-table .ant-table,
 .futu-table .ant-table-thead > tr > th {
   background: #141414 !important;
@@ -52,6 +52,46 @@
 }
 .futu-table .ant-table-tbody > tr:hover > td {
   background: rgba(24, 144, 255, 0.12) !important;
+}
+
+/* 自选表紧凑行高 + 悬浮 */
+.futu-table-compact .ant-table-thead > tr > th {
+  padding: 6px 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+.futu-table-compact .ant-table-tbody > tr > td {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+}
+.futu-table-compact .ant-table-tbody > tr {
+  transition: background 0.15s ease;
+}
+.futu-table-compact .ant-table-tbody > tr:hover > td {
+  background: rgba(255,255,255,0.06) !important;
+}
+
+/* 顶部市场 Tab */
+.futu-market-tabs.ant-tabs-small > .ant-tabs-nav .ant-tabs-tab {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+.futu-market-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #1890ff !important;
+  font-weight: 600;
+}
+.futu-market-tabs .ant-tabs-ink-bar {
+  background: #1890ff;
+}
+.futu-market-tabs .ant-tabs-nav::before {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
+/* 底部导航：大屏时左侧留出侧栏宽度 */
+@media (min-width: 992px) {
+  .futu-bottom-nav {
+    left: 200px !important;
+  }
 }
 
 /* 按钮过渡 */

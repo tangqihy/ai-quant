@@ -130,7 +130,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         <Content
           style={{
             margin: 0,
-            padding: 16,
+            padding: '16px 16px 60px',
             background: CONTENT_BG,
             minHeight: 'calc(100vh - 56px)',
             overflow: 'auto',
@@ -139,6 +139,76 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           {children}
         </Content>
       </Layout>
+      {/* 底部导航栏：自选、回测、分析 */}
+      <nav
+        className="futu-bottom-nav"
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 48,
+          background: '#141414',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 32,
+          zIndex: 100,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: location.pathname === '/' ? MENU_SELECTED : 'rgba(255,255,255,0.65)',
+            fontSize: 13,
+            fontWeight: location.pathname === '/' ? 600 : 400,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <StarFilled /> 自选
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/backtest')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: location.pathname === '/backtest' ? MENU_SELECTED : 'rgba(255,255,255,0.65)',
+            fontSize: 13,
+            fontWeight: location.pathname === '/backtest' ? 600 : 400,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <ExperimentOutlined /> 回测
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/analysis')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: location.pathname === '/analysis' ? MENU_SELECTED : 'rgba(255,255,255,0.65)',
+            fontSize: 13,
+            fontWeight: location.pathname === '/analysis' ? 600 : 400,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <LineChartOutlined /> 分析
+        </button>
+      </nav>
     </Layout>
   );
 };
