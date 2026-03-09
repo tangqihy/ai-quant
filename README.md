@@ -118,6 +118,10 @@ API文档：http://localhost:8000/docs
 
 ### 部署到服务器
 
+**重要：** 后端使用 `app` 包结构，必须在项目根目录下并设置 `PYTHONPATH`，否则会报 `ModuleNotFoundError: No module named 'app'`。
+
+推荐使用项目自带的 `ecosystem.config.js` 和 `start.sh`（已正确设置 PYTHONPATH 和 uvicorn）：
+
 ```bash
 # 克隆代码
 git clone git@github.com:tangqihy/ai-quant.git
@@ -129,12 +133,30 @@ pip install -r requirements.txt
 # 安装前端依赖
 cd frontend && pnpm install && pnpm build
 
-# 配置PM2
-pm2 start uvicorn --name quant-backend -- app.main:app --port 8000
+# 使用 ecosystem 启动（start.sh 会设置 PYTHONPATH 并启动 uvicorn）
+pm2 start ecosystem.config.js
 
-# 配置Nginx反向代理
-# 见 nginx.conf
+# 验证接口
+curl http://localhost:8000/health
+curl "http://localhost:8000/api/stocks?page=1&page_size=5"
 ```
+
+**手动启动（开发或调试）：**
+
+```bash
+# 方式一：使用 start.sh（推荐）
+./start.sh
+
+# 方式二：设置 PYTHONPATH 后用 uvicorn
+export PYTHONPATH=/root/.openclaw/workspace/ai-quant   # 或 export PYTHONPATH=$(pwd)
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# 方式三：设置 PYTHONPATH 后直接运行 main.py
+export PYTHONPATH=$(pwd)
+python app/main.py
+```
+
+**若 500 错误：** 查看 `pm2 logs quant-backend`，常见原因：网络/akshare 数据源异常、或依赖未安装。
 
 ### CI/CD 自动部署
 
