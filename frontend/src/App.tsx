@@ -59,7 +59,7 @@ function App() {
         ...antdConfig,
       }}
     >
-      <BrowserRouter basename="/quant">
+      <BrowserRouter>
         <WatchlistProvider>
           <AppRoutes isDark={isDark} onThemeToggle={toggleTheme} />
         </WatchlistProvider>

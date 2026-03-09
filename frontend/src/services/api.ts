@@ -2,7 +2,7 @@ import axios from 'axios';
 import { setupAuthInterceptor } from './auth';
 
 const api = axios.create({
-  baseURL: '/quant/api',
+  baseURL: '/api',
   timeout: 30000,
 });
 
