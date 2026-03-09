@@ -2,7 +2,10 @@
 股票数据服务 - 本地缓存 + 腾讯数据源降级 + K线本地库优先
 """
 import warnings
+import logging
 warnings.filterwarnings('ignore')
+
+logger = logging.getLogger(__name__)
 
 try:
     import akshare as ak
@@ -24,6 +27,7 @@ from app.services.stock_list_store import (
     get_all as stock_list_get_all,
     get_symbol_name_map as stock_list_get_symbol_name_map,
 )
+from app.services.jq_data_service import jq_service
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -47,6 +51,10 @@ class DataCache:
         with self._lock:
             self._cache[key] = (data, time.time())
 
+
+# 股票列表「已初始化」检查缓存：60 秒内不重复调 ensure_initialized，避免每次翻页都走 is_stale()/get_last_updated
+STOCK_LIST_INIT_CACHE_KEY = "stock_list_initialized"
+STOCK_LIST_INIT_CACHE_TTL = 60
 
 cache = DataCache()
 
@@ -111,6 +119,7 @@ class StockService:
             if ak is None:
                 return []
             try:
+                logger.info("stock_list: fetching full list from AkShare (local empty or stale)")
                 df = retry(lambda: ak.stock_info_a_code_name())
                 return [
                     {"symbol": row.get("code", ""), "name": row.get("name", ""), "market": market}
@@ -119,11 +128,15 @@ class StockService:
             except Exception:
                 return []
 
-        stock_list_ensure_initialized(_fetch_from_ak)
-
+        # 分页/搜索请求：仅当缓存未命中时检查并可能拉取 AkShare，避免每次翻页都访问 DB 的 is_stale
         if page is not None and page_size is not None:
+            if cache.get(STOCK_LIST_INIT_CACHE_KEY, max_age=STOCK_LIST_INIT_CACHE_TTL) is None:
+                stock_list_ensure_initialized(_fetch_from_ak)
+                cache.set(STOCK_LIST_INIT_CACHE_KEY, True)
             data, total = stock_list_get_page(page=page, page_size=page_size, search=search, market=market)
+            logger.debug("stock_list: served from SQLite page=%s page_size=%s total=%s", page, page_size, total)
             return {"data": data, "total": total}
+        stock_list_ensure_initialized(_fetch_from_ak)
         return stock_list_get_all(market=market)
 
     @staticmethod
@@ -203,8 +216,8 @@ class StockService:
 
     @staticmethod
     def get_realtime_quotes(symbols: List[str]) -> List[Dict]:
-        """并发获取实时行情（腾讯数据源）"""
-        if ak is None:
+        """获取实时行情 - 优先级: JoinQuant > 东方财富 > 腾讯"""
+        if not symbols:
             return []
 
         cache_key = f"quotes_{'_'.join(sorted(symbols[:5]))}"
@@ -212,50 +225,63 @@ class StockService:
         if cached:
             return cached
 
-        # 先试东方财富全量
+        # 1. 优先使用 JoinQuant (如果配置了)
         try:
-            df = retry(lambda: ak.stock_zh_a_spot_em(), retries=1, delay=1)
-            if df is not None and not df.empty:
-                cache.set("realtime_all", df)
-                stocks = df[df["代码"].isin(symbols)]
-                results = [{"symbol": r.get("代码", ""), "name": r.get("名称", ""),
-                            "price": float(r.get("最新价", 0)), "change_pct": float(r.get("涨跌幅", 0)),
-                            "change_amount": float(r.get("涨跌额", 0)), "open": float(r.get("今开", 0)),
-                            "high": float(r.get("最高", 0)), "low": float(r.get("最低", 0)),
-                            "volume": float(r.get("成交量", 0)), "amount": float(r.get("成交额", 0)),
-                            "turnover": float(r.get("换手率", 0))} for _, r in stocks.iterrows()]
-                cache.set(cache_key, results)
-                return results
-        except Exception:
-            pass
+            jq_results = jq_service.get_realtime_quotes(symbols)
+            if jq_results:
+                logger.info(f"JoinQuant returned {len(jq_results)} quotes")
+                cache.set(cache_key, jq_results)
+                return jq_results
+        except Exception as e:
+            logger.warning(f"JoinQuant failed: {e}")
 
-        # 降级：并发用腾讯数据源逐只获取
-        name_map = stock_list_get_symbol_name_map()
+        # 2. 降级到东方财富
+        if ak is not None:
+            try:
+                df = retry(lambda: ak.stock_zh_a_spot_em(), retries=1, delay=1)
+                if df is not None and not df.empty:
+                    cache.set("realtime_all", df)
+                    stocks = df[df["代码"].isin(symbols)]
+                    results = [{"symbol": r.get("代码", ""), "name": r.get("名称", ""),
+                                "price": float(r.get("最新价", 0)), "change_pct": float(r.get("涨跌幅", 0)),
+                                "change_amount": float(r.get("涨跌额", 0)), "open": float(r.get("今开", 0)),
+                                "high": float(r.get("最高", 0)), "low": float(r.get("最低", 0)),
+                                "volume": float(r.get("成交量", 0)), "amount": float(r.get("成交额", 0)),
+                                "turnover": float(r.get("换手率", 0))} for _, r in stocks.iterrows()]
+                    cache.set(cache_key, results)
+                    return results
+            except Exception as e:
+                logger.warning(f"Eastmoney failed: {e}")
 
-        results = []
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            futures = {executor.submit(_fetch_single_quote, s): s for s in symbols}
-            for future in as_completed(futures):
-                s = futures[future]
-                try:
-                    data = future.result()
-                    if data:
-                        data["name"] = name_map.get(s, "")
-                        results.append(data)
-                    else:
+        # 3. 最后降级到腾讯数据源
+        if ak is not None:
+            name_map = stock_list_get_symbol_name_map()
+            results = []
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                futures = {executor.submit(_fetch_single_quote, s): s for s in symbols}
+                for future in as_completed(futures):
+                    s = futures[future]
+                    try:
+                        data = future.result()
+                        if data:
+                            data["name"] = name_map.get(s, "")
+                            results.append(data)
+                        else:
+                            results.append({"symbol": s, "name": name_map.get(s, ""), "price": 0,
+                                            "change_pct": 0, "change_amount": 0, "open": 0, "high": 0,
+                                            "low": 0, "volume": 0, "amount": 0, "turnover": 0})
+                    except Exception:
                         results.append({"symbol": s, "name": name_map.get(s, ""), "price": 0,
                                         "change_pct": 0, "change_amount": 0, "open": 0, "high": 0,
                                         "low": 0, "volume": 0, "amount": 0, "turnover": 0})
-                except Exception:
-                    results.append({"symbol": s, "name": name_map.get(s, ""), "price": 0,
-                                    "change_pct": 0, "change_amount": 0, "open": 0, "high": 0,
-                                    "low": 0, "volume": 0, "amount": 0, "turnover": 0})
 
-        # 按原始顺序排序
-        order = {s: i for i, s in enumerate(symbols)}
-        results.sort(key=lambda x: order.get(x["symbol"], 999))
-        cache.set(cache_key, results)
-        return results
+            # 按原始顺序排序
+            order = {s: i for i, s in enumerate(symbols)}
+            results.sort(key=lambda x: order.get(x["symbol"], 999))
+            cache.set(cache_key, results)
+            return results
+
+        return []
 
     @staticmethod
     def get_realtime_quote(symbol: str) -> Dict:
