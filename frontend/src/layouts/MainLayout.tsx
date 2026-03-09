@@ -98,15 +98,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         <Header
           style={{
             background: HEADER_BG,
-            padding: '0 20px',
+            padding: '0 12px 0 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: 8,
             borderBottom: '1px solid rgba(255,255,255,0.06)',
             height: 56,
+            minHeight: 56,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
             <SearchBar />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -128,9 +130,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           </div>
         </Header>
         <Content
+          className="futu-content-with-bottom-nav"
           style={{
             margin: 0,
-            padding: '16px 16px 60px',
+            padding: '16px 12px 64px',
             background: CONTENT_BG,
             minHeight: 'calc(100vh - 56px)',
             overflow: 'auto',

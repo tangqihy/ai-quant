@@ -87,10 +87,26 @@
   border-bottom-color: rgba(255,255,255,0.08);
 }
 
-/* 底部导航：大屏时左侧留出侧栏宽度 */
+/* 底部导航：仅小屏显示；大屏有侧边栏则隐藏 */
 @media (min-width: 992px) {
   .futu-bottom-nav {
-    left: 200px !important;
+    display: none !important;
+  }
+}
+@media (max-width: 991px) {
+  .futu-bottom-nav {
+    left: 0 !important;
+  }
+  .search-bar-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .futu-dashboard-sidebar {
+    display: none !important;
+  }
+  /* 小屏内容区底部留出导航高度，避免被遮挡 */
+  .futu-content-with-bottom-nav {
+    padding-bottom: 64px !important;
   }
 }
 

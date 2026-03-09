@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { ConfigProvider, theme as antdTheme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { AnimatePresence } from 'framer-motion';
+import { WatchlistProvider } from './contexts/WatchlistContext';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import BacktestConfig from './pages/BacktestConfig';
@@ -59,7 +60,9 @@ function App() {
       }}
     >
       <BrowserRouter basename="/quant">
-        <AppRoutes isDark={isDark} onThemeToggle={toggleTheme} />
+        <WatchlistProvider>
+          <AppRoutes isDark={isDark} onThemeToggle={toggleTheme} />
+        </WatchlistProvider>
       </BrowserRouter>
     </ConfigProvider>
   );

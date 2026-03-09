@@ -86,7 +86,7 @@ export const SearchBar: React.FC = () => {
   };
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', width: 320, maxWidth: '100%' }}>
+    <div ref={wrapperRef} className="search-bar-wrap" style={{ position: 'relative', width: 320, maxWidth: '100%', minWidth: 0, flex: '1 1 auto' }}>
       <Input
         placeholder="搜索股票代码 / 名称，添加自选"
         prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.45)' }} />}

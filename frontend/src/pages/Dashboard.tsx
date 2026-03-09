@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, Table, Spin, Empty, Button, message, Select, Space, Tabs } from 'antd';
+import { Card, Table, Spin, Empty, Button, message, Select, Space, Tabs, Grid } from 'antd';
 import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getRealtimeQuotes } from '../services/api';
@@ -7,6 +7,8 @@ import { useWatchlist } from '../hooks/useWatchlist';
 import RevenueChart from '../components/charts/RevenueChart';
 import Sparkline from '../components/Sparkline';
 import { formatPrice, formatChangePct, formatChangeAmount, formatVolume } from '../lib/utils';
+
+const { useBreakpoint } = Grid;
 
 interface QuoteRow {
   key: string;
@@ -27,6 +29,8 @@ const COLOR_DOWN = '#00c087';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const { stocks, getStocksByGroup, groups } = useWatchlist();
   const [marketTab, setMarketTab] = useState<'cn' | 'hk' | 'us'>('cn');
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
@@ -197,6 +201,96 @@ const Dashboard: React.FC = () => {
     overflow: 'hidden',
   };
 
+  const renderQuoteList = () => {
+    if (symbols.length === 0) {
+      return (
+        <Empty
+          description="暂无自选股票，请使用顶部搜索添加"
+          style={{ padding: 48 }}
+        >
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/watchlist')}
+          >
+            去分组管理
+          </Button>
+        </Empty>
+      );
+    }
+    if (isMobile) {
+      return (
+        <div className="futu-quote-cards" style={{ padding: 12 }}>
+          {quoteRows.map((row) => {
+            const isUp = row.change_pct >= 0;
+            const color = isUp ? COLOR_UP : COLOR_DOWN;
+            return (
+              <div
+                key={row.key}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/stocks/${row.symbol}`)}
+                onKeyDown={(e) => e.key === 'Enter' && navigate(`/stocks/${row.symbol}`)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 10px',
+                  marginBottom: 8,
+                  background: 'rgba(255,255,255,0.04)',
+                  borderRadius: 8,
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                  <Sparkline
+                    symbol={row.symbol}
+                    days={5}
+                    width={48}
+                    height={24}
+                    isUp={isUp}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500, fontSize: 13 }}>
+                      {row.name || '-'}
+                    </div>
+                    <div style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                      {row.symbol}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontWeight: 600, color, fontSize: 14 }}>
+                    {formatPrice(row.price)}
+                  </div>
+                  <div style={{ fontWeight: 500, color, fontSize: 12 }}>
+                    {formatChangePct(row.change_pct)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    return (
+      <Table
+        columns={columns}
+        dataSource={quoteRows}
+        pagination={false}
+        size="small"
+        scroll={{ y: 420, x: 'max-content' }}
+        onRow={(record) => ({
+          onClick: () => navigate(`/stocks/${record.symbol}`),
+          style: { cursor: 'pointer' },
+        })}
+        style={{ background: '#141414' }}
+        className="futu-table futu-table-compact"
+      />
+    );
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* 顶部市场切换：沪深 / 港股 / 美股，预留扩展 */}
@@ -250,39 +344,12 @@ const Dashboard: React.FC = () => {
           </div>
           <div style={tableWrapStyle}>
             <Spin spinning={loading}>
-              {symbols.length === 0 ? (
-                <Empty
-                  description="暂无自选股票，请使用顶部搜索添加"
-                  style={{ padding: 48 }}
-                >
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => navigate('/watchlist')}
-                  >
-                    去分组管理
-                  </Button>
-                </Empty>
-              ) : (
-                <Table
-                  columns={columns}
-                  dataSource={quoteRows}
-                  pagination={false}
-                  size="small"
-                  scroll={{ y: 420 }}
-                  onRow={(record) => ({
-                    onClick: () => navigate(`/stocks/${record.symbol}`),
-                    style: { cursor: 'pointer' },
-                  })}
-                  style={{ background: '#141414' }}
-                  className="futu-table futu-table-compact"
-                />
-              )}
+              {renderQuoteList()}
             </Spin>
           </div>
         </div>
 
-        <div style={{ width: 400, flexShrink: 0 }}>
+        <div className="futu-dashboard-sidebar" style={{ width: 400, flexShrink: 0 }}>
           <Card
             title="收益曲线（示例）"
             size="small"

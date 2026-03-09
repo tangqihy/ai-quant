@@ -56,11 +56,6 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      
-      if (selectedGroups.length === 0) {
-        message.warning('请至少选择一个分组');
-        return;
-      }
 
       addStock({
         symbol: stockSymbol,
@@ -113,7 +108,7 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
       </div>
 
       <Form form={form} layout="vertical">
-        <Form.Item label="选择分组" required>
+        <Form.Item label="选择分组（可选）">
           {groups.length === 0 ? (
             <Empty description="暂无分组，请先创建" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           ) : (
