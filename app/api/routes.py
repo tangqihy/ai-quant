@@ -281,3 +281,8 @@ async def delete_backtest_result(task_id: str):
         "success": True,
         "message": "删除成功"
     }
+
+
+# 导入并包含模拟交易路由
+from app.api.simulation_routes import router as simulation_router
+router.include_router(simulation_router)

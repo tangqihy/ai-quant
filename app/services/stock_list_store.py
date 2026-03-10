@@ -34,6 +34,7 @@ def _init_db() -> None:
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_stocks_name ON stocks(name)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_stocks_market ON stocks(market)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_stocks_market_symbol ON stocks(market, symbol)")
     conn.commit()
 
 
@@ -166,8 +167,9 @@ def ensure_initialized(fetcher: Callable[[], List[Dict]], force_refresh: bool = 
     """
     若本地无数据或已过期，则调用 fetcher 拉取全量列表并写入本地。
     fetcher 应返回 [{"symbol", "name", "market"}, ...]。
+    仅用 is_stale() 判断（无数据时 get_last_updated() 为 None，is_stale 为 True），避免每次请求全表 get_count()。
     """
-    if force_refresh or get_count() == 0 or is_stale():
+    if force_refresh or is_stale():
         items = fetcher()
         if items:
             save_all(items)

@@ -1,0 +1,380 @@
+{
+  "success": true,
+  "symbol": "000001",
+  "strategy": "ma_cross",
+  "initial_capital": 1000000.0,
+  "final_value": 1006781.42,
+  "total_return": 0.68,
+  "annual_return": 2.84,
+  "max_drawdown": 2.74,
+  "total_trades": 2,
+  "trades": [
+    {
+      "date": "2025-02-10",
+      "action": "BUY",
+      "price": 11.44,
+      "shares": 83073,
+      "cost": 950284.15
+    },
+    {
+      "date": "2025-02-28",
+      "action": "SELL",
+      "price": 11.52,
+      "shares": 83073,
+      "proceeds": 957065.57
+    }
+  ],
+  "daily_values": [
+    {
+      "date": "2024-12-02",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-03",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-04",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-05",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-06",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-09",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-10",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-11",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-12",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-13",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-16",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-17",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-18",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-19",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-20",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-23",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-24",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-25",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-26",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-27",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-30",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2024-12-31",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-02",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-03",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-06",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-07",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-08",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-09",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-10",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-13",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-14",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-15",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-16",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-17",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-20",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-21",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-22",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-23",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-24",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-01-27",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-02-05",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-02-06",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-02-07",
+      "value": 1000000.0,
+      "capital": 1000000.0,
+      "position_value": 0.0
+    },
+    {
+      "date": "2025-02-10",
+      "value": 999240.2380593417,
+      "capital": 49715.84805934166,
+      "position_value": 949524.39
+    },
+    {
+      "date": "2025-02-11",
+      "value": 998409.5080593417,
+      "capital": 49715.84805934166,
+      "position_value": 948693.66
+    },
+    {
+      "date": "2025-02-12",
+      "value": 998409.5080593417,
+      "capital": 49715.84805934166,
+      "position_value": 948693.66
+    },
+    {
+      "date": "2025-02-13",
+      "value": 1005055.3480593417,
+      "capital": 49715.84805934166,
+      "position_value": 955339.5
+    },
+    {
+      "date": "2025-02-14",
+      "value": 1009208.9980593417,
+      "capital": 49715.84805934166,
+      "position_value": 959493.15
+    },
+    {
+      "date": "2025-02-17",
+      "value": 1028315.7880593416,
+      "capital": 49715.84805934166,
+      "position_value": 978599.94
+    },
+    {
+      "date": "2025-02-18",
+      "value": 1030807.9780593417,
+      "capital": 49715.84805934166,
+      "position_value": 981092.13
+    },
+    {
+      "date": "2025-02-19",
+      "value": 1022500.6780593417,
+      "capital": 49715.84805934166,
+      "position_value": 972784.8300000001
+    },
+    {
+      "date": "2025-02-20",
+      "value": 1018347.0280593417,
+      "capital": 49715.84805934166,
+      "position_value": 968631.18
+    },
+    {
+      "date": "2025-02-21",
+      "value": 1016685.5680593417,
+      "capital": 49715.84805934166,
+      "position_value": 966969.7200000001
+    },
+    {
+      "date": "2025-02-24",
+      "value": 1012531.9180593416,
+      "capital": 49715.84805934166,
+      "position_value": 962816.07
+    },
+    {
+      "date": "2025-02-25",
+      "value": 1002563.1580593417,
+      "capital": 49715.84805934166,
+      "position_value": 952847.31
+    },
+    {
+      "date": "2025-02-26",
+      "value": 1006716.8080593416,
+      "capital": 49715.84805934166,
+      "position_value": 957000.96
+    },
+    {
+      "date": "2025-02-27",
+      "value": 1015024.1080593416,
+      "capital": 49715.84805934166,
+      "position_value": 965308.2599999999
+    },
+    {
+      "date": "2025-02-28",
+      "value": 1007547.5380593416,
+      "capital": 49715.84805934166,
+      "position_value": 957831.69
+    }
+  ],
+  "win_rate": 100.0,
+  "task_id": "bt_20260310094626_000001",
+  "created_at": "2026-03-10T09:46:26.703068"
+}

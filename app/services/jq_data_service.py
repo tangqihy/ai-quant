@@ -77,10 +77,37 @@ class JoinQuantService:
     def _get_valid_date_range(self) -> tuple:
         """获取账号允许的有效日期范围"""
         # 免费账号限制: 2024-11-30 至 2025-12-07
-        # 使用固定日期确保在有效范围内
-        end_date = "2025-03-10"
-        start_date = "2025-03-05"
-        return start_date, end_date
+        # 使用 YYYYMMDD 格式统一
+        return "20241130", "20251207"
+
+    def _normalize_date(self, date_str: str) -> str:
+        """将日期统一转换为 YYYYMMDD 格式"""
+        if not date_str:
+            return date_str
+        # 移除横线
+        return date_str.replace("-", "")
+
+    def _clamp_date_range(self, start_date: str, end_date: str) -> tuple:
+        """将请求的日期范围限制在账号允许的范围内"""
+        valid_start, valid_end = self._get_valid_date_range()
+
+        # 统一日期格式
+        norm_start = self._normalize_date(start_date)
+        norm_end = self._normalize_date(end_date)
+
+        # 如果请求范围完全在有效范围外，返回 None 表示无法获取数据
+        if norm_end < valid_start or norm_start > valid_end:
+            logger.warning(f"Requested date range [{start_date}, {end_date}] is outside valid range [{valid_start}, {valid_end}]")
+            return None, None
+
+        # 限制在有效范围内
+        clamped_start = max(norm_start, valid_start)
+        clamped_end = min(norm_end, valid_end)
+
+        if clamped_start != norm_start or clamped_end != norm_end:
+            logger.info(f"Date range adjusted: [{start_date}, {end_date}] -> [{clamped_start}, {clamped_end}]")
+
+        return clamped_start, clamped_end
 
     def get_realtime_quotes(self, symbols: List[str]) -> List[Dict]:
         """获取实时行情 - 使用 get_price 获取最新分钟数据"""
@@ -146,11 +173,10 @@ class JoinQuantService:
             jq_adjust = "post" if adjust == "qfq" else ("pre" if adjust == "hfq" else None)
 
             # 确保日期在有效范围内
-            valid_start, valid_end = self._get_valid_date_range()
-            if start_date < valid_start:
-                start_date = valid_start
-            if end_date > valid_end:
-                end_date = valid_end
+            start_date, end_date = self._clamp_date_range(start_date, end_date)
+            if start_date is None or end_date is None:
+                logger.warning(f"Date range outside valid range for {symbol}")
+                return []
 
             df = jqdatasdk.get_price(
                 jq_symbol,

@@ -80,7 +80,7 @@ const BacktestConfig: React.FC = () => {
           onFinish={onFinish}
           initialValues={{
             stockCode: stocks[0]?.symbol ?? '600519',
-            dateRange: [dayjs('20230101'), dayjs('20231231')],
+            dateRange: [dayjs('20241201'), dayjs('20250228')],
             initialCapital: 1000000,
             strategyType: 'ma_cross',
             shortWindow: 5,
