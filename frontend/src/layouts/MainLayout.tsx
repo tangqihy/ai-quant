@@ -12,6 +12,7 @@ import {
 } from '@ant-design/icons';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { SearchBar } from '../components/SearchBar';
+import { VersionDisplay } from '../components/common/VersionDisplay';
 
 const { Header, Sider, Content } = Layout;
 
@@ -215,6 +216,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         >
           <LineChartOutlined /> 分析
         </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+          <VersionDisplay />
+        </div>
       </nav>
     </Layout>
   );

@@ -10,6 +10,7 @@ from app.services.storage_service import backtest_storage
 from app.services.indicator_service import indicator_service
 from app.strategies import list_for_api as get_strategies_list
 from app.api.deps import require_auth
+from app.core.version import get_build_info
 
 router = APIRouter(dependencies=[Depends(require_auth)])
 
@@ -294,3 +295,14 @@ router.include_router(risk_router)
 # 导入并包含自选路由
 from app.api.watchlist_routes import router as watchlist_router
 router.include_router(watchlist_router)
+
+
+# ==================== 版本号 ====================
+
+@router.get("/version")
+async def get_version():
+    """获取后端版本号"""
+    return {
+        "success": True,
+        "data": get_build_info()
+    }
