@@ -14,8 +14,8 @@ import {
   deleteWatchlistGroup,
   addWatchlistStock,
   removeWatchlistStock,
-  updateStockGroups,
-  updateStockNote,
+  updateStockGroups as updateStockGroupsApi,
+  updateStockNote as updateStockNoteApi,
 } from '../services/watchlistApi';
 import { message } from 'antd';
 
@@ -202,7 +202,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // 更新股票分组
   const updateStockGroups = useCallback(async (symbol: string, groupIds: string[]) => {
     try {
-      await updateStockGroups(symbol, groupIds);
+      await updateStockGroupsApi(symbol, groupIds);
       setData(prev => ({
         ...prev,
         stocks: prev.stocks.map(s =>
@@ -217,7 +217,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // 更新股票备注
   const updateStockNote = useCallback(async (symbol: string, note: string) => {
     try {
-      await updateStockNote(symbol, note);
+      await updateStockNoteApi(symbol, note);
       setData(prev => ({
         ...prev,
         stocks: prev.stocks.map(s =>
