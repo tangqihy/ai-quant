@@ -98,20 +98,18 @@ const BacktestConfig: React.FC = () => {
                 >
                   <Space.Compact style={{ width: '100%' }}>
                     <Input placeholder="例如 600519，或从自选选择" style={{ flex: 1 }} />
+                    <Dropdown
+                      menu={{
+                        items: stocks.map((s) => ({ key: s.symbol, label: `${s.symbol} ${s.name}` })),
+                        onClick: ({ key }) => form.setFieldValue('stockCode', key),
+                      }}
+                      disabled={stocks.length === 0}
+                    >
+                      <Button>
+                        从自选 <DownOutlined />
+                      </Button>
+                    </Dropdown>
                   </Space.Compact>
-                </Form.Item>
-                <Form.Item noStyle>
-                  <Dropdown
-                    menu={{
-                      items: stocks.map((s) => ({ key: s.symbol, label: `${s.symbol} ${s.name}` })),
-                      onClick: ({ key }) => form.setFieldValue('stockCode', key),
-                    }}
-                    disabled={stocks.length === 0}
-                  >
-                    <Button style={{ minWidth: 90, marginTop: -8, marginBottom: 16 }}>
-                      从自选 <DownOutlined />
-                    </Button>
-                  </Dropdown>
                 </Form.Item>
                 
                 <Form.Item label="回测时间范围" name="dateRange" rules={[{ required: true, message: '请选择时间范围' }]}>

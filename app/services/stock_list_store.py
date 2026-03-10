@@ -7,6 +7,14 @@ import threading
 from datetime import datetime, timezone, date
 from typing import List, Dict, Optional, Tuple, Callable
 
+try:
+    from pypinyin import lazy_pinyin, Style
+    PYPINYIN_AVAILABLE = True
+except ImportError:
+    PYPINYIN_AVAILABLE = False
+    lazy_pinyin = None
+    Style = None
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DB_PATH = os.path.join(DATA_DIR, "stock_list.db")
@@ -64,6 +72,54 @@ def get_count(search: Optional[str] = None) -> int:
     return int(row["c"]) if row else 0
 
 
+def _get_pinyin_initials(name: str) -> str:
+    """获取股票名称的拼音首字母"""
+    if not PYPINYIN_AVAILABLE or not name:
+        return ""
+    try:
+        # 获取拼音首字母
+        initials = lazy_pinyin(name, style=Style.FIRST_LETTER)
+        return ''.join(initials).lower()
+    except Exception:
+        return ""
+
+def _get_pinyin_full(name: str) -> str:
+    """获取股票名称的完整拼音"""
+    if not PYPINYIN_AVAILABLE or not name:
+        return ""
+    try:
+        pinyin_list = lazy_pinyin(name)
+        return ''.join(pinyin_list).lower()
+    except Exception:
+        return ""
+
+def _matches_search(stock: Dict, search_term: str) -> bool:
+    """检查股票是否匹配搜索词（支持代码、名称、拼音首字母、完整拼音）"""
+    term = search_term.lower().strip()
+    if not term:
+        return True
+
+    symbol = stock.get("symbol", "").lower()
+    name = stock.get("name", "").lower()
+
+    # 直接匹配代码或名称
+    if term in symbol or term in name:
+        return True
+
+    # 拼音匹配（如果 pypinyin 可用）
+    if PYPINYIN_AVAILABLE:
+        # 首字母匹配（如：gzmt -> 贵州茅台）
+        pinyin_initials = _get_pinyin_initials(name)
+        if term in pinyin_initials:
+            return True
+
+        # 完整拼音匹配（如：guizhoumaotai -> 贵州茅台）
+        pinyin_full = _get_pinyin_full(name)
+        if term in pinyin_full:
+            return True
+
+    return False
+
 def get_page(
     page: int = 1,
     page_size: int = 20,
@@ -71,10 +127,38 @@ def get_page(
     market: Optional[str] = None,
 ) -> Tuple[List[Dict], int]:
     """
-    分页查询，搜索在数据库层完成。
+    分页查询，搜索支持代码、名称、拼音首字母、完整拼音。
     返回 (当前页列表, 总条数)。每项为 {"symbol", "name", "market"}。
     """
     conn = _get_conn()
+
+    # 如果有搜索词且支持拼音，需要在 Python 层过滤
+    if search and search.strip() and PYPINYIN_AVAILABLE:
+        # 先获取所有数据（不分页）
+        if market and market.strip():
+            rows = conn.execute(
+                "SELECT symbol, name, market FROM stocks WHERE market = ? ORDER BY symbol",
+                (market.strip(),),
+            ).fetchall()
+        else:
+            rows = conn.execute("SELECT symbol, name, market FROM stocks ORDER BY symbol").fetchall()
+
+        # 在 Python 层进行拼音匹配
+        all_data = [
+            {"symbol": str(r["symbol"]), "name": str(r["name"] or ""), "market": str(r["market"] or "")}
+            for r in rows
+        ]
+
+        # 过滤匹配的股票
+        filtered_data = [s for s in all_data if _matches_search(s, search)]
+        total = len(filtered_data)
+
+        # 分页
+        offset = (page - 1) * page_size
+        data = filtered_data[offset:offset + page_size]
+        return data, total
+
+    # 普通搜索（数据库层 LIKE）
     params: list = []
     conditions: List[str] = []
     if search and search.strip():
