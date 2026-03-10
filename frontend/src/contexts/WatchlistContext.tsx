@@ -90,10 +90,11 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, []);
 
-  // 初始加载
+  // 初始加载 - 只在组件挂载时执行一次
   useEffect(() => {
     loadFromServer();
-  }, [loadFromServer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 创建分组
   const createGroup = useCallback(async (params: CreateGroupParams): Promise<WatchlistGroup | null> => {
