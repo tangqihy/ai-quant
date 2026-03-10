@@ -42,6 +42,7 @@ export interface WatchlistContextValue {
   updateStockGroups: (symbol: string, groupIds: string[]) => Promise<void>;
   updateStockNote: (symbol: string, note: string) => Promise<void>;
   isInWatchlist: (symbol: string) => boolean;
+  getStocksByGroup: (groupId: string) => WatchlistItem[];
   refresh: () => Promise<void>;
 }
 
@@ -234,6 +235,14 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return data.stocks.some(s => s.symbol === symbol);
   }, [data.stocks]);
 
+  // 根据分组获取股票
+  const getStocksByGroup = useCallback((groupId: string) => {
+    if (groupId === 'all') {
+      return data.stocks;
+    }
+    return data.stocks.filter(s => s.groupIds.includes(groupId));
+  }, [data.stocks]);
+
   // 刷新数据
   const refresh = useCallback(async () => {
     await loadFromServer();
@@ -253,9 +262,10 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       updateStockGroups,
       updateStockNote,
       isInWatchlist,
+      getStocksByGroup,
       refresh,
     }),
-    [data, isLoaded, isLoading, createGroup, deleteGroup, renameGroup, addStock, removeStock, updateStockGroups, updateStockNote, isInWatchlist, refresh]
+    [data, isLoaded, isLoading, createGroup, deleteGroup, renameGroup, addStock, removeStock, updateStockGroups, updateStockNote, isInWatchlist, getStocksByGroup, refresh]
   );
 
   return <WatchlistContext.Provider value={value}>{children}</WatchlistContext.Provider>;
