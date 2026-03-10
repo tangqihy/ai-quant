@@ -100,8 +100,14 @@ const BacktestConfig: React.FC = () => {
                     <Input placeholder="例如 600519，或从自选选择" style={{ flex: 1 }} />
                     <Dropdown
                       menu={{
-                        items: stocks.map((s) => ({ key: s.symbol, label: `${s.symbol} ${s.name}` })),
-                        onClick: ({ key }) => form.setFieldValue('stockCode', key),
+                        items: stocks.map((s) => ({ 
+                          key: s.symbol, 
+                          label: `${s.symbol} ${s.name}`,
+                          onClick: () => {
+                            console.log('Selected stock:', s.symbol);
+                            form.setFieldValue('stockCode', s.symbol);
+                          }
+                        })),
                       }}
                       disabled={stocks.length === 0}
                     >

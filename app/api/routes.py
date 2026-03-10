@@ -290,3 +290,7 @@ router.include_router(simulation_router)
 # 导入并包含风控路由
 from app.api.risk_routes import router as risk_router
 router.include_router(risk_router)
+
+# 导入并包含自选路由
+from app.api.watchlist_routes import router as watchlist_router
+router.include_router(watchlist_router)
