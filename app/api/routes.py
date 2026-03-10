@@ -286,3 +286,7 @@ async def delete_backtest_result(task_id: str):
 # 导入并包含模拟交易路由
 from app.api.simulation_routes import router as simulation_router
 router.include_router(simulation_router)
+
+# 导入并包含风控路由
+from app.api.risk_routes import router as risk_router
+router.include_router(risk_router)
