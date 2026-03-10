@@ -266,7 +266,8 @@ class RiskService:
         total_rule = self._state.rules.get("position_total_limit")
         if total_rule and total_rule.enabled:
             max_total_pct = total_rule.params.get("max_total_position_pct", 80.0)
-            total_value = sum(p.quantity * price for p in positions.values())
+            # 使用各持仓的实际成本价计算市值
+            total_value = sum(p.quantity * p.avg_cost for p in positions.values())
             new_total = total_value + quantity * price
             total_pct = (new_total / account_value) * 100 if account_value > 0 else 0
 
@@ -293,8 +294,12 @@ class RiskService:
         quote = stock_service.get_realtime_quote(symbol)
         current_price = quote.get("price", 0) if quote else 0
 
-        stop_loss_price = current_price * (1 - stop_loss_pct / 100) if current_price > 0 else 0
-        stop_profit_price = current_price * (1 + stop_profit_pct / 100) if stop_profit_pct and current_price > 0 else None
+        # 如果无法获取价格，拒绝设置止损止盈
+        if current_price <= 0:
+            raise ValueError(f"无法获取 {symbol} 的当前价格，无法设置止损止盈")
+
+        stop_loss_price = current_price * (1 - stop_loss_pct / 100)
+        stop_profit_price = current_price * (1 + stop_profit_pct / 100) if stop_profit_pct else None
 
         config = StopLossConfig(
             symbol=symbol,
@@ -409,7 +414,14 @@ class RiskService:
 
     def is_blacklisted(self, symbol: str) -> bool:
         """检查是否在黑名单"""
-        return symbol in self._state.blacklist
+        item = self._state.blacklist.get(symbol)
+        if not item:
+            return False
+        # 检查是否过期
+        if item.expires_at and item.expires_at < datetime.now():
+            del self._state.blacklist[symbol]
+            return False
+        return True
 
     # ==================== 告警管理 ====================
 

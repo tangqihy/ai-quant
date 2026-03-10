@@ -2,13 +2,14 @@
 风控 API 路由
 """
 from typing import Optional, List
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
 from app.models.risk import RiskRule, RiskAlert, StopLossConfig, BlacklistItem
 from app.services.risk_service import risk_service
+from app.api.deps import require_auth
 
-router = APIRouter(prefix="/risk", tags=["风控"])
+router = APIRouter(prefix="/risk", tags=["风控"], dependencies=[Depends(require_auth)])
 
 
 # ==================== 规则管理 ====================

@@ -76,12 +76,12 @@ export const setStopLoss = (data: {
 
 // 获取止损止盈配置
 export const getStopLoss = (symbol: string) => {
-  return request.get(`/risk/stop-loss/${symbol}`);
+  return request.get(`/risk/stop-loss/${encodeURIComponent(symbol)}`);
 };
 
 // 删除止损止盈
 export const removeStopLoss = (symbol: string) => {
-  return request.delete(`/risk/stop-loss/${symbol}`);
+  return request.delete(`/risk/stop-loss/${encodeURIComponent(symbol)}`);
 };
 
 // 添加到黑名单
