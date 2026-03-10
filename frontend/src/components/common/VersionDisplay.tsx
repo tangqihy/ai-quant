@@ -66,4 +66,4 @@ export const VersionDisplay: React.FC = () => {
   );
 };
 
-export default VersionDisplay;
+
