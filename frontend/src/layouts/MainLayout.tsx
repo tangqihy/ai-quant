@@ -6,6 +6,7 @@ import {
   FolderOutlined,
   ExperimentOutlined,
   LineChartOutlined,
+  DollarOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { ThemeToggle } from '../components/common/ThemeToggle';
@@ -38,6 +39,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     { key: '/watchlist', icon: <FolderOutlined />, label: '分组管理' },
     { key: '/backtest', icon: <ExperimentOutlined />, label: '回测' },
     { key: '/analysis', icon: <LineChartOutlined />, label: '分析' },
+    { key: '/simulation', icon: <DollarOutlined />, label: '模拟交易' },
   ];
 
   const selectedKey = location.pathname === '/' ? '/' : location.pathname;

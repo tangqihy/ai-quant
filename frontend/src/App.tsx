@@ -9,6 +9,7 @@ import BacktestConfig from './pages/BacktestConfig';
 import Analysis from './pages/Analysis';
 import WatchlistManager from './pages/WatchlistManager';
 import StockDetail from './pages/StockDetail';
+import SimulationTrading from './pages/SimulationTrading';
 import Login from './pages/Login';
 import { PageTransition } from './components/common/PageTransition';
 import { useTheme } from './hooks/useTheme';
@@ -38,6 +39,7 @@ const AppRoutes: React.FC<{ isDark: boolean; onThemeToggle: () => void }> = ({ i
                   <Route path="/watchlist" element={<PageTransition><WatchlistManager /></PageTransition>} />
                   <Route path="/backtest" element={<PageTransition><BacktestConfig /></PageTransition>} />
                   <Route path="/analysis" element={<PageTransition><Analysis /></PageTransition>} />
+                  <Route path="/simulation" element={<PageTransition><SimulationTrading /></PageTransition>} />
                 </Routes>
               </MainLayout>
             </RequireAuth>
