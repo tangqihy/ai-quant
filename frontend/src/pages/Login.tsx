@@ -39,22 +39,25 @@ const Login: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+        background: '#000000',
         padding: 24,
+        fontFamily: "'JetBrains Mono', monospace",
       }}
     >
       <Card
         style={{
           width: '100%',
           maxWidth: 400,
-          borderRadius: 12,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          borderRadius: 4,
+          border: '1px solid rgba(0, 255, 65, 0.25)',
+          boxShadow: '0 0 24px rgba(0, 255, 65, 0.15)',
+          background: '#0a0a0a',
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <LineChartOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 12 }} />
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>AI 量化系统</h1>
-          <p style={{ margin: '8px 0 0', color: '#8c8c8c', fontSize: 14 }}>请输入访问密码</p>
+          <LineChartOutlined style={{ fontSize: 48, color: '#00ff41', marginBottom: 12, textShadow: '0 0 12px rgba(0, 255, 65, 0.5)' }} />
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#00ff41' }}>AI 量化系统</h1>
+          <p style={{ margin: '8px 0 0', color: 'rgba(0, 255, 65, 0.6)', fontSize: 14 }}>请输入访问密码</p>
         </div>
         <Form
           name="login"

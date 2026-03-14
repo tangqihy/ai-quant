@@ -42,14 +42,17 @@ const Analysis: React.FC = () => {
         xAxis: {
           type: 'category',
           data: result.daily_values.map((d: any) => d.date),
-          axisLabel: { color: '#666' },
+          axisLabel: { color: 'rgba(0, 255, 65, 0.6)' },
+          axisLine: { lineStyle: { color: 'rgba(0, 255, 65, 0.4)' } },
         },
         yAxis: {
           type: 'value',
           axisLabel: {
-            color: '#666',
+            color: 'rgba(0, 255, 65, 0.6)',
             formatter: (v: number) => (v / 10000).toFixed(0) + '万',
           },
+          axisLine: { lineStyle: { color: 'rgba(0, 255, 65, 0.4)' } },
+          splitLine: { lineStyle: { color: 'rgba(0, 255, 65, 0.1)' } },
         },
         dataZoom: [
           { type: 'inside', start: 0, end: 100 },
@@ -62,14 +65,14 @@ const Analysis: React.FC = () => {
             smooth: true,
             symbol: 'none',
             data: result.daily_values.map((d: any) => d.value),
-            lineStyle: { width: 2, color: '#1890ff' },
+            lineStyle: { width: 2, color: '#00ff41' },
             areaStyle: {
               color: {
                 type: 'linear',
                 x: 0, y: 0, x2: 0, y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'rgba(24,144,255,0.3)' },
-                  { offset: 1, color: 'rgba(24,144,255,0.05)' },
+                  { offset: 0, color: 'rgba(0, 255, 65, 0.25)' },
+                  { offset: 1, color: 'rgba(0, 255, 65, 0.02)' },
                 ],
               },
             },
@@ -91,7 +94,7 @@ const Analysis: React.FC = () => {
       dataIndex: 'action',
       key: 'action',
       render: (v: string) => (
-        <span style={{ color: v === 'BUY' ? '#ff4d4f' : '#52c41a', fontWeight: 'bold' }}>
+        <span style={{ color: v === 'BUY' ? '#ff0040' : '#00ff41', fontWeight: 'bold' }}>
           {v === 'BUY' ? '买入' : '卖出'}
         </span>
       ),
@@ -106,8 +109,8 @@ const Analysis: React.FC = () => {
   ];
 
   return (
-    <div>
-      <h2 style={{ marginBottom: 24 }}>收益分析</h2>
+    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+      <h2 style={{ marginBottom: 24, color: '#00ff41' }}>收益分析</h2>
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
@@ -140,7 +143,7 @@ const Analysis: React.FC = () => {
                     value={result.total_return}
                     precision={2}
                     suffix="%"
-                    valueStyle={{ color: result.total_return >= 0 ? '#3f8600' : '#cf1322' }}
+                    valueStyle={{ color: result.total_return >= 0 ? '#00ff41' : '#ff0040' }}
                   />
                 </Card>
               </Col>
@@ -151,7 +154,7 @@ const Analysis: React.FC = () => {
                     value={result.annual_return}
                     precision={2}
                     suffix="%"
-                    valueStyle={{ color: result.annual_return >= 0 ? '#3f8600' : '#cf1322' }}
+                    valueStyle={{ color: result.annual_return >= 0 ? '#00ff41' : '#ff0040' }}
                   />
                 </Card>
               </Col>
@@ -163,18 +166,18 @@ const Analysis: React.FC = () => {
                     precision={2}
                     prefix={<ArrowDownOutlined />}
                     suffix="%"
-                    valueStyle={{ color: '#cf1322' }}
+                    valueStyle={{ color: '#ff0040' }}
                   />
                 </Card>
               </Col>
               <Col xs={12} sm={8} lg={4}>
                 <Card>
-                  <Statistic title="胜率" value={result.win_rate} precision={1} suffix="%" valueStyle={{ color: '#1890ff' }} />
+                  <Statistic title="胜率" value={result.win_rate} precision={1} suffix="%" valueStyle={{ color: '#00ff41' }} />
                 </Card>
               </Col>
               <Col xs={12} sm={8} lg={4}>
                 <Card>
-                  <Statistic title="交易次数" value={result.total_trades} valueStyle={{ color: '#1890ff' }} />
+                  <Statistic title="交易次数" value={result.total_trades} valueStyle={{ color: '#00ff41' }} />
                 </Card>
               </Col>
               <Col xs={12} sm={8} lg={4}>
@@ -184,7 +187,7 @@ const Analysis: React.FC = () => {
                     value={result.final_value}
                     precision={0}
                     prefix="¥"
-                    valueStyle={{ color: result.final_value >= result.initial_capital ? '#3f8600' : '#cf1322' }}
+                    valueStyle={{ color: result.final_value >= result.initial_capital ? '#00ff41' : '#ff0040' }}
                   />
                 </Card>
               </Col>
@@ -196,7 +199,7 @@ const Analysis: React.FC = () => {
                   {revenueOption ? (
                     <ReactECharts option={revenueOption} style={{ height: '100%', width: '100%' }} />
                   ) : (
-                    <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>暂无数据</div>
+                    <div style={{ textAlign: 'center', padding: 40, color: 'rgba(0, 255, 65, 0.5)' }}>暂无数据</div>
                   )}
                 </Card>
               </Col>
@@ -238,7 +241,7 @@ const Analysis: React.FC = () => {
                         </Col>
                         <Col xs={24} lg={12}>
                           <Card title="风险指标" size="small">
-                            <Statistic title="最大回撤" value={result.max_drawdown} suffix="%" precision={2} valueStyle={{ color: '#cf1322' }} />
+                            <Statistic title="最大回撤" value={result.max_drawdown} suffix="%" precision={2} valueStyle={{ color: '#ff0040' }} />
                             <Statistic title="胜率" value={result.win_rate} suffix="%" precision={1} />
                             <Statistic title="交易次数" value={result.total_trades} />
                           </Card>
@@ -254,7 +257,7 @@ const Analysis: React.FC = () => {
 
         {!result && !loading && (
           <Card style={{ textAlign: 'center', padding: 40 }}>
-            <p style={{ color: '#999', fontSize: 16 }}>选择股票和策略，点击"运行回测"查看分析结果</p>
+            <p style={{ color: 'rgba(0, 255, 65, 0.5)', fontSize: 16 }}>选择股票和策略，点击"运行回测"查看分析结果</p>
           </Card>
         )}
       </Spin>

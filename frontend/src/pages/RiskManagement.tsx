@@ -299,8 +299,8 @@ const RiskManagement: React.FC = () => {
   ];
 
   return (
-    <div>
-      <h2 style={{ marginBottom: 24 }}>
+    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+      <h2 style={{ marginBottom: 24, color: '#00ff41' }}>
         <SafetyOutlined /> 风控管理
       </h2>
 

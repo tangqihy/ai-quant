@@ -57,7 +57,7 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
     try {
       const values = await form.validateFields();
 
-      addStock({
+      await addStock({
         symbol: stockSymbol,
         name: stockName,
         groupIds: selectedGroups,
@@ -72,16 +72,18 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
     }
   };
 
-  const handleCreateGroup = () => {
+  const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
       message.warning('请输入分组名称');
       return;
     }
-    const newGroup = createGroup({ name: newGroupName.trim() });
-    setSelectedGroups(prev => [...prev, newGroup.id]);
-    setNewGroupName('');
-    setIsNewGroupVisible(false);
-    message.success('分组创建成功');
+    const newGroup = await createGroup({ name: newGroupName.trim() });
+    if (newGroup) {
+      setSelectedGroups(prev => [...prev, newGroup.id]);
+      setNewGroupName('');
+      setIsNewGroupVisible(false);
+      message.success('分组创建成功');
+    }
   };
 
   const toggleGroup = (groupId: string) => {
@@ -102,8 +104,8 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
       width={480}
     >
       <div style={{ marginBottom: 16 }}>
-        <span style={{ color: '#8c8c8c' }}>股票：</span>
-        <Tag color="blue">{stockSymbol}</Tag>
+        <span style={{ color: 'rgba(0, 255, 65, 0.6)' }}>股票：</span>
+        <Tag color="green">{stockSymbol}</Tag>
         <span>{stockName}</span>
       </div>
 

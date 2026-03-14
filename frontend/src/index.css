@@ -2,18 +2,217 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%
-  }
+/* ========== 赛博朋克 / 黑客终端 全局变量 ========== */
+:root {
+  --cyber-bg: #000000;
+  --cyber-neon-green: #00ff41;
+  --cyber-neon-red: #ff0040;
+  --cyber-neon-green-dim: rgba(0, 255, 65, 0.6);
+  --cyber-neon-red-dim: rgba(255, 0, 64, 0.6);
+  --cyber-border: rgba(0, 255, 65, 0.25);
+  --cyber-text: rgba(0, 255, 65, 0.9);
+  --cyber-text-secondary: rgba(0, 255, 65, 0.55);
+  --cyber-glow-green: 0 0 8px rgba(0, 255, 65, 0.5), 0 0 16px rgba(0, 255, 65, 0.2);
+  --cyber-glow-red: 0 0 8px rgba(255, 0, 64, 0.5), 0 0 16px rgba(255, 0, 64, 0.2);
+  --cyber-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --radius: 0.5rem;
+}
+
+/* 全局等宽字体 + 纯黑背景 */
+html, body, #root {
+  background: var(--cyber-bg) !important;
+  font-family: var(--cyber-font-mono) !important;
+  color: var(--cyber-text) !important;
+}
+
+/* ========== 扫描线效果 ========== */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.12) 2px,
+    rgba(0, 0, 0, 0.12) 4px
+  );
+  opacity: 0.6;
+}
+
+/* ========== 霓虹发光动画 ========== */
+@keyframes neon-glow {
+  0%, 100% { box-shadow: 0 0 6px var(--cyber-neon-green-dim), 0 0 12px rgba(0, 255, 65, 0.15); }
+  50%       { box-shadow: 0 0 10px rgba(0, 255, 65, 0.6), 0 0 20px rgba(0, 255, 65, 0.25); }
+}
+
+@keyframes neon-text-flicker {
+  0%, 100% { opacity: 1; text-shadow: 0 0 4px var(--cyber-neon-green); }
+  50%      { opacity: 0.92; text-shadow: 0 0 8px var(--cyber-neon-green); }
+}
+
+.cyber-glow {
+  animation: neon-glow 2s ease-in-out infinite;
+}
+
+/* ========== Ant Design 全局覆盖 - 赛博朋克 ========== */
+.ant-card {
+  background: #0a0a0a !important;
+  border: 1px solid var(--cyber-border) !important;
+  border-radius: 4px !important;
+  color: var(--cyber-text) !important;
+  transition: box-shadow 0.2s, border-color 0.2s !important;
+}
+.ant-card:hover {
+  border-color: var(--cyber-neon-green-dim) !important;
+  box-shadow: var(--cyber-glow-green) !important;
+}
+.ant-card-head {
+  border-bottom-color: var(--cyber-border) !important;
+  color: var(--cyber-text) !important;
+}
+.ant-card-head-title { color: var(--cyber-text) !important; }
+
+.ant-table,
+.ant-table-thead > tr > th,
+.ant-table-tbody > tr > td {
+  background: #0a0a0a !important;
+  color: var(--cyber-text) !important;
+  border-bottom-color: var(--cyber-border) !important;
+  font-family: var(--cyber-font-mono) !important;
+}
+.ant-table-tbody > tr:hover > td {
+  background: rgba(0, 255, 65, 0.06) !important;
+}
+
+.ant-btn-primary {
+  background: transparent !important;
+  border-color: var(--cyber-neon-green) !important;
+  color: var(--cyber-neon-green) !important;
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.3) !important;
+}
+.ant-btn-primary:hover {
+  border-color: var(--cyber-neon-green) !important;
+  color: #000 !important;
+  background: var(--cyber-neon-green) !important;
+  box-shadow: var(--cyber-glow-green) !important;
+}
+.ant-btn-default,
+.ant-btn-text {
+  border-color: var(--cyber-border) !important;
+  color: var(--cyber-text) !important;
+}
+.ant-btn-default:hover,
+.ant-btn-text:hover {
+  border-color: var(--cyber-neon-green-dim) !important;
+  color: var(--cyber-neon-green) !important;
+}
+.ant-btn-dangerous,
+.ant-btn-danger {
+  border-color: var(--cyber-neon-red) !important;
+  color: var(--cyber-neon-red) !important;
+}
+.ant-btn-dangerous:hover,
+.ant-btn-danger:hover {
+  background: var(--cyber-neon-red) !important;
+  color: #000 !important;
+  box-shadow: var(--cyber-glow-red) !important;
+}
+
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-picker {
+  background: rgba(0, 0, 0, 0.5) !important;
+  border-color: var(--cyber-border) !important;
+  color: var(--cyber-text) !important;
+  font-family: var(--cyber-font-mono) !important;
+}
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-number:focus,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  border-color: var(--cyber-neon-green) !important;
+  box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.15) !important;
+}
+
+.ant-tabs-tab { color: var(--cyber-text-secondary) !important; }
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--cyber-neon-green) !important; }
+.ant-tabs-ink-bar { background: var(--cyber-neon-green) !important; }
+.ant-tabs-nav::before { border-bottom-color: var(--cyber-border) !important; }
+
+.ant-menu-dark,
+.ant-menu-dark .ant-menu-item,
+.ant-menu-dark .ant-menu-sub {
+  background: transparent !important;
+  color: var(--cyber-text-secondary) !important;
+}
+.ant-menu-dark .ant-menu-item-selected {
+  color: var(--cyber-neon-green) !important;
+  background: rgba(0, 255, 65, 0.08) !important;
+}
+.ant-menu-dark .ant-menu-item:hover {
+  color: var(--cyber-neon-green) !important;
+}
+
+.ant-statistic-title { color: var(--cyber-text-secondary) !important; }
+.ant-statistic-content { color: var(--cyber-text) !important; }
+
+.ant-tag { border-radius: 2px !important; font-family: var(--cyber-font-mono) !important; }
+
+.ant-modal-content {
+  background: #0a0a0a !important;
+  border: 1px solid var(--cyber-border) !important;
+  box-shadow: var(--cyber-glow-green) !important;
+}
+.ant-modal-header { background: transparent !important; border-bottom-color: var(--cyber-border) !important; }
+.ant-modal-title { color: var(--cyber-neon-green) !important; }
+.ant-modal-close-x { color: var(--cyber-text-secondary) !important; }
+
+.ant-empty-description,
+.ant-spin-text { color: var(--cyber-text-secondary) !important; }
+
+.ant-divider { border-color: var(--cyber-border) !important; }
+
+.ant-alert-info { background: rgba(0, 255, 65, 0.06) !important; border-color: var(--cyber-border) !important; }
+.ant-alert-warning { background: rgba(255, 0, 64, 0.08) !important; border-color: var(--cyber-neon-red-dim) !important; }
+.ant-alert-error { background: rgba(255, 0, 64, 0.12) !important; border-color: var(--cyber-neon-red) !important; }
+
+/* 紧凑表格（自选/行情） */
+.futu-table-compact .ant-table-thead > tr > th {
+  padding: 6px 8px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--cyber-text-secondary) !important;
+}
+.futu-table-compact .ant-table-tbody > tr > td {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+}
+
+/* 市场 Tabs */
+.futu-market-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--cyber-neon-green) !important;
+}
+.futu-market-tabs .ant-tabs-ink-bar {
+  background: var(--cyber-neon-green) !important;
+}
+
+/* 底部导航 */
+@media (min-width: 992px) {
+  .futu-bottom-nav { display: none !important; }
+}
+@media (max-width: 991px) {
+  .futu-bottom-nav { left: 0 !important; }
+  .search-bar-wrap { width: 100% !important; max-width: 100% !important; }
+  .futu-dashboard-sidebar { display: none !important; }
+  .futu-content-with-bottom-nav { padding-bottom: 64px !important; }
 }
 
 /* 全局动效 */
@@ -21,141 +220,16 @@
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+.ant-layout-content { animation: fadeIn 0.4s ease; }
 
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-12px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* 卡片悬浮效果 */
-.ant-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
-  transition: all 0.3s ease;
-}
-
-/* 表格行悬浮 - 深色主题 */
-.ant-table-tbody > tr:hover > td {
-  background: rgba(24, 144, 255, 0.08) !important;
-}
-
-/* 富途风格表格深色 - A 股红涨绿跌 */
-.futu-table .ant-table,
-.futu-table .ant-table-thead > tr > th {
-  background: #141414 !important;
-  color: rgba(255,255,255,0.85) !important;
-  border-bottom-color: rgba(255,255,255,0.06) !important;
-}
-.futu-table .ant-table-tbody > tr > td {
-  background: #141414 !important;
-  border-bottom-color: rgba(255,255,255,0.06) !important;
-}
-.futu-table .ant-table-tbody > tr:hover > td {
-  background: rgba(24, 144, 255, 0.12) !important;
-}
-
-/* 自选表紧凑行高 + 悬浮 */
-.futu-table-compact .ant-table-thead > tr > th {
-  padding: 6px 8px !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-}
-.futu-table-compact .ant-table-tbody > tr > td {
-  padding: 4px 8px !important;
-  font-size: 12px !important;
-}
-.futu-table-compact .ant-table-tbody > tr {
-  transition: background 0.15s ease;
-}
-.futu-table-compact .ant-table-tbody > tr:hover > td {
-  background: rgba(255,255,255,0.06) !important;
-}
-
-/* 顶部市场 Tab */
-.futu-market-tabs.ant-tabs-small > .ant-tabs-nav .ant-tabs-tab {
-  padding: 4px 12px;
-  font-size: 13px;
-}
-.futu-market-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
-  color: #1890ff !important;
-  font-weight: 600;
-}
-.futu-market-tabs .ant-tabs-ink-bar {
-  background: #1890ff;
-}
-.futu-market-tabs .ant-tabs-nav::before {
-  border-bottom-color: rgba(255,255,255,0.08);
-}
-
-/* 底部导航：仅小屏显示；大屏有侧边栏则隐藏 */
-@media (min-width: 992px) {
-  .futu-bottom-nav {
-    display: none !important;
-  }
-}
-@media (max-width: 991px) {
-  .futu-bottom-nav {
-    left: 0 !important;
-  }
-  .search-bar-wrap {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-  .futu-dashboard-sidebar {
-    display: none !important;
-  }
-  /* 小屏内容区底部留出导航高度，避免被遮挡 */
-  .futu-content-with-bottom-nav {
-    padding-bottom: 64px !important;
-  }
-}
-
-/* 按钮过渡 */
-.ant-btn {
-  transition: all 0.3s ease !important;
-}
-
-/* 菜单项过渡 */
-.ant-menu-item {
-  transition: all 0.2s ease !important;
-  border-radius: 8px !important;
-  margin: 4px 8px !important;
-}
-
-/* 统计数字动画 */
-.ant-statistic-content-value {
-  transition: all 0.3s ease;
-}
-
-/* 页面内容区域 */
-.ant-layout-content {
-  animation: fadeIn 0.4s ease;
-}
-
-/* Tag 样式增强 */
-.ant-tag {
-  border-radius: 4px !important;
-  font-weight: 500 !important;
-}
-
-/* 滚动条美化 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-/* 滚动条美化 - 深色 */
+/* 滚动条 - 赛博风格 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.2);
+  background: var(--cyber-neon-green-dim);
   border-radius: 3px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.3);
-}
+::-webkit-scrollbar-thumb:hover { background: var(--cyber-neon-green); }
 
-img {
-  object-position: top;
-}
-
-.fixed {
-  position: fixed;
-}
+img { object-position: top; }
+.fixed { position: fixed; }

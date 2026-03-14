@@ -61,7 +61,7 @@ export const WatchlistManager: React.FC = () => {
   const handleCreateGroup = async () => {
     try {
       const values = await createForm.validateFields();
-      createGroup({
+      await createGroup({
         name: values.name,
         color: typeof values.color === 'string' ? values.color : values.color?.toHexString(),
       });
@@ -78,7 +78,7 @@ export const WatchlistManager: React.FC = () => {
     if (!editingGroup) return;
     try {
       const values = await editForm.validateFields();
-      renameGroup(editingGroup.id, values.name);
+      await renameGroup(editingGroup.id, values.name);
       message.success('分组重命名成功');
       setIsEditModalOpen(false);
       setEditingGroup(null);
@@ -157,8 +157,8 @@ export const WatchlistManager: React.FC = () => {
           </Tooltip>
           <Popconfirm
             title="确定移除这只股票？"
-            onConfirm={() => {
-              removeStock(record.symbol);
+            onConfirm={async () => {
+              await removeStock(record.symbol);
               message.success('已移除');
             }}
           >
@@ -191,11 +191,11 @@ export const WatchlistManager: React.FC = () => {
               <input
                 type="checkbox"
                 defaultChecked={stock.groupIds.includes(group.id)}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const newGroupIds = e.target.checked
                     ? [...stock.groupIds, group.id]
                     : stock.groupIds.filter((id: string) => id !== group.id);
-                  updateStockGroups(stock.symbol, newGroupIds);
+                  await updateStockGroups(stock.symbol, newGroupIds);
                 }}
               />
               <Tag color={group.color}>{group.name}</Tag>
@@ -211,8 +211,8 @@ export const WatchlistManager: React.FC = () => {
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Space>
-          <StarFilled style={{ fontSize: 24, color: '#faad14' }} />
-          <Title level={3} style={{ margin: 0 }}>我的自选</Title>
+          <StarFilled style={{ fontSize: 24, color: '#00ff41' }} />
+          <Title level={3} style={{ margin: 0, color: '#00ff41' }}>我的自选</Title>
         </Space>
         <Button
           type="primary"
@@ -230,9 +230,9 @@ export const WatchlistManager: React.FC = () => {
             hoverable
             onClick={() => setSelectedGroupId('all')}
             style={{
-              borderRadius: 12,
-              borderColor: selectedGroupId === 'all' ? '#1890ff' : undefined,
-              boxShadow: selectedGroupId === 'all' ? '0 0 0 2px #1890ff40' : undefined,
+              borderRadius: 4,
+              borderColor: selectedGroupId === 'all' ? '#00ff41' : undefined,
+              boxShadow: selectedGroupId === 'all' ? '0 0 12px rgba(0, 255, 65, 0.25)' : undefined,
             }}
             bodyStyle={{ padding: 16 }}
           >
@@ -241,14 +241,14 @@ export const WatchlistManager: React.FC = () => {
                 style={{
                   width: 48,
                   height: 48,
-                  borderRadius: 12,
-                  backgroundColor: '#1890ff20',
+                  borderRadius: 4,
+                  backgroundColor: 'rgba(0, 255, 65, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <StarFilled style={{ fontSize: 24, color: '#1890ff' }} />
+                <StarFilled style={{ fontSize: 24, color: '#00ff41' }} />
               </div>
               <div>
                 <Text strong style={{ fontSize: 16, display: 'block' }}>
@@ -274,8 +274,8 @@ export const WatchlistManager: React.FC = () => {
                 Modal.confirm({
                   title: '删除分组',
                   content: `确定删除分组 "${group.name}" 吗？其中的股票不会被删除。`,
-                  onOk: () => {
-                    deleteGroup(group.id);
+                  onOk: async () => {
+                    await deleteGroup(group.id);
                     if (selectedGroupId === group.id) {
                       setSelectedGroupId('all');
                     }

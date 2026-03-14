@@ -128,7 +128,7 @@ export const StockDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400, color: '#00ff41' }}>
         <Spin size="large" tip="加载中..." />
       </div>
     );
@@ -148,11 +148,11 @@ export const StockDetail: React.FC = () => {
   }
 
   const isUp = quote.change_pct >= 0;
-  const color = isUp ? '#f5222d' : '#52c41a';
+  const color = isUp ? '#ff0040' : '#00ff41';
+  const neonBorder = '1px solid rgba(0, 255, 65, 0.25)';
 
   return (
-    <div>
-      {/* 返回按钮 */}
+    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
       <Button
         icon={<ArrowLeftOutlined />}
         onClick={() => navigate(-1)}
@@ -161,8 +161,14 @@ export const StockDetail: React.FC = () => {
         返回
       </Button>
 
-      {/* 股票头部信息 */}
-      <Card style={{ marginBottom: 24 }}>
+      <Card
+        style={{
+          marginBottom: 24,
+          background: '#0a0a0a',
+          border: neonBorder,
+          boxShadow: '0 0 12px rgba(0, 255, 65, 0.06)',
+        }}
+      >
         <Row gutter={[24, 16]} align="middle">
           <Col xs={24} md={12}>
             <Space direction="vertical" size={4}>
@@ -171,7 +177,7 @@ export const StockDetail: React.FC = () => {
                 <Text type="secondary" style={{ fontSize: 16, fontFamily: 'monospace' }}>
                   {quote.symbol}
                 </Text>
-                <Tag color="blue">{quote.symbol.startsWith('6') ? 'SH' : 'SZ'}</Tag>
+                <Tag color="green">{quote.symbol.startsWith('6') ? 'SH' : 'SZ'}</Tag>
               </Space>
               
               {/* 所属分组标签 */}
@@ -258,14 +264,19 @@ export const StockDetail: React.FC = () => {
         </Row>
       </Card>
 
-      {/* K线图区域 */}
       <Card
         title={
           <Space>
-            <LineChartOutlined />
-            <span>K线走势</span>
+            <LineChartOutlined style={{ color: '#00ff41' }} />
+            <span style={{ color: '#00ff41' }}>K线走势</span>
           </Space>
         }
+        style={{
+          background: '#0a0a0a',
+          border: neonBorder,
+          boxShadow: '0 0 12px rgba(0, 255, 65, 0.06)',
+        }}
+        headStyle={{ borderBottom: neonBorder, color: '#00ff41' }}
       >
         <KLineChart data={klineData} height={400} />
       </Card>

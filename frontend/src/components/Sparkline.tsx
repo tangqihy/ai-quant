@@ -75,9 +75,9 @@ const Sparkline: React.FC<SparklineProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'rgba(0, 255, 65, 0.04)',
           borderRadius: 4,
-          color: 'rgba(255,255,255,0.35)',
+          color: 'rgba(0, 255, 65, 0.4)',
           fontSize: 10,
         }}
       >
@@ -103,7 +103,7 @@ const Sparkline: React.FC<SparklineProps> = ({
     .join(' ');
 
   const direction = isUp ?? closes[closes.length - 1] >= closes[0];
-  const strokeColor = direction ? '#ef232a' : '#00c087'; // A 股红涨绿跌
+  const strokeColor = direction ? '#ff0040' : '#00ff41'; // A 股红涨绿跌 - 赛博霓虹
 
   return (
     <svg

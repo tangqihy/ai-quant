@@ -184,16 +184,21 @@ const KLineChart: React.FC<KLineChartProps> = ({
     );
   }
 
+  const NEON_UP = '#ff0040';
+  const NEON_DOWN = '#00ff41';
+  const NEON_AXIS = 'rgba(0, 255, 65, 0.5)';
+  const NEON_GRID = 'rgba(0, 255, 65, 0.08)';
+
   const series: any[] = [
     {
       name: 'K线',
       type: 'candlestick',
       data: ohlcData,
       itemStyle: {
-        color: '#ef232a',
-        color0: '#14c143',
-        borderColor: '#ef232a',
-        borderColor0: '#14c143',
+        color: NEON_UP,
+        color0: NEON_DOWN,
+        borderColor: NEON_UP,
+        borderColor0: NEON_DOWN,
       },
     },
     ...overlayLineSeries.map((s) => ({
@@ -201,7 +206,7 @@ const KLineChart: React.FC<KLineChartProps> = ({
       type: 'line',
       data: s.data,
       smooth: true,
-      lineStyle: { opacity: 0.6 },
+      lineStyle: { color: NEON_DOWN, opacity: 0.7 },
       symbol: 'none',
     })),
     {
@@ -210,18 +215,23 @@ const KLineChart: React.FC<KLineChartProps> = ({
       xAxisIndex: 1,
       yAxisIndex: 1,
       data: volumes,
-      itemStyle: { color: '#7f8c8d' },
+      itemStyle: { color: 'rgba(0, 255, 65, 0.35)' },
     },
   ];
 
   const option = {
+    backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'cross' },
+      backgroundColor: 'rgba(0, 10, 0, 0.9)',
+      borderColor: NEON_DOWN,
+      textStyle: { color: NEON_DOWN },
     },
     legend: {
       data: legendNames,
       bottom: 0,
+      textStyle: { color: NEON_AXIS },
     },
     grid: [
       { left: '10%', right: '10%', height: '55%' },
@@ -232,7 +242,8 @@ const KLineChart: React.FC<KLineChartProps> = ({
         type: 'category',
         data: dates,
         boundaryGap: false,
-        axisLine: { onZero: false },
+        axisLine: { lineStyle: { color: NEON_AXIS } },
+        axisLabel: { color: NEON_AXIS },
         splitLine: { show: false },
         min: 'dataMin',
         max: 'dataMax',
@@ -251,7 +262,13 @@ const KLineChart: React.FC<KLineChartProps> = ({
       },
     ],
     yAxis: [
-      { scale: true, splitArea: { show: true } },
+      {
+        scale: true,
+        splitArea: { show: true, areaStyle: { color: [NEON_GRID, 'transparent'] } },
+        axisLine: { show: true, lineStyle: { color: NEON_AXIS } },
+        axisLabel: { color: NEON_AXIS },
+        splitLine: { lineStyle: { color: NEON_GRID } },
+      },
       {
         scale: true,
         gridIndex: 1,
@@ -264,7 +281,18 @@ const KLineChart: React.FC<KLineChartProps> = ({
     ],
     dataZoom: [
       { type: 'inside', xAxisIndex: [0, 1], start: 70, end: 100 },
-      { show: true, xAxisIndex: [0, 1], type: 'slider', bottom: 60, start: 70, end: 100 },
+      {
+        show: true,
+        xAxisIndex: [0, 1],
+        type: 'slider',
+        bottom: 60,
+        start: 70,
+        end: 100,
+        borderColor: NEON_AXIS,
+        fillerColor: 'rgba(0, 255, 65, 0.2)',
+        handleStyle: { color: NEON_DOWN },
+        textStyle: { color: NEON_AXIS },
+      },
     ],
     series,
   };

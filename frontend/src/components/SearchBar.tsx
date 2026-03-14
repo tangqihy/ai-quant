@@ -89,19 +89,20 @@ export const SearchBar: React.FC = () => {
     <div ref={wrapperRef} className="search-bar-wrap" style={{ position: 'relative', width: 320, maxWidth: '100%', minWidth: 0, flex: '1 1 auto' }}>
       <Input
         placeholder="搜索股票代码 / 名称，添加自选"
-        prefix={<SearchOutlined style={{ color: 'rgba(255,255,255,0.45)' }} />}
+        prefix={<SearchOutlined style={{ color: 'rgba(0, 255, 65, 0.6)' }} />}
         value={keyword}
         onChange={(e) => setKeyword(e.target.value)}
         onFocus={() => keyword.trim() && results.length >= 0 && setDropdownVisible(true)}
         allowClear
         style={{
-          borderRadius: 6,
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          color: '#fff',
+          borderRadius: 4,
+          background: 'rgba(0, 0, 0, 0.5)',
+          border: '1px solid rgba(0, 255, 65, 0.25)',
+          color: '#00ff41',
+          fontFamily: "'JetBrains Mono', monospace",
         }}
         styles={{
-          input: { background: 'transparent', color: '#fff' },
+          input: { background: 'transparent', color: '#00ff41' },
         }}
       />
       {dropdownVisible && (
@@ -112,10 +113,10 @@ export const SearchBar: React.FC = () => {
             left: 0,
             right: 0,
             marginTop: 4,
-            background: '#1f1f1f',
-            borderRadius: 8,
-            boxShadow: '0 6px 16px rgba(0,0,0,0.4)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: '#0a0a0a',
+            borderRadius: 4,
+            boxShadow: '0 0 16px rgba(0, 255, 65, 0.15)',
+            border: '1px solid rgba(0, 255, 65, 0.25)',
             zIndex: 1050,
             maxHeight: 320,
             overflow: 'hidden',
@@ -143,11 +144,11 @@ export const SearchBar: React.FC = () => {
                     style={{
                       cursor: 'pointer',
                       padding: '10px 12px',
-                      borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      borderBottom: '1px solid rgba(0, 255, 65, 0.15)',
                     }}
                     onClick={() => handleSelectStock(item)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(24, 144, 255, 0.15)';
+                      e.currentTarget.style.background = 'rgba(0, 255, 65, 0.08)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'transparent';
@@ -156,13 +157,13 @@ export const SearchBar: React.FC = () => {
                     <span style={{ fontFamily: 'monospace', fontWeight: 600, marginRight: 8 }}>
                       {item.symbol}
                     </span>
-                    <span style={{ color: 'rgba(255,255,255,0.85)' }}>{item.name}</span>
+                    <span style={{ color: 'rgba(0, 255, 65, 0.85)' }}>{item.name}</span>
                     {inList && (
                       <span
                         style={{
                           marginLeft: 'auto',
                           fontSize: 12,
-                          color: 'rgba(255,255,255,0.45)',
+                          color: 'rgba(0, 255, 65, 0.45)',
                         }}
                       >
                         已在自选

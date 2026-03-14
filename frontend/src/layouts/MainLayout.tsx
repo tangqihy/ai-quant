@@ -9,6 +9,7 @@ import {
   DollarOutlined,
   SafetyOutlined,
   UserOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { SearchBar } from '../components/SearchBar';
@@ -22,11 +23,11 @@ interface MainLayoutProps {
   onThemeToggle?: () => void;
 }
 
-// 富途牛牛风格：深色专业交易
-const SIDER_BG = '#0d0d0d';
-const HEADER_BG = '#141414';
-const CONTENT_BG = '#0a0a0a';
-const MENU_SELECTED = '#1890ff';
+const SIDER_BG = '#000000';
+const HEADER_BG = '#0a0a0a';
+const CONTENT_BG = '#000000';
+const NEON_GREEN = '#00ff41';
+const NEON_BORDER = 'rgba(0, 255, 65, 0.25)';
 
 const MainLayout: React.FC<MainLayoutProps> = ({
   children,
@@ -43,6 +44,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     { key: '/analysis', icon: <LineChartOutlined />, label: '分析' },
     { key: '/simulation', icon: <DollarOutlined />, label: '模拟交易' },
     { key: '/risk', icon: <SafetyOutlined />, label: '风控管理' },
+    { key: '/strategy-template', icon: <BookOutlined />, label: '策略模板' },
   ];
 
   const selectedKey = location.pathname === '/' ? '/' : location.pathname;
@@ -55,7 +57,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         collapsedWidth="0"
         style={{
           background: SIDER_BG,
-          borderRight: '1px solid rgba(255,255,255,0.06)',
+          borderRight: `1px solid ${NEON_BORDER}`,
+          boxShadow: '0 0 12px rgba(0, 255, 65, 0.08)',
         }}
       >
         <div
@@ -65,11 +68,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: `1px solid ${NEON_BORDER}`,
           }}
         >
-          <LineChartOutlined style={{ color: MENU_SELECTED, fontSize: 20 }} />
-          <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>
+          <LineChartOutlined style={{ color: NEON_GREEN, fontSize: 20 }} />
+          <span
+            style={{
+              color: NEON_GREEN,
+              fontSize: 15,
+              fontWeight: 600,
+              fontFamily: "'JetBrains Mono', monospace",
+              textShadow: '0 0 8px rgba(0, 255, 65, 0.5)',
+            }}
+          >
             AI 量化
           </span>
         </div>
@@ -92,8 +103,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             left: 0,
             right: 0,
             textAlign: 'center',
-            color: 'rgba(255,255,255,0.25)',
+            color: 'rgba(0, 255, 65, 0.35)',
             fontSize: 11,
+            fontFamily: "'JetBrains Mono', monospace",
           }}
         >
           Powered by AkShare
@@ -108,9 +120,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 8,
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: `1px solid ${NEON_BORDER}`,
             height: 56,
             minHeight: 56,
+            boxShadow: '0 0 12px rgba(0, 255, 65, 0.05)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
@@ -119,11 +132,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span
               style={{
-                color: 'rgba(255,255,255,0.5)',
+                color: 'rgba(0, 255, 65, 0.55)',
                 fontSize: 12,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
+                fontFamily: "'JetBrains Mono', monospace",
               }}
             >
               <UserOutlined />
@@ -147,7 +161,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           {children}
         </Content>
       </Layout>
-      {/* 底部导航栏：自选、回测、分析 */}
       <nav
         className="futu-bottom-nav"
         style={{
@@ -156,13 +169,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           left: 0,
           right: 0,
           height: 48,
-          background: '#141414',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
+          background: '#0a0a0a',
+          borderTop: `1px solid ${NEON_BORDER}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 32,
           zIndex: 100,
+          boxShadow: '0 -0 12px rgba(0, 255, 65, 0.05)',
         }}
       >
         <button
@@ -171,13 +185,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           style={{
             background: 'none',
             border: 'none',
-            color: location.pathname === '/' ? MENU_SELECTED : 'rgba(255,255,255,0.65)',
+            color: location.pathname === '/' ? NEON_GREEN : 'rgba(0, 255, 65, 0.55)',
             fontSize: 13,
             fontWeight: location.pathname === '/' ? 600 : 400,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
+            fontFamily: "'JetBrains Mono', monospace",
           }}
         >
           <StarFilled /> 自选
@@ -188,13 +203,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           style={{
             background: 'none',
             border: 'none',
-            color: location.pathname === '/backtest' ? MENU_SELECTED : 'rgba(255,255,255,0.65)',
+            color: location.pathname === '/backtest' ? NEON_GREEN : 'rgba(0, 255, 65, 0.55)',
             fontSize: 13,
             fontWeight: location.pathname === '/backtest' ? 600 : 400,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
+            fontFamily: "'JetBrains Mono', monospace",
           }}
         >
           <ExperimentOutlined /> 回测
@@ -205,13 +221,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           style={{
             background: 'none',
             border: 'none',
-            color: location.pathname === '/analysis' ? MENU_SELECTED : 'rgba(255,255,255,0.65)',
+            color: location.pathname === '/analysis' ? NEON_GREEN : 'rgba(0, 255, 65, 0.55)',
             fontSize: 13,
             fontWeight: location.pathname === '/analysis' ? 600 : 400,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 6,
+            fontFamily: "'JetBrains Mono', monospace",
           }}
         >
           <LineChartOutlined /> 分析

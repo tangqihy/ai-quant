@@ -32,10 +32,12 @@ export const GroupCard: React.FC<GroupCardProps> = ({
       hoverable
       onClick={onClick}
       style={{
-        borderRadius: 12,
-        borderColor: isActive ? group.color : undefined,
-        boxShadow: isActive ? `0 0 0 2px ${group.color}40` : undefined,
+        borderRadius: 4,
+        borderColor: isActive ? '#00ff41' : undefined,
+        boxShadow: isActive ? '0 0 12px rgba(0, 255, 65, 0.2)' : undefined,
         cursor: onClick ? 'pointer' : 'default',
+        background: '#0a0a0a',
+        border: '1px solid rgba(0, 255, 65, 0.25)',
       }}
       bodyStyle={{ padding: 16 }}
     >
@@ -44,14 +46,14 @@ export const GroupCard: React.FC<GroupCardProps> = ({
           style={{
             width: 48,
             height: 48,
-            borderRadius: 12,
-            backgroundColor: `${group.color}20`,
+            borderRadius: 4,
+            backgroundColor: 'rgba(0, 255, 65, 0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <FolderOutlined style={{ fontSize: 24, color: group.color }} />
+          <FolderOutlined style={{ fontSize: 24, color: '#00ff41' }} />
         </div>
         
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -59,7 +61,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
             {group.name}
           </Text>
           <Space size={4} style={{ marginTop: 4 }}>
-            <StockOutlined style={{ fontSize: 12, color: '#8c8c8c' }} />
+            <StockOutlined style={{ fontSize: 12, color: 'rgba(0, 255, 65, 0.5)' }} />
             <Text type="secondary" style={{ fontSize: 13 }}>
               {stocks.length} 只股票
             </Text>

@@ -17,6 +17,7 @@ import {
   updateStockGroups as updateStockGroupsApi,
   updateStockNote as updateStockNoteApi,
 } from '../services/watchlistApi';
+import { getToken } from '../services/auth';
 import { message } from 'antd';
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -43,6 +44,8 @@ export interface WatchlistContextValue {
   updateStockNote: (symbol: string, note: string) => Promise<void>;
   isInWatchlist: (symbol: string) => boolean;
   getStocksByGroup: (groupId: string) => WatchlistItem[];
+  getStock: (symbol: string) => WatchlistItem | undefined;
+  getStockGroups: (symbol: string) => { id: string; name: string; color: string }[];
   refresh: () => Promise<void>;
 }
 
@@ -55,6 +58,11 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // 从服务器加载数据
   const loadFromServer = useCallback(async () => {
+    // 未登录时不加载数据
+    if (!getToken()) {
+      setIsLoaded(true);
+      return;
+    }
     setIsLoading(true);
     try {
       const res = await getWatchlistData();
@@ -84,7 +92,10 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     } catch (error) {
       console.error('Failed to load watchlist from server:', error);
-      message.error('加载自选数据失败');
+      // 未登录时不显示错误提示
+      if (getToken()) {
+        message.error('加载自选数据失败');
+      }
     } finally {
       setIsLoading(false);
       setIsLoaded(true);
@@ -243,6 +254,18 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return data.stocks.filter(s => s.groupIds.includes(groupId));
   }, [data.stocks]);
 
+  // 根据代码获取单个股票
+  const getStock = useCallback((symbol: string) => {
+    return data.stocks.find(s => s.symbol === symbol);
+  }, [data.stocks]);
+
+  // 获取股票所属分组
+  const getStockGroups = useCallback((symbol: string) => {
+    const stock = data.stocks.find(s => s.symbol === symbol);
+    if (!stock) return [];
+    return data.groups.filter(g => stock.groupIds.includes(g.id));
+  }, [data.stocks, data.groups]);
+
   // 刷新数据
   const refresh = useCallback(async () => {
     await loadFromServer();
@@ -263,9 +286,11 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       updateStockNote,
       isInWatchlist,
       getStocksByGroup,
+      getStock,
+      getStockGroups,
       refresh,
     }),
-    [data, isLoaded, isLoading, createGroup, deleteGroup, renameGroup, addStock, removeStock, updateStockGroups, updateStockNote, isInWatchlist, getStocksByGroup, refresh]
+    [data, isLoaded, isLoading, createGroup, deleteGroup, renameGroup, addStock, removeStock, updateStockGroups, updateStockNote, isInWatchlist, getStocksByGroup, getStock, getStockGroups, refresh]
   );
 
   return <WatchlistContext.Provider value={value}>{children}</WatchlistContext.Provider>;

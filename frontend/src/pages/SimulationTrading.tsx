@@ -205,7 +205,7 @@ const SimulationTrading: React.FC = () => {
       key: 'unrealized_pnl',
       align: 'right' as const,
       render: (val: number, record: Position) => (
-        <span style={{ color: val >= 0 ? '#ef232a' : '#00c087' }}>
+        <span style={{ color: val >= 0 ? '#ff0040' : '#00ff41' }}>
           {val >= 0 ? '+' : ''}{val.toFixed(2)} ({record.unrealized_pnl_pct >= 0 ? '+' : ''}{record.unrealized_pnl_pct.toFixed(2)}%)
         </span>
       ),
@@ -230,9 +230,7 @@ const SimulationTrading: React.FC = () => {
       dataIndex: 'action',
       key: 'action',
       render: (val: string) => (
-        <Tag color={val === 'BUY' ? '#ef232a' : '#00c087'}>
-          {val === 'BUY' ? '买入' : '卖出'}
-        </Tag>
+        <Tag color={val === 'BUY' ? 'red' : 'green'}>{val === 'BUY' ? '买入' : '卖出'}</Tag>
       ),
     },
     {
@@ -306,9 +304,7 @@ const SimulationTrading: React.FC = () => {
       dataIndex: 'action',
       key: 'action',
       render: (val: string) => (
-        <Tag color={val === 'BUY' ? '#ef232a' : '#00c087'}>
-          {val === 'BUY' ? '买入' : '卖出'}
-        </Tag>
+        <Tag color={val === 'BUY' ? 'red' : 'green'}>{val === 'BUY' ? '买入' : '卖出'}</Tag>
       ),
     },
     {
@@ -338,8 +334,8 @@ const SimulationTrading: React.FC = () => {
   const pnlPct = account?.initial_capital ? (pnl / account.initial_capital) * 100 : 0;
 
   return (
-    <div>
-      <h2 style={{ marginBottom: 24 }}>
+    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+      <h2 style={{ marginBottom: 24, color: '#00ff41' }}>
         <LineChartOutlined /> 模拟交易
       </h2>
 
@@ -352,7 +348,7 @@ const SimulationTrading: React.FC = () => {
               value={account?.total_value || 0}
               prefix="¥"
               precision={2}
-              valueStyle={{ color: isUp ? '#ef232a' : '#00c087', fontSize: 24 }}
+              valueStyle={{ color: isUp ? '#ff0040' : '#00ff41', fontSize: 24 }}
             />
           </Card>
         </Col>
@@ -364,7 +360,7 @@ const SimulationTrading: React.FC = () => {
               prefix={pnl >= 0 ? '+' : ''}
               suffix={`(${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`}
               precision={2}
-              valueStyle={{ color: pnl >= 0 ? '#ef232a' : '#00c087' }}
+              valueStyle={{ color: pnl >= 0 ? '#ff0040' : '#00ff41' }}
             />
           </Card>
         </Col>
