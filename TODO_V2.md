@@ -7,10 +7,12 @@
 
 ## 核心理念
 
-**先成为一个可信的量化研究平台，再逐步演进为 AI 驱动的量化交易平台。**
+> **打造一个以可信数据、可验证策略、可复现结果为核心的 AI Quant Platform。**
 
-当前最大风险不是缺少更多功能，而是：
-> **数据语义、交易制度、状态一致性和架构扩展性仍未完全建立。**
+三个核心关键词：
+- **可信数据** (Trusted Data)：数据来源清晰、质量可校验
+- **可验证策略** (Verifiable Strategy)：策略行为符合交易规则，避免未来函数和回测偏差
+- **可复现结果** (Reproducible Results)：同一数据、同一参数、同一版本能够得到一致的回测和模拟交易结果
 
 ---
 
@@ -20,16 +22,20 @@
 
 | # | 任务 | 说明 | 负责人 | 预估工时 | 状态 |
 |---|------|------|--------|----------|------|
-| 1 | **DataProvider 抽象层** | 统一数据接口，解耦业务与数据源 | 小猪 | 2天 | ⏳ |
-| 2 | **Trading Calendar** | 交易日历，处理节假日/开盘时间 | 小猪 | 1天 | ⏳ |
-| 3 | **Adjustment Manager** | 统一复权处理 | 小猪 | 1天 | ⏳ |
-| 4 | **Stock Status** | 停牌/ST/涨跌停统一处理 | 小猪 | 1天 | ⏳ |
-| 5 | **模拟交易持久化** | accounts/orders/trades/positions/cash_ledger | 小猪 | 3天 | ⏳ |
-| 6 | **风控事件记录** | risk_events/risk_decisions 审计 | 小猪 | 1天 | ⏳ |
-| 7 | **回测成交模型修正** | 处理停牌/涨跌停/T+1 | minimax | 2天 | ⏳ |
-| 8 | **核心单元测试** | 覆盖率 60%+ | minimax | 2天 | ⏳ |
+| 1 | **DataProvider 抽象层** | 统一数据接口，解耦业务与数据源 | 小猪 | 2天 | ✅ |
+| 2 | **Trading Calendar** | 交易日历，处理节假日/开盘时间 | 小猪 | 1天 | ✅ |
+| 3 | **Adjustment Manager** | 统一复权处理 | 小猪 | 1天 | ✅ |
+| 4 | **Stock Status** | 停牌/ST/涨跌停统一处理 | 小猪 | 1天 | ✅ |
+| 5 | **Domain Model** | 领域模型定义（Instrument/Order/Trade/Position/Account/Portfolio/Strategy/RiskRule/Broker/Exchange） | minimax | 2天 | ⏳ |
+| 6 | **Broker 拆分** | 撮合器独立，支持三种实现（BacktestBroker/PaperBroker/LiveBroker） | minimax | 3天 | ⏳ |
+| 7 | **Strategy API** | 固定策略接口（initialize/on_bar/on_tick/on_order/on_trade/on_finish） | minimax | 1天 | ⏳ |
+| 8 | **Account/Portfolio 分离** | 账户负责现金，组合负责持仓 | minimax | 2天 | ⏳ |
+| 9 | **模拟交易持久化** | accounts/orders/trades/positions/cash_ledger | 小猪 | 3天 | ⏳ |
+| 10 | **风控事件记录** | risk_events/risk_decisions 审计 | 小猪 | 1天 | ⏳ |
+| 11 | **回测成交模型修正** | 处理停牌/涨跌停/T+1 | minimax | 2天 | ⏳ |
+| 12 | **核心单元测试** | 覆盖率 60%+ | minimax | 2天 | ⏳ |
 
-**P0 预估总工时：13天**
+**P0 预估总工时：21天**
 
 ---
 
@@ -39,14 +45,15 @@
 
 | # | 任务 | 说明 | 负责人 | 预估工时 | 状态 |
 |---|------|------|--------|----------|------|
-| 1 | **API 统一格式** | `{ success, data?, error?, message? }` | 小猪 | 1天 | ⏳ |
-| 2 | **错误处理规范** | 统一异常体系 | 小猪 | 1天 | ⏳ |
-| 3 | **配置管理** | Pydantic Settings | minimax | 1天 | ⏳ |
-| 4 | **日志规范** | 结构化日志 + 请求ID | minimax | 1天 | ⏳ |
-| 5 | **数据源降级** | 主备数据源切换 | 小猪 | 1天 | ⏳ |
-| 6 | **Health Check** | DB/数据源连通性检测 | 小猪 | 0.5天 | ⏳ |
+| 1 | **Event Bus** | 事件总线，解耦组件 | minimax | 2天 | ⏳ |
+| 2 | **API 统一格式** | `{ success, data?, error?, message? }` | 小猪 | 1天 | ⏳ |
+| 3 | **错误处理规范** | 统一异常体系 | 小猪 | 1天 | ⏳ |
+| 4 | **配置管理** | Pydantic Settings | minimax | 1天 | ⏳ |
+| 5 | **日志规范** | 结构化日志 + 请求ID | minimax | 1天 | ⏳ |
+| 6 | **数据源降级** | 主备数据源切换 | 小猪 | 1天 | ⏳ |
+| 7 | **Health Check** | DB/数据源连通性检测 | 小猪 | 0.5天 | ⏳ |
 
-**P1 预估总工时：5.5天**
+**P1 预估总工时：7.5天**
 
 ---
 
@@ -89,105 +96,71 @@
 
 ## 优先级调整说明
 
-### 从原 TODO 调整的内容
+### 新增任务
 
-| 原任务 | 原优先级 | 新优先级 | 调整原因 |
-|--------|----------|----------|----------|
-| 接入真实实时行情 | P0 | P2 | 应先建立统一的数据语义 |
-| DataProvider 抽象层 | P2 | P0 | 业务层不应依赖具体数据源 |
-| Trading Calendar | 无 | P0 | 量化系统必备基础设施 |
-| Adjustment Manager | 无 | P0 | 统一复权处理 |
-| Stock Status | 无 | P0 | 处理停牌/ST/涨跌停 |
-| 风控事件记录 | 无 | P0 | 审计能力 |
-| 回测成交模型修正 | 无 | P0 | 处理真实交易制度 |
+| 任务 | 优先级 | 说明 |
+|------|--------|------|
+| Domain Model | P0 | 定义稳定的领域对象 |
+| Broker 拆分 | P0 | 撮合器独立，支持三种实现 |
+| Strategy API | P0 | 固定策略接口 |
+| Account/Portfolio 分离 | P0 | 账户与组合分离 |
+| Event Bus | P1 | 事件驱动架构 |
 
-### 新增的基础设施模块
+### 设计原则
 
-1. **Trading Calendar** - 交易日历
-2. **Adjustment Manager** - 复权管理
-3. **Stock Status** - 股票状态
-4. **Data Quality** - 数据质量检查
+1. **领域驱动**：定义稳定的领域对象，而不是到处传 dict/DataFrame
+2. **职责单一**：Broker 只负责撮合，Strategy 只负责信号
+3. **事件驱动**：通过 Event Bus 解耦组件
+4. **数据分层**：SQLite 当缓存，不是唯一事实来源
+5. **接口固定**：Strategy API 现在就固定，以后不用改
 
 ---
 
-## 关键设计原则
+## 当前完成度
 
-### 1. 统一数据语义
+| 模块 | 完成度 | 说明 |
+|------|--------|------|
+| DataProvider | ✅ | 已实现 |
+| Trading Calendar | ✅ | 已实现 |
+| Adjustment Manager | ✅ | 已实现 |
+| Stock Status | ✅ | 已实现 |
+| Domain Model | ⏳ | 待实现 |
+| Broker | ⏳ | 待拆分 |
+| Strategy API | ⏳ | 待固定 |
+| Account/Portfolio | ⏳ | 待分离 |
+
+**P0 完成度：33%（4/12）**
+
+---
+
+## 架构演进路线
 
 ```
-所有模块（回测、模拟交易、风控、图表）统一访问 MarketDataService
+Phase 1: 可信基础设施 ✅
+    ├── DataProvider ✅
+    ├── TradingCalendar ✅
+    ├── AdjustmentManager ✅
+    ├── StockStatus ✅
+    └── Domain Model ⏳
 
-MarketDataService
-├── Historical Price      # 历史价格（回测用）
-├── Latest Price          # 最新价格（模拟交易/持仓估值）
-├── Realtime Quote        # 实时行情（盘中监控）
-├── Minute Bar            # 分钟线（高频策略）
-└── Daily Bar             # 日线（常规策略）
+Phase 2: 核心能力 ⏳
+    ├── Broker (Backtest/Paper/Live)
+    ├── Strategy API
+    ├── Account/Portfolio
+    └── Event Bus
+
+Phase 3: 稳定性 ⏳
+    ├── 模拟交易持久化
+    ├── 风控事件记录
+    ├── 回测成交模型
+    └── 单元测试
+
+Phase 4: 扩展性 ⏳
+    ├── 多策略支持
+    ├── 多市场支持
+    ├── AI 能力
+    └── 实盘交易
 ```
-
-### 2. 完整交易制度
-
-- T+1（当日买入不可卖出）
-- 涨跌停（涨停不能买入，跌停不能卖出）
-- 停牌（停牌股票不能交易）
-- ST（特殊处理，涨跌停限制5%）
-- 复权（前复权/后复权）
-
-### 3. 可靠状态一致性
-
-- 模拟交易使用数据库事务
-- 资金和持仓必须一致
-- 可审计的资金流水
-- 可重建的持仓记录
-
-### 4. 良好架构扩展
-
-- DataProvider 抽象基类
-- 策略插件化
-- 风控规则可配置
-- 数据源可切换
-
----
-
-## 参考项目
-
-| 项目 | Stars | 特点 | 参考价值 |
-|------|-------|------|----------|
-| **vnpy** | 42k | 插件化架构 | Gateway/Strategy/App 插件设计 |
-| **abu** | 17k | 机器学习集成 | 风险管理最佳实践 |
-| **Backtrader** | 13k | Broker/Order/Position | 交易制度实现 |
-| **Qlib** | 15k | 微软开源，AI量化 | 机器学习集成 |
-| **RQAlpha** | 5k | A股交易制度 | T+1/涨跌停/停牌处理 |
-| **vectorbt** | 4k | 向量化回测 | 高性能回测引擎 |
-| **adata** | 4k | 数据获取 | 多源数据融合 |
-
----
-
-## 当前完成度重新评估
-
-| 模块 | 原评估 | 新评估 | 说明 |
-|------|--------|--------|------|
-| 鉴权系统 | 100% | 100% | ✅ 完整 |
-| 股票数据 | 95% | 80% | 缺少停牌/ST/涨跌停处理 |
-| 技术指标 | 100% | 100% | ✅ 完整 |
-| 回测引擎 | 90% | 60% | 缺少T+1/停牌/涨跌停/未来函数检查 |
-| 自选管理 | 100% | 100% | ✅ 完整 |
-| 模拟交易 | 95% | 70% | 缺少持久化和交易制度 |
-| 风控模块 | 90% | 70% | 缺少审计能力 |
-| 实时行情 | 80% | 80% | ✅ 已用Tushare |
-| 前端UI | 95% | 95% | ✅ 优秀 |
-| 部署运维 | 90% | 90% | ✅ 完整 |
-
-**总体完成度：约 75%**（原评估90%）
-
----
-
-## 下一步行动
-
-1. **立即开始**：DataProvider 抽象层
-2. **本周完成**：Trading Calendar + Adjustment Manager
-3. **下周完成**：Stock Status + 模拟交易持久化
-4. **两周内**：回测成交模型修正 + 核心单元测试
 
 ---
 
