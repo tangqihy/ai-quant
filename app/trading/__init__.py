@@ -2,7 +2,7 @@
 交易管理模块
 
 使用方式：
-    from app.trading import TradingManager
+    from app.trading import TradingManager, get_trading_persistence
     
     # 创建交易管理器
     trading = TradingManager()
@@ -18,6 +18,12 @@
     
     # 获取账户摘要
     summary = trading.get_account_summary('account1')
+    
+    # 持久化
+    persistence = get_trading_persistence()
+    persistence.save_account(account)
+    persistence.save_order(order, 'account1', 'portfolio_MA_strategy')
 """
 
 from .account import AccountManager, PortfolioManager, TradingManager
+from .persistence import TradingPersistence, get_trading_persistence
