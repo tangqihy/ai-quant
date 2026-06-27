@@ -9,24 +9,21 @@ from app.api import auth_routes
 
 
 def _preload_stock_list():
-    """后台预加载股票列表到本地 DB（首次启动或过期时拉取 AkShare）"""
+    """后台预加载股票列表到本地 DB（首次启动或过期时拉取 Tushare）"""
     try:
         from app.services.stock_list_store import ensure_initialized
-        try:
-            import akshare as ak
-        except ImportError:
-            return
-        from app.services.stock_service import retry
+        from app.services.tushare_service import tushare_service
 
         def fetcher():
-            df = retry(lambda: ak.stock_info_a_code_name())
+            data = tushare_service.get_stock_list()
             return [
-                {"symbol": row.get("code", ""), "name": row.get("name", ""), "market": "沪深A股"}
-                for _, row in df.iterrows()
+                {"symbol": item.get("symbol", ""), "name": item.get("name", ""), "market": "沪深A股"}
+                for item in data
             ]
         ensure_initialized(fetcher)
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Preload stock list failed: {e}")
 
 
 @asynccontextmanager

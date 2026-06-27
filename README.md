@@ -21,7 +21,7 @@
 
 ### 后端
 - Python 3.11 + FastAPI
-- AkShare 金融数据源
+- Tushare Pro 金融数据源
 - Pandas 数据处理
 
 ### 部署

@@ -2,7 +2,5 @@ fastapi
 uvicorn
 pydantic
 python-multipart
-akshare
 pandas
 pytest
-jqdatasdk

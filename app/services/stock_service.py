@@ -27,7 +27,7 @@ from app.services.stock_list_store import (
     get_all as stock_list_get_all,
     get_symbol_name_map as stock_list_get_symbol_name_map,
 )
-from app.services.jq_data_service import jq_service
+from app.services.tushare_service import tushare_service
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -115,28 +115,28 @@ class StockService:
         - 当 page 与 page_size 均为 None 时：返回 List[Dict]（保持原有接口）。
         - 当 page、page_size 均传入时：返回 {"data": List[Dict], "total": int}，数据库层分页与搜索。
         """
-        def _fetch_from_ak() -> List[Dict]:
-            if ak is None:
-                return []
+        def _fetch_from_tushare() -> List[Dict]:
+            """从 Tushare 获取股票列表"""
             try:
-                logger.info("stock_list: fetching full list from AkShare (local empty or stale)")
-                df = retry(lambda: ak.stock_info_a_code_name())
+                logger.info("stock_list: fetching full list from Tushare (local empty or stale)")
+                data = tushare_service.get_stock_list()
                 return [
-                    {"symbol": row.get("code", ""), "name": row.get("name", ""), "market": market}
-                    for _, row in df.iterrows()
+                    {"symbol": item.get("symbol", ""), "name": item.get("name", ""), "market": market}
+                    for item in data
                 ]
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Tushare stock_list failed: {e}")
                 return []
 
-        # 分页/搜索请求：仅当缓存未命中时检查并可能拉取 AkShare，避免每次翻页都访问 DB 的 is_stale
+        # 分页/搜索请求：仅当缓存未命中时检查并可能拉取 Tushare，避免每次翻页都访问 DB 的 is_stale
         if page is not None and page_size is not None:
             if cache.get(STOCK_LIST_INIT_CACHE_KEY, max_age=STOCK_LIST_INIT_CACHE_TTL) is None:
-                stock_list_ensure_initialized(_fetch_from_ak)
+                stock_list_ensure_initialized(_fetch_from_tushare)
                 cache.set(STOCK_LIST_INIT_CACHE_KEY, True)
             data, total = stock_list_get_page(page=page, page_size=page_size, search=search, market=market)
             logger.debug("stock_list: served from SQLite page=%s page_size=%s total=%s", page, page_size, total)
             return {"data": data, "total": total}
-        stock_list_ensure_initialized(_fetch_from_ak)
+        stock_list_ensure_initialized(_fetch_from_tushare)
         return stock_list_get_all(market=market)
 
     @staticmethod
@@ -179,47 +179,61 @@ class StockService:
                 cache.set(cache_key, local, max_age=600)
                 return local
 
-        # 2）本地无或未覆盖，从 JoinQuant 拉取（只用 JoinQuant 做回测）
+        # 2）本地无或未覆盖，从 Tushare 拉取
         cache_key = f"history_{symbol}_{start_date}_{end_date}_{adjust}"
         cached = cache.get(cache_key, max_age=600)
         if cached:
             return cached
 
-        # 只用 JoinQuant（历史数据稳定，适合回测）
+        # 使用 Tushare 获取历史数据（免费、稳定、无日期限制）
         try:
-            klines = jq_service.get_stock_history(symbol, start_date, end_date, adjust)
+            klines = tushare_service.get_stock_history(symbol, start_date, end_date, adjust)
             if klines:
                 kline_store_save(symbol, klines, adjust)
                 cache.set(cache_key, klines)
                 return klines
         except Exception as e:
-            logger.warning(f"JoinQuant history failed: {e}")
+            logger.warning(f"Tushare history failed: {e}")
             raise Exception(f"获取历史K线失败: {str(e)}")
 
     @staticmethod
     def get_realtime_quotes(symbols: List[str]) -> List[Dict]:
-        """获取实时行情 - 不显示实时行情，返回空数据占位"""
+        """获取实时行情 - 使用 Tushare 最新日线数据"""
         if not symbols:
             return []
 
-        # 不获取实时行情，只返回占位数据
-        name_map = stock_list_get_symbol_name_map()
-        results = []
-        for s in symbols:
-            results.append({
-                "symbol": s,
-                "name": name_map.get(s, ""),
-                "price": 0,
-                "change_pct": 0,
-                "change_amount": 0,
-                "open": 0,
-                "high": 0,
-                "low": 0,
-                "volume": 0,
-                "amount": 0,
-                "turnover": 0
-            })
-        return results
+        try:
+            # 使用 tushare 获取最新行情
+            results = tushare_service.get_realtime_quotes(symbols)
+            
+            # 填充股票名称
+            name_map = stock_list_get_symbol_name_map()
+            for item in results:
+                if not item.get('name'):
+                    item['name'] = name_map.get(item['symbol'], '')
+            
+            return results
+        except Exception as e:
+            logger.warning(f"Tushare realtime quotes failed: {e}")
+            
+            # 降级：返回占位数据
+            name_map = stock_list_get_symbol_name_map()
+            results = []
+            for s in symbols:
+                results.append({
+                    "symbol": s,
+                    "name": name_map.get(s, ""),
+                    "price": 0,
+                    "change_pct": 0,
+                    "change_amount": 0,
+                    "open": 0,
+                    "high": 0,
+                    "low": 0,
+                    "volume": 0,
+                    "amount": 0,
+                    "turnover": 0
+                })
+            return results
 
     @staticmethod
     def get_realtime_quote(symbol: str) -> Dict:
@@ -232,20 +246,17 @@ class StockService:
 
     @staticmethod
     def get_stock_info(symbol: str) -> Dict:
-        if ak is None:
-            return {"symbol": symbol}
         cache_key = f"info_{symbol}"
         cached = cache.get(cache_key, max_age=3600)
         if cached:
             return cached
+        
         try:
-            df = retry(lambda: ak.stock_individual_info_em(symbol=symbol))
-            info = {"symbol": symbol}
-            for _, row in df.iterrows():
-                info[row.get("item", "")] = row.get("value", "")
+            info = tushare_service.get_stock_info(symbol)
             cache.set(cache_key, info)
             return info
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Tushare stock info failed: {e}")
             return {"symbol": symbol}
 
 
