@@ -2,7 +2,7 @@
 数据源抽象层
 
 使用方式：
-    from app.providers import market_data, get_trading_calendar, get_adjustment_manager
+    from app.providers import market_data, get_trading_calendar, get_adjustment_manager, get_stock_status
     
     # 获取市场数据服务
     bars = market_data.get_daily_bars("600519", "20260101", "20260627")
@@ -14,12 +14,17 @@
     # 获取复权管理器
     adjustment = get_adjustment_manager()
     adjusted_bars = adjustment.adjust_bars(bars, "600519", "qfq")
+    
+    # 获取股票状态
+    stock_status = get_stock_status()
+    can_buy = stock_status.can_buy("600519")
 """
 
 from .base import DataProvider, MarketDataService
 from .tushare_provider import TushareProvider, tushare_provider
 from .trading_calendar import TradingCalendar, get_trading_calendar
 from .adjustment_manager import AdjustmentManager, get_adjustment_manager
+from .stock_status import StockStatus, get_stock_status
 
 
 # 默认使用 Tushare 数据源
