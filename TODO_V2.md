@@ -20,22 +20,30 @@
 
 **目标：建立可信的量化研究基础**
 
+### P0.1 基础层（已完成）
+
 | # | 任务 | 说明 | 负责人 | 预估工时 | 状态 |
 |---|------|------|--------|----------|------|
 | 1 | **DataProvider 抽象层** | 统一数据接口，解耦业务与数据源 | 小猪 | 2天 | ✅ |
 | 2 | **Trading Calendar** | 交易日历，处理节假日/开盘时间 | 小猪 | 1天 | ✅ |
 | 3 | **Adjustment Manager** | 统一复权处理 | 小猪 | 1天 | ✅ |
 | 4 | **Stock Status** | 停牌/ST/涨跌停统一处理 | 小猪 | 1天 | ✅ |
-| 5 | **Domain Model** | 领域模型定义（Instrument/Order/Trade/Position/Account/Portfolio/Strategy/RiskRule/Broker/Exchange） | minimax | 2天 | ✅ |
-| 6 | **Broker 拆分** | 撮合器独立，支持三种实现（BacktestBroker/PaperBroker/LiveBroker） | minimax | 3天 | ✅ |
-| 7 | **Strategy API** | 固定策略接口（initialize/on_bar/on_tick/on_order/on_trade/on_finish） | minimax | 1天 | ✅ |
-| 8 | **Account/Portfolio 分离** | 账户负责现金，组合负责持仓 | minimax | 2天 | ✅ |
-| 9 | **模拟交易持久化** | accounts/orders/trades/positions/cash_ledger | 小猪 | 3天 | ✅ |
-| 10 | **风控事件记录** | risk_events/risk_decisions 审计 | 小猪 | 1天 | ✅ |
-| 11 | **回测成交模型修正** | 处理停牌/涨跌停/T+1 | minimax | 2天 | ✅ |
-| 12 | **核心单元测试** | 覆盖率 60%+ | minimax | 2天 | ✅ |
 
-**P0 预估总工时：21天**
+### P0.5 Trading Core Refactor（待实现）
+
+> 目标：从 Service CRUD 架构升级为交易内核架构
+
+| # | 任务 | 说明 | 负责人 | 预估工时 | 状态 |
+|---|------|------|--------|----------|------|
+| 1 | **Domain Model** | 领域模型定义（Instrument/Bar/Tick/Signal/Order/Trade/Position/Portfolio/Account/StrategyContext/RiskDecision） | minimax | 3天 | ⏳ |
+| 2 | **Strategy API** | 固定策略生命周期（initialize/on_start/on_bar/on_tick/on_order/on_trade/on_finish） | minimax | 2天 | ⏳ |
+| 3 | **Broker 拆分** | 撮合器独立，支持三种实现（BacktestBroker/PaperBroker/LiveBroker），含滑点/手续费/T+1/涨跌停/停牌/部分成交/撤单 | minimax | 4天 | ⏳ |
+| 4 | **Account/Portfolio** | 账户负责现金/冻结/总资产，组合负责持仓集合/市值/收益 | minimax | 2天 | ⏳ |
+| 5 | **Repository** | 数据访问层（Order/Trade/Position/Portfolio/Account Repository），避免 Service 直接操作 SQLite | 小猪 | 2天 | ⏳ |
+| 6 | **Event Bus 集成** | 接入关键事件（ORDER_FILLED/POSITION_CHANGED/RISK_REJECTED 等） | 小猪 | 1天 | ⏳ |
+| 7 | **核心单元测试** | 覆盖买入/卖出/余额不足/持仓不足/T+1/停牌/涨跌停/手续费/印花税/回测可复现 | minimax | 3天 | ⏳ |
+
+**P0.5 预估总工时：17天**
 
 ---
 
@@ -118,18 +126,30 @@
 
 ## 当前完成度
 
+### P0.1 基础层
+
 | 模块 | 完成度 | 说明 |
 |------|--------|------|
 | DataProvider | ✅ | 已实现 |
 | Trading Calendar | ✅ | 已实现 |
 | Adjustment Manager | ✅ | 已实现 |
 | Stock Status | ✅ | 已实现 |
-| Domain Model | ⏳ | 待实现 |
-| Broker | ⏳ | 待拆分 |
-| Strategy API | ⏳ | 待固定 |
-| Account/Portfolio | ⏳ | 待分离 |
 
-**P0 完成度：33%（4/12）**
+**P0.1 完成度：100%（4/4）**
+
+### P0.5 Trading Core Refactor
+
+| 模块 | 完成度 | 说明 |
+|------|--------|------|
+| Domain Model | ⏳ | 待实现 |
+| Strategy API | ⏳ | 待实现 |
+| Broker 拆分 | ⏳ | 待实现 |
+| Account/Portfolio | ⏳ | 待实现 |
+| Repository | ⏳ | 待实现 |
+| Event Bus 集成 | ⏳ | 待实现 |
+| 核心单元测试 | ⏳ | 待实现 |
+
+**P0.5 完成度：0%（0/7）**
 
 | 模块 | 完成度 | 说明 |
 |------|--------|------|
@@ -152,26 +172,39 @@ Phase 1: 可信基础设施 ✅
     ├── DataProvider ✅
     ├── TradingCalendar ✅
     ├── AdjustmentManager ✅
-    ├── StockStatus ✅
-    └── Domain Model ⏳
+    └── StockStatus ✅
 
-Phase 2: 核心能力 ⏳
-    ├── Broker (Backtest/Paper/Live)
+Phase 2: Trading Core Refactor ⏳ (P0.5)
+    ├── Domain Model
     ├── Strategy API
+    ├── Broker (Backtest/Paper/Live)
     ├── Account/Portfolio
-    └── Event Bus
+    ├── Repository
+    ├── Event Bus 集成
+    └── 核心单元测试
 
-Phase 3: 稳定性 ⏳
-    ├── 模拟交易持久化
-    ├── 风控事件记录
-    ├── 回测成交模型
-    └── 单元测试
+Phase 3: 质量保障 ✅ (P1)
+    ├── Event Bus ✅
+    ├── API 统一格式 ✅
+    ├── 错误处理规范 ✅
+    ├── 配置管理 ✅
+    ├── 日志规范 ✅
+    ├── 数据源降级 ✅
+    └── Health Check ✅
 
-Phase 4: 扩展性 ⏳
-    ├── 多策略支持
-    ├── 多市场支持
-    ├── AI 能力
-    └── 实盘交易
+Phase 4: 功能增强 ⏳ (P2)
+    ├── 策略模板
+    ├── 更多策略
+    ├── 回测报告增强
+    ├── AI 策略参数优化
+    └── E2E 测试
+
+Phase 5: 产品化 ⏳ (P3)
+    ├── AI 策略解释
+    ├── 多用户支持
+    ├── 实盘交易接口
+    ├── 多品种扩展
+    └── 自然语言策略
 ```
 
 ---
