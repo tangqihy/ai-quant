@@ -273,13 +273,28 @@ class TestTradingScenarios:
         assert commission == expected_commission
     
     def test_backtest_reproducibility(self):
-        """测试回测结果可复现"""
-        # 使用相同参数运行两次回测
-        # 结果应该完全一致
-        
-        # 这里需要实际的回测引擎
-        # 暂时跳过
-        pass
+        """测试回测结果可复现：相同数据与参数，两次回测结果完全一致"""
+        from app.services.backtest_service import run_backtest
+
+        klines = [
+            {
+                "date": f"2024-01-{i:02d}",
+                "open": 100 + i,
+                "high": 102 + i,
+                "low": 99 + i,
+                "close": 101 + i,
+                "volume": 1e6,
+            }
+            for i in range(1, 31)
+        ]
+
+        res1 = run_backtest("600519", klines, strategy="ma_cross", short_window=5, long_window=20)
+        res2 = run_backtest("600519", klines, strategy="ma_cross", short_window=5, long_window=20)
+
+        assert res1.get("success") is True
+        assert res1 == res2
+        assert res1["final_value"] == res2["final_value"]
+        assert res1["total_trades"] == res2["total_trades"]
 
 
 class TestBrokerValidation:

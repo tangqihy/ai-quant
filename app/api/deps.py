@@ -1,16 +1,28 @@
 """
 API 依赖：鉴权等。
 """
-from fastapi import Header, HTTPException, Depends
+from fastapi import Header, HTTPException, Request
 
 from app.services.auth_service import verify_token
 
 
-def require_auth(authorization: str | None = Header(None, alias="Authorization")):
+PUBLIC_API_PATHS = {
+    ("GET", "/api/backtest/strategies"),
+    ("POST", "/api/backtest"),
+}
+
+
+def require_auth(
+    request: Request,
+    authorization: str | None = Header(None, alias="Authorization"),
+):
     """
     从 Authorization: Bearer <token> 中取出 token 并校验。
     未带或无效时抛出 401，保护 /api/* 下除 /api/auth/* 外的所有接口。
     """
+    if (request.method, request.url.path) in PUBLIC_API_PATHS:
+        return None
+
     token = _bearer_token(authorization)
     if not token or not verify_token(token):
         raise HTTPException(status_code=401, detail="未登录或 token 已失效")

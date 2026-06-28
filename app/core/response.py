@@ -58,4 +58,6 @@ def paginated(
         "page_size": page_size,
         "total_pages": (total + page_size - 1) // page_size,
     }
-    return ok(data=data, message=message)
+    resp = ok(data=data, message=message)
+    resp.update(data)
+    return resp

@@ -1,18 +1,17 @@
 """
-Tushare Pro 数据服务 - 替代 JoinQuant
-通过 tushare_api.py 脚本调用 Tushare Pro 接口
+Tushare Pro 数据服务
+
+直接使用 tushare Python SDK，token 从环境变量 / .env 的 TUSHARE_TOKEN 读取。
 """
-import os
-import json
-import subprocess
 import logging
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 
-logger = logging.getLogger(__name__)
+import tushare as ts
 
-# Tushare API 脚本路径
-TUSHARE_SCRIPT = os.path.expanduser("~/.hermes/skills/tushare-mcp/scripts/tushare_api.py")
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class TushareService:
@@ -29,54 +28,21 @@ class TushareService:
     def __init__(self):
         if TushareService._initialized:
             return
+        token = settings.tushare_token
+        if not token:
+            logger.warning("TUSHARE_TOKEN 未配置，Tushare 数据接口将不可用")
+        else:
+            ts.set_token(token)
+        self._pro = ts.pro_api() if token else None
         TushareService._initialized = True
 
-    def _call_api(self, interface: str, params: Dict = None, fields: str = None) -> List[Dict]:
-        """调用 tushare_api.py 脚本"""
-        cmd = ["python3", TUSHARE_SCRIPT, interface]
-        
-        if params:
-            for key, value in params.items():
-                if value is not None:
-                    cmd.append(f"{key}={value}")
-        
-        if fields:
-            cmd.extend(["--fields", fields])
-        
-        cmd.extend(["--output", "json"])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            if result.returncode != 0:
-                logger.error(f"Tushare API error: {result.stderr}")
-                return []
-            
-            # 解析JSON输出（跳过第一行说明文字）
-            lines = result.stdout.strip().split('\n')
-            json_start = -1
-            for i, line in enumerate(lines):
-                if line.strip().startswith('[') or line.strip().startswith('{'):
-                    json_start = i
-                    break
-            
-            if json_start == -1:
-                return []
-            
-            json_str = '\n'.join(lines[json_start:])
-            return json.loads(json_str)
-            
-        except subprocess.TimeoutExpired:
-            logger.error("Tushare API timeout")
-            return []
-        except Exception as e:
-            logger.error(f"Tushare API call failed: {e}")
-            return []
+    @property
+    def pro(self):
+        """懒加载 pro_api，支持运行时补配置 token。"""
+        if self._pro is None and settings.tushare_token:
+            ts.set_token(settings.tushare_token)
+            self._pro = ts.pro_api()
+        return self._pro
 
     def normalize_symbol(self, symbol: str) -> str:
         """将股票代码转换为 Tushare 格式 (600519 -> 600519.SH)"""
@@ -99,14 +65,22 @@ class TushareService:
         获取股票列表
         market: 主板/创业板/科创板/北交所 等
         """
-        params = {}
-        if market:
-            params['market'] = market
-        
-        data = self._call_api('stock_basic', params)
-        
+        if not self.pro:
+            return []
+        try:
+            kwargs = {'list_status': 'L'}
+            if market:
+                kwargs['market'] = market
+            df = self.pro.stock_basic(**kwargs)
+        except Exception as e:
+            logger.error(f"Tushare stock_basic failed: {e}")
+            return []
+
+        if df is None or df.empty:
+            return []
+
         results = []
-        for item in data:
+        for _, item in df.iterrows():
             results.append({
                 'symbol': item.get('symbol', ''),
                 'name': item.get('name', ''),
@@ -114,16 +88,15 @@ class TushareService:
                 'area': item.get('area', ''),
                 'industry': item.get('industry', ''),
                 'market': item.get('market', ''),
-                'list_date': item.get('list_date', '')
+                'list_date': str(item.get('list_date', '')),
             })
-        
         return results
 
     def get_stock_history(
-        self, 
-        symbol: str, 
-        start_date: str = None, 
-        end_date: str = None, 
+        self,
+        symbol: str,
+        start_date: str = None,
+        end_date: str = None,
         adjust: str = "qfq"
     ) -> List[Dict]:
         """
@@ -133,76 +106,74 @@ class TushareService:
         end_date: 结束日期 (YYYYMMDD)
         adjust: 复权类型 qfq(前复权)/hfq(后复权)/空(不复权)
         """
+        if not self.pro:
+            return []
+
         ts_code = self.normalize_symbol(symbol)
-        
+
         if not start_date:
             start_date = (datetime.now() - timedelta(days=365)).strftime('%Y%m%d')
         if not end_date:
             end_date = datetime.now().strftime('%Y%m%d')
-        
-        # 标准化日期格式
+
         start_date = start_date.replace('-', '')
         end_date = end_date.replace('-', '')
-        
-        params = {
-            'ts_code': ts_code,
-            'start_date': start_date,
-            'end_date': end_date
-        }
-        
-        data = self._call_api('daily', params)
-        
-        if not data:
+
+        try:
+            df = self.pro.daily(ts_code=ts_code, start_date=start_date, end_date=end_date)
+        except Exception as e:
+            logger.error(f"Tushare daily failed: {e}")
             return []
-        
+
+        if df is None or df.empty:
+            return []
+
+        data = df.to_dict('records')
+
         # 获取复权因子（如果需要复权）
         if adjust in ('qfq', 'hfq'):
-            adj_data = self._call_api('adj_factor', {'ts_code': ts_code})
-            if adj_data:
-                # 构建复权因子映射
-                adj_map = {item['trade_date']: item['adj_factor'] for item in adj_data}
-                
-                # 获取最新日期的复权因子
+            try:
+                adj_df = self.pro.adj_factor(ts_code=ts_code, start_date=start_date, end_date=end_date)
+            except Exception as e:
+                logger.warning(f"Tushare adj_factor failed: {e}")
+                adj_df = None
+
+            if adj_df is not None and not adj_df.empty:
+                adj_map = {str(item['trade_date']): item['adj_factor'] for item in adj_df.to_dict('records')}
                 latest_adj = adj_map.get(end_date, 1.0)
                 if latest_adj == 1.0 and adj_map:
-                    # 如果end_date没有数据，取最大的复权因子
                     latest_adj = max(adj_map.values())
-                
+
                 for item in data:
-                    trade_date = item['trade_date']
+                    trade_date = str(item['trade_date'])
                     current_adj = adj_map.get(trade_date, 1.0)
-                    
+
                     if adjust == 'qfq':
-                        # 前复权 = 原始价格 * (当日复权因子 / 最新复权因子)
                         factor = current_adj / latest_adj if latest_adj else 1.0
                     else:
-                        # 后复权 = 原始价格 * (最新复权因子 / 当日复权因子)
                         factor = latest_adj / current_adj if current_adj else 1.0
-                    
+
                     item['open'] = round(item['open'] * factor, 2)
                     item['high'] = round(item['high'] * factor, 2)
                     item['low'] = round(item['low'] * factor, 2)
                     item['close'] = round(item['close'] * factor, 2)
-        
-        # 转换为标准格式
+
         results = []
         for item in data:
             results.append({
-                'date': self._format_date(item.get('trade_date', '')),
+                'date': self._format_date(str(item.get('trade_date', ''))),
                 'open': float(item.get('open', 0)),
                 'high': float(item.get('high', 0)),
                 'low': float(item.get('low', 0)),
                 'close': float(item.get('close', 0)),
-                'volume': float(item.get('vol', 0)),  # tushare 用 vol 字段
+                'volume': float(item.get('vol', 0)),
                 'amount': float(item.get('amount', 0)),
-                'change_pct': float(item.get('pct_chg', 0)),
-                'change_amount': float(item.get('change', 0)),
-                'turnover': 0  # tushare daily 不含换手率，需要 daily_basic
+                'change_pct': float(item.get('pct_chg', 0) or 0),
+                'change_amount': float(item.get('change', 0) or 0),
+                'turnover': 0,
             })
-        
-        # 按日期升序排序
+
         results.sort(key=lambda x: x['date'])
-        
         return results
 
     def get_realtime_quotes(self, symbols: List[str]) -> List[Dict]:
@@ -210,61 +181,45 @@ class TushareService:
         获取实时行情（使用最新日线数据作为近似）
         注意: Tushare 免费接口不支持实时行情，使用最新日线数据
         """
-        if not symbols:
+        if not self.pro or not symbols:
             return []
-        
+
         results = []
+        today = datetime.now().strftime('%Y%m%d')
         for symbol in symbols:
             ts_code = self.normalize_symbol(symbol)
-            
-            # 获取最新一天的日线数据
-            data = self._call_api('daily', {
-                'ts_code': ts_code,
-                'trade_date': datetime.now().strftime('%Y%m%d')
-            })
-            
-            if data:
-                item = data[0]
+            item = None
+            try:
+                df = self.pro.daily(ts_code=ts_code, trade_date=today)
+                if df is not None and not df.empty:
+                    item = df.iloc[0].to_dict()
+            except Exception as e:
+                logger.debug(f"Tushare daily(trade_date) for {symbol} failed: {e}")
+
+            if item is None:
+                try:
+                    start = (datetime.now() - timedelta(days=7)).strftime('%Y%m%d')
+                    df = self.pro.daily(ts_code=ts_code, start_date=start, end_date=today)
+                    if df is not None and not df.empty:
+                        item = df.iloc[-1].to_dict()
+                except Exception as e:
+                    logger.debug(f"Tushare daily(range) for {symbol} failed: {e}")
+
+            if item:
                 results.append({
                     'symbol': symbol,
                     'name': '',
-                    'price': float(item.get('close', 0)),
-                    'open': float(item.get('open', 0)),
-                    'high': float(item.get('high', 0)),
-                    'low': float(item.get('low', 0)),
-                    'volume': float(item.get('vol', 0)),
-                    'amount': float(item.get('amount', 0)),
-                    'change_pct': float(item.get('pct_chg', 0)),
-                    'change_amount': float(item.get('change', 0)),
+                    'price': float(item.get('close', 0) or 0),
+                    'open': float(item.get('open', 0) or 0),
+                    'high': float(item.get('high', 0) or 0),
+                    'low': float(item.get('low', 0) or 0),
+                    'volume': float(item.get('vol', 0) or 0),
+                    'amount': float(item.get('amount', 0) or 0),
+                    'change_pct': float(item.get('pct_chg', 0) or 0),
+                    'change_amount': float(item.get('change', 0) or 0),
                     'turnover': 0,
-                    'source': 'tushare'
+                    'source': 'tushare',
                 })
-            else:
-                # 如果今天没有数据，获取最近一天的
-                data = self._call_api('daily', {
-                    'ts_code': ts_code,
-                    'start_date': (datetime.now() - timedelta(days=7)).strftime('%Y%m%d'),
-                    'end_date': datetime.now().strftime('%Y%m%d')
-                })
-                
-                if data:
-                    # 取最后一条
-                    item = data[-1]
-                    results.append({
-                        'symbol': symbol,
-                        'name': '',
-                        'price': float(item.get('close', 0)),
-                        'open': float(item.get('open', 0)),
-                        'high': float(item.get('high', 0)),
-                        'low': float(item.get('low', 0)),
-                        'volume': float(item.get('vol', 0)),
-                        'amount': float(item.get('amount', 0)),
-                        'change_pct': float(item.get('pct_chg', 0)),
-                        'change_amount': float(item.get('change', 0)),
-                        'turnover': 0,
-                        'source': 'tushare'
-                    })
-        
         return results
 
     def get_realtime_quote(self, symbol: str) -> Dict:
@@ -283,38 +238,41 @@ class TushareService:
 
     def get_stock_info(self, symbol: str) -> Dict:
         """获取股票基本信息"""
+        if not self.pro:
+            return {'symbol': symbol}
         ts_code = self.normalize_symbol(symbol)
-        
-        data = self._call_api('stock_basic', {'ts_code': ts_code})
-        
-        if data:
-            item = data[0]
+        try:
+            df = self.pro.stock_basic(ts_code=ts_code)
+        except Exception as e:
+            logger.error(f"Tushare stock_basic(ts_code) failed: {e}")
+            return {'symbol': symbol}
+
+        if df is not None and not df.empty:
+            item = df.iloc[0].to_dict()
             return {
                 'symbol': symbol,
                 'name': item.get('name', ''),
                 'industry': item.get('industry', ''),
                 'area': item.get('area', ''),
                 'market': item.get('market', ''),
-                'list_date': item.get('list_date', '')
+                'list_date': str(item.get('list_date', '')),
             }
-        
         return {'symbol': symbol}
 
     def get_daily_basic(self, symbol: str, trade_date: str = None) -> Dict:
         """获取每日指标（PE/PB/换手率等）"""
+        if not self.pro:
+            return {}
         ts_code = self.normalize_symbol(symbol)
-        
         if not trade_date:
             trade_date = datetime.now().strftime('%Y%m%d')
-        
-        data = self._call_api('daily_basic', {
-            'ts_code': ts_code,
-            'trade_date': trade_date
-        })
-        
-        if data:
-            return data[0]
-        
+        try:
+            df = self.pro.daily_basic(ts_code=ts_code, trade_date=trade_date)
+        except Exception as e:
+            logger.error(f"Tushare daily_basic failed: {e}")
+            return {}
+        if df is not None and not df.empty:
+            return df.iloc[0].to_dict()
         return {}
 
     def _format_date(self, date_str: str) -> str:

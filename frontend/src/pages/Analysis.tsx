@@ -124,7 +124,7 @@ const Analysis: React.FC = () => {
           <span>策略:</span>
           <Select value={strategy} onChange={setStrategy} style={{ width: 150 }}>
             <Option value="ma_cross">均线交叉</Option>
-            <Option value="dual_ma">双MA策略</Option>
+            <Option value="rsi">RSI策略</Option>
           </Select>
           <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleRunBacktest} loading={loading}>
             运行回测

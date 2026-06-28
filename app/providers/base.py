@@ -11,7 +11,7 @@ class DataProvider(ABC):
     """
     数据源抽象基类
     
-    所有数据源（Tushare、JoinQuant、AkShare等）都应实现此接口
+    所有数据源都应实现此接口；当前主路径使用 Tushare。
     业务层不直接依赖具体数据源，而是通过此接口访问数据
     """
     
@@ -192,7 +192,7 @@ class MarketDataService:
         初始化市场数据服务
         
         Args:
-            provider: 数据源实现（TushareProvider/JoinQuantProvider等）
+            provider: 数据源实现
         """
         self._provider = provider
         self._cache = {}

@@ -31,14 +31,9 @@ class Settings(BaseSettings):
     
     # Tushare 配置
     tushare_token: Optional[str] = Field(default=None, description="Tushare API Token")
-    
-    # JoinQuant 配置
-    jq_username: Optional[str] = Field(default=None, description="JoinQuant 用户名")
-    jq_password: Optional[str] = Field(default=None, description="JoinQuant 密码")
-    
+
     # 数据源配置
     data_source_primary: str = Field(default="tushare", description="主数据源")
-    data_source_fallback: str = Field(default="jqdata", description="备数据源")
     
     # 日志配置
     log_level: str = Field(default="INFO", description="日志级别")

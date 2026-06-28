@@ -5,7 +5,6 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 from app.services.stock_service import stock_service
-from app.services.realtime_service import get_realtime_quotes as get_realtime_quotes_service
 from app.services.backtest_service import run_backtest
 from app.services.storage_service import backtest_storage
 from app.services.indicator_service import indicator_service
@@ -107,11 +106,13 @@ async def get_stock_realtime(symbol: str):
 async def get_realtime_quotes(
     symbols: str = Query(..., description="股票代码逗号分隔")
 ):
-    """批量获取股票实时行情（新浪主源 + 腾讯降级 + 本地缓存）"""
+    """批量获取股票行情（Tushare 最新日线近似）"""
     try:
         symbol_list = [s.strip() for s in symbols.split(",")]
-        quotes = get_realtime_quotes_service(symbol_list)
-        return ok(data=quotes)
+        quotes = stock_service.get_realtime_quotes(symbol_list)
+        response = ok(data=quotes)
+        response["total"] = len(quotes)
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -205,8 +206,10 @@ async def run_backtest_api(config: BacktestRequest):
         if config.save_result:
             task_id = backtest_storage.save_result(result)
             result['task_id'] = task_id
-        
-        return ok(data=result)
+
+        response = ok(data=result)
+        response.update(result)
+        return response
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -234,7 +237,9 @@ async def list_backtest_results(
 ):
     """列出回测历史"""
     results = backtest_storage.list_results(limit=limit, symbol=symbol)
-    return ok(data=results)
+    response = ok(data=results)
+    response["total"] = len(results)
+    return response
 
 
 @router.delete("/backtest/{task_id}")

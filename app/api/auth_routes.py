@@ -21,7 +21,9 @@ async def login(body: LoginRequest):
     if not verify_password(body.password):
         raise HTTPException(status_code=401, detail="密码错误")
     token = create_token()
-    return ok(data={"token": token})
+    response = ok(data={"token": token})
+    response["token"] = token
+    return response
 
 
 @router.get("/verify")
@@ -33,7 +35,9 @@ async def verify(authorization: str | None = Header(None, alias="Authorization")
     token = _bearer_token(authorization)
     if not token or not verify_token(token):
         raise HTTPException(status_code=401, detail="未登录或 token 已失效")
-    return ok(data={"valid": True})
+    response = ok(data={"valid": True})
+    response["valid"] = True
+    return response
 
 
 def _bearer_token(authorization: str | None) -> str | None:

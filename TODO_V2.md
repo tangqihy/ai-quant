@@ -37,11 +37,11 @@
 |---|------|------|--------|----------|------|
 | 1 | **Domain Model** | 领域模型定义（Instrument/Bar/Tick/Signal/Order/Trade/Position/Portfolio/Account/StrategyContext/RiskDecision） | minimax | 3天 | ✅ |
 | 2 | **Strategy API** | 固定策略生命周期（initialize/on_start/on_bar/on_tick/on_order/on_trade/on_finish） | minimax | 2天 | ✅ |
-| 3 | **Broker 拆分** | 撮合器独立，支持三种实现（BacktestBroker/PaperBroker/LiveBroker），含滑点/手续费/T+1/涨跌停/停牌/部分成交/撤单 | minimax | 4天 | ✅ |
+| 3 | **Broker 拆分** | 撮合器独立，支持 Backtest/Paper；LiveBroker 需接入具体券商 API 后启用 | minimax | 4天 | ⏳ |
 | 4 | **Account/Portfolio** | 账户负责现金/冻结/总资产，组合负责持仓集合/市值/收益 | minimax | 2天 | ✅ |
 | 5 | **Repository** | 数据访问层（Order/Trade/Position/Portfolio/Account Repository），避免 Service 直接操作 SQLite | 小猪 | 2天 | ✅ |
 | 6 | **Event Bus 集成** | 接入关键事件（ORDER_FILLED/POSITION_CHANGED/RISK_REJECTED 等） | 小猪 | 1天 | ✅ |
-| 7 | **核心单元测试** | 覆盖买入/卖出/余额不足/持仓不足/T+1/停牌/涨跌停/手续费/印花税/回测可复现 | minimax | 3天 | ✅ |
+| 7 | **核心单元测试** | 覆盖买入/卖出/余额不足/持仓不足/T+1/停牌/涨跌停/手续费/印花税/回测可复现 | minimax | 3天 | ⏳ |
 
 **P0.5 预估总工时：17天**
 
@@ -58,7 +58,7 @@
 | 3 | **错误处理规范** | 统一异常体系 | 小猪 | 1天 | ✅ |
 | 4 | **配置管理** | Pydantic Settings | minimax | 1天 | ✅ |
 | 5 | **日志规范** | 结构化日志 + 请求ID | minimax | 1天 | ✅ |
-| 6 | **数据源降级** | 主备数据源切换 | 小猪 | 1天 | ✅ |
+| 6 | **Tushare-only 数据源** | 主路径统一为 Tushare + 本地缓存，移除其他备源运行依赖 | 小猪 | 1天 | ✅ |
 | 7 | **Health Check** | DB/数据源连通性检测 | 小猪 | 0.5天 | ✅ |
 
 **P1 预估总工时：7.5天**
@@ -74,7 +74,7 @@
 | 1 | **策略模板** | 模板与回测参数联动 | 小猪 | 1天 | ⏳ |
 | 2 | **更多策略** | MACD/布林带等 | minimax | 2天 | ⏳ |
 | 3 | **回测报告增强** | Sharpe/Sortino/最大回撤/月收益 | minimax | 2天 | ⏳ |
-| 4 | **数据源插件** | 可配置的数据源切换 | minimax | 2天 | ⏳ |
+| 4 | **数据质量增强** | Tushare 数据完整性校验、错误提示和缓存刷新策略 | minimax | 2天 | ⏳ |
 | 5 | **AI策略参数优化** | 遗传算法/贝叶斯优化 | 待定 | 3天 | ⏳ |
 | 6 | **AI回测结果总结** | 自动生成报告摘要 | 待定 | 2天 | ⏳ |
 | 7 | **E2E测试** | 完整链路测试 | minimax | 2天 | ⏳ |
@@ -143,13 +143,13 @@
 |------|--------|------|
 | Domain Model | ✅ | 已实现（Instrument/Bar/Tick/Signal/Order/Trade/Position/Portfolio/Account/StrategyContext/RiskDecision） |
 | Strategy API | ✅ | 已实现（initialize/on_start/on_bar/on_tick/on_order/on_trade/on_finish，含MAStrategy/RSIStrategy示例） |
-| Broker 拆分 | ✅ | 已实现（BacktestBroker/PaperBroker/LiveBroker，含滑点/手续费/订单验证） |
+| Broker 拆分 | ⏳ | Backtest/Paper 已有基础实现；LiveBroker 明确未接入券商 API |
 | Account/Portfolio | ✅ | 已实现（AccountManager/PortfolioManager/TradingManager，职责分离） |
 | Repository | ✅ | 已实现（OrderRepository/TradeRepository/PositionRepository/AccountRepository，基于SQLite） |
 | Event Bus 集成 | ✅ | 已实现（TradingEventPublisher/TradingEventHandler，接入ORDER_FILLED/POSITION_CHANGED/RISK_REJECTED等关键事件） |
-| 核心单元测试 | ✅ | 已实现（test_trading_scenarios.py，覆盖买入/卖出/余额不足/持仓不足/T+1/停牌/涨跌停/手续费/印花税） |
+| 核心单元测试 | ⏳ | 买卖/手续费/印花税/可复现已覆盖；余额/持仓/T+1/涨跌停待 Broker 实现校验后补断言 |
 
-**P0.5 完成度：100%（7/7）**
+**P0.5 完成度：约 70%（5/7）**
 
 | 模块 | 完成度 | 说明 |
 |------|--------|------|
@@ -158,7 +158,7 @@
 | 错误处理规范 | ✅ | 已实现 |
 | 配置管理 | ✅ | 已实现 |
 | 日志规范 | ✅ | 已实现 |
-| 数据源降级 | ✅ | 已实现 |
+| Tushare-only 数据源 | ✅ | 已实现 |
 | Health Check | ✅ | 已实现 |
 
 **P1 完成度：100%（7/7）**
@@ -189,7 +189,7 @@ Phase 3: 质量保障 ✅ (P1)
     ├── 错误处理规范 ✅
     ├── 配置管理 ✅
     ├── 日志规范 ✅
-    ├── 数据源降级 ✅
+    ├── Tushare-only 数据源 ✅
     └── Health Check ✅
 
 Phase 4: 功能增强 ⏳ (P2)

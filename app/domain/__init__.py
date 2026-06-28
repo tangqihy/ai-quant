@@ -41,3 +41,11 @@ from .models import (
     StrategyContext,
     Strategy,
 )
+
+
+def __getattr__(name: str):
+    """兼容旧代码从 app.domain 导入 Broker。"""
+    if name == "Broker":
+        from app.brokers.broker import Broker
+        return Broker
+    raise AttributeError(f"module 'app.domain' has no attribute {name!r}")

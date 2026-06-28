@@ -30,17 +30,18 @@ const StockList: React.FC = () => {
     try {
       const res = await getStocks(p, pageSize, search);
       if (res.success) {
-        const list = res.data.map((s: any, i: number) => ({
+        const list = res.data?.items ?? (Array.isArray(res.data) ? res.data : []);
+        const mapped = list.map((s: any, i: number) => ({
           key: `${p}-${i}`,
           symbol: s.symbol,
           name: s.name,
           market: s.market,
         }));
-        setStocks(list);
-        setTotal(res.total);
+        setStocks(mapped);
+        setTotal(res.data?.total ?? res.total ?? 0);
 
         // 获取当前页股票的实时行情
-        const symbols = res.data.map((s: any) => s.symbol);
+        const symbols = list.map((s: any) => s.symbol);
         if (symbols.length > 0) {
           try {
             const quotesRes = await getRealtimeQuotes(symbols);

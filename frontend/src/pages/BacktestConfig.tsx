@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Form, Input, Select, InputNumber, DatePicker, Button, Space, Divider, Row, Col, message, Spin, Dropdown, Alert } from 'antd';
+import { Card, Form, Input, Select, InputNumber, DatePicker, Button, Space, Divider, Row, Col, message, Spin, Dropdown } from 'antd';
 import { PlayCircleOutlined, SaveOutlined, UndoOutlined, DownOutlined } from '@ant-design/icons';
 import { runBacktest, BacktestResult } from '../services/api';
 import { useWatchlist } from '../hooks/useWatchlist';
@@ -19,10 +19,6 @@ interface BacktestConfig {
   longWindow: number;
 }
 
-// JoinQuant 免费账号数据限制
-const JQ_DATA_START = '2024-11-30';  // JoinQuant 免费数据起始日期
-const JQ_DATA_END = '2025-06-30';    // 限制到2025年6月
-
 const BacktestConfig: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -30,22 +26,11 @@ const BacktestConfig: React.FC = () => {
   const { stocks } = useWatchlist();
 
   const onFinish = async (values: any) => {
-    console.log('回测配置:', values);
-    
     // 解析日期范围
     const dateRange = values.dateRange;
     const startDate = dateRange?.[0]?.format('YYYYMMDD') || '20241130';
     const endDate = dateRange?.[1]?.format('YYYYMMDD') || '20250630';
-    
-    // 校验日期范围
-    const end = dayjs(endDate, 'YYYYMMDD');
-    const maxDate = dayjs(JQ_DATA_END, 'YYYY-MM-DD');
-    
-    if (end.isAfter(maxDate)) {
-      message.error(`回测结束日期不能超过 ${JQ_DATA_END}（JoinQuant 免费数据限制）`);
-      return;
-    }
-    
+
     setLoading(true);
     message.info('回测执行中，请稍候...');
     
@@ -100,17 +85,6 @@ const BacktestConfig: React.FC = () => {
             longWindow: 20,
           }}
         >
-          {/* 数据限制提示 */}
-          <Col xs={24}>
-            <Alert
-              message="数据限制说明"
-              description={`回测数据来自 JoinQuant 免费账号，可用数据范围为 ${JQ_DATA_START} 至 ${JQ_DATA_END}，结束日期不能超过 ${JQ_DATA_END}`}
-              type="info"
-              showIcon
-              style={{ marginBottom: 16 }}
-            />
-          </Col>
-
           <Row gutter={[16, 0]}>
             {/* 基础配置 */}
             <Col xs={24} lg={12}>
@@ -128,7 +102,6 @@ const BacktestConfig: React.FC = () => {
                           key: s.symbol, 
                           label: `${s.symbol} ${s.name}`,
                           onClick: ({ key }) => {
-                            console.log('Selected stock:', key);
                             form.setFieldsValue({ stockCode: key });
                           }
                         })),
@@ -226,9 +199,9 @@ const BacktestConfig: React.FC = () => {
                   </Row>
                   <Divider />
                   <div style={{ color: 'rgba(0, 255, 65, 0.5)', fontSize: 12 }}>
-                    交易次数: {result.total_trades} | 
-                    初始资金: {result.initial_capital.toLocaleString()} | 
-                    最终资产: {result.final_value.toLocaleString()}
+                    交易次数: {result.total_trades} |
+                    初始资金: {result.initial_capital?.toLocaleString()} |
+                    最终资产: {result.final_value?.toLocaleString()}
                   </div>
                 </Card>
               </Col>

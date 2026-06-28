@@ -6,7 +6,6 @@
 import logging
 from typing import List, Dict, Optional, Any
 from app.providers.base import DataProvider
-from app.core.config import settings
 from app.core.exceptions import DataSourceError
 
 logger = logging.getLogger(__name__)
@@ -196,27 +195,13 @@ class FallbackDataProvider(DataProvider):
 
 
 def create_fallback_provider() -> FallbackDataProvider:
-    """
-    创建降级数据源
-    
-    根据配置创建主备数据源组合。
-    """
+    """创建 Tushare 数据源。"""
     from app.providers.tushare_provider import TushareProvider
     
-    # 创建主数据源
     primary = TushareProvider()
-    
-    # 创建备数据源（如果配置了）
-    fallback = None
-    if settings.data_source_fallback == "jqdata":
-        try:
-            from app.services.jq_data_service import JoinQuantService
-            fallback = JoinQuantService()
-        except Exception as e:
-            logger.warning(f"Failed to create fallback data source: {e}")
     
     return FallbackDataProvider(
         primary=primary,
-        fallback=fallback,
-        fallback_on_error=True,
+        fallback=None,
+        fallback_on_error=False,
     )

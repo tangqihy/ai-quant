@@ -4,11 +4,11 @@
 
 ## 项目简介
 
-一个完整的A股量化交易回测系统，支持：
-- 📊 股票数据查询（实时行情、历史K线）
-- ⚙️ 回测引擎（MA交叉策略）
-- 📈 收益分析（收益率、最大回撤、胜率）
-- 🔄 CI/CD 自动化部署
+一个 A 股量化交易回测系统，支持：
+- 股票数据查询（Tushare 行情、历史 K 线、本地缓存）
+- 回测引擎（MA 交叉、RSI 策略）
+- 收益分析（收益率、最大回撤、胜率）
+- CI/CD 自动化部署
 
 ## 技术栈
 
@@ -61,7 +61,7 @@ ai-quant/
 │   └── ci-cd.yml
 │
 ├── requirements.txt        # Python依赖
-└── TASKS.md               # 任务跟踪
+└── TODO_V2.md             # 后续任务跟踪
 ```
 
 ## 快速开始
@@ -87,7 +87,8 @@ source venv/bin/activate  # Linux/Mac
 # 安装依赖
 pip install -r requirements.txt
 
-# 配置访问密码（可选，未设置则无法登录）
+# 配置环境变量
+cp .env.example .env
 export QUANT_AUTH_PASSWORD=your_password
 
 # 启动服务
@@ -106,7 +107,7 @@ API文档：http://localhost:8000/docs
 | `/api/auth/verify` | GET | 验证当前 token 是否有效 |
 | `/api/stocks` | GET | 获取股票列表 |
 | `/api/stocks/{symbol}/history` | GET | 获取历史K线 |
-| `/api/quotes/realtime` | GET | 批量实时行情 |
+| `/api/quotes/realtime` | GET | 批量行情（Tushare 最新日线近似） |
 | `/api/backtest` | POST | 运行回测 |
 | `/api/backtest` | GET | 历史回测列表 |
 | `/api/backtest/{task_id}` | GET | 回测详情 |
@@ -121,13 +122,22 @@ API文档：http://localhost:8000/docs
 - `short_window`: 短期均线周期（默认5）
 - `long_window`: 长期均线周期（默认20）
 
+### RSI策略
+- RSI 上穿超卖线 → 买入
+- RSI 下穿超买线 → 卖出
+
+参数：
+- `period`: RSI 周期（默认14）
+- `oversold`: 超卖线（默认30）
+- `overbought`: 超买线（默认70）
+
 ## 部署
 
 ### 部署到服务器
 
 **重要：** 后端使用 `app` 包结构，必须在项目根目录下并设置 `PYTHONPATH`，否则会报 `ModuleNotFoundError: No module named 'app'`。
 
-推荐使用项目自带的 `ecosystem.config.js` 和 `start.sh`（已正确设置 PYTHONPATH 和 uvicorn）：
+推荐使用项目自带的 `ecosystem.config.js` 和 `start.sh`（已正确设置 PYTHONPATH 和 uvicorn）。生产环境需先设置 `QUANT_AUTH_PASSWORD`，可选设置 `TUSHARE_TOKEN`：
 
 ```bash
 # 克隆代码
@@ -139,6 +149,10 @@ pip install -r requirements.txt
 
 # 安装前端依赖
 cd frontend && pnpm install && pnpm build
+
+# 配置环境变量
+export QUANT_AUTH_PASSWORD=your_strong_password
+export TUSHARE_TOKEN=your_tushare_token
 
 # 使用 ecosystem 启动（start.sh 会设置 PYTHONPATH 并启动 uvicorn）
 pm2 start ecosystem.config.js
@@ -163,7 +177,7 @@ export PYTHONPATH=$(pwd)
 python app/main.py
 ```
 
-**若 500 错误：** 查看 `pm2 logs quant-backend`，常见原因：网络/akshare 数据源异常、或依赖未安装。
+**若 500 错误：** 查看 `pm2 logs quant-backend`，常见原因：Tushare 外部脚本不可用、网络异常、环境变量缺失或依赖未安装。
 
 ### CI/CD 自动部署
 
@@ -174,7 +188,7 @@ python app/main.py
 
 ## 贡献
 
-任务跟踪：查看 TASKS.md
+任务跟踪：查看 TODO_V2.md
 
 ## 许可证
 

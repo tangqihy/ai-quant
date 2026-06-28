@@ -1,10 +1,3 @@
-import { clsx, ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
 /** 价格保留 2 位小数 */
 export function formatPrice(val: number | undefined | null): string {
   if (val == null || Number.isNaN(val)) return '-';

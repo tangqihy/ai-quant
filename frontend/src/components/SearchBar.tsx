@@ -28,9 +28,10 @@ export const SearchBar: React.FC = () => {
     setLoading(true);
     try {
       const res = await getStocks(1, 20, term);
-      if (res.success && res.data?.length) {
+      const list = res.data?.items ?? (Array.isArray(res.data) ? res.data : []);
+      if (res.success && list.length) {
         setResults(
-          res.data.map((s: any) => ({ symbol: s.symbol, name: s.name || s.symbol }))
+          list.map((s: any) => ({ symbol: s.symbol, name: s.name || s.symbol }))
         );
         setDropdownVisible(true);
       } else {

@@ -187,11 +187,11 @@ class Broker(ABC):
         # 限价单检查价格
         if order.order_type == OrderType.LIMIT:
             if order.direction == OrderDirection.BUY:
-                # 买单：当前价 <= 委托价
-                return bar.low <= order.price
+                # 买单：盘中最低价或收盘价触及委托价
+                return min(bar.low, bar.close) <= order.price
             else:
-                # 卖单：当前价 >= 委托价
-                return bar.high >= order.price
+                # 卖单：盘中最高价或收盘价触及委托价
+                return max(bar.high, bar.close) >= order.price
         
         # 市价单总是可以撮合
         return True
@@ -321,10 +321,11 @@ class LiveBroker(Broker):
         self._connected = False
     
     def connect(self) -> bool:
-        """连接券商"""
-        # TODO: 实现券商连接
-        self._connected = True
-        return True
+        """连接券商。
+
+        实盘交易尚未接入具体券商 SDK，调用方不能把该 Broker 当作可用实盘通道。
+        """
+        raise NotImplementedError("LiveBroker 尚未接入券商 API")
     
     def disconnect(self):
         """断开连接"""

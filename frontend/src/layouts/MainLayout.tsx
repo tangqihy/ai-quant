@@ -102,7 +102,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             fontFamily: "'JetBrains Mono', monospace",
           }}
         >
-          Powered by AkShare
+          Powered by Tushare
         </div>
       </Sider>
       <Layout>

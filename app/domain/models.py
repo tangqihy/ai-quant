@@ -6,6 +6,8 @@
 2. 职责单一：每个领域对象只负责自己的业务逻辑
 3. 不可变性：核心领域对象尽量使用不可变设计
 """
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 from datetime import datetime

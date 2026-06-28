@@ -3,12 +3,11 @@ module.exports = {
     name: 'quant-backend',
     script: './start.sh',
     interpreter: 'bash',
-    cwd: '/root/.openclaw/workspace/ai-quant',
+    cwd: process.env.QUANT_APP_ROOT || __dirname,
     env: {
-      PYTHONPATH: '/root/.openclaw/workspace/ai-quant',
-      QUANT_AUTH_PASSWORD: 'tangqi2024',
-      JQ_USERNAME: '17682443337',
-      JQ_PASSWORD: 'Yvhkyjj11385171'
+      PYTHONPATH: process.env.QUANT_APP_ROOT || __dirname,
+      QUANT_AUTH_PASSWORD: process.env.QUANT_AUTH_PASSWORD,
+      TUSHARE_TOKEN: process.env.TUSHARE_TOKEN
     },
     watch: false,
     autorestart: true
