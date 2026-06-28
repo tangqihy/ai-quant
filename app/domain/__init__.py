@@ -3,9 +3,9 @@
 
 使用方式：
     from app.domain import (
-        Instrument, MarketData, Order, Trade, Position,
-        Account, Portfolio, RiskRule, ExchangeInfo, Strategy,
-        OrderDirection, OrderType, OrderStatus, RiskRuleType,
+        Instrument, MarketData, Bar, Tick, Signal, Order, Trade, Position,
+        Account, Portfolio, RiskRule, RiskDecision, ExchangeInfo, Strategy,
+        OrderDirection, OrderType, OrderStatus, RiskRuleType, SignalType, RiskAction,
         Exchange, Market, Frequency
     )
 """
@@ -21,16 +21,22 @@ from .models import (
     RiskRuleType,
     BrokerType,
     Frequency,
+    SignalType,
+    RiskAction,
     
     # 领域对象
     Instrument,
     MarketData,
+    Bar,
+    Tick,
+    Signal,
     Order,
     Trade,
     Position,
     Account,
     Portfolio,
     RiskRule,
+    RiskDecision,
     ExchangeInfo,
     StrategyContext,
     Strategy,

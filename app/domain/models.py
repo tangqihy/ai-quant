@@ -91,6 +91,22 @@ class Frequency(Enum):
     MONTHLY = "1m"     # 月线
 
 
+class SignalType(Enum):
+    """信号类型"""
+    BUY = "buy"        # 买入信号
+    SELL = "sell"      # 卖出信号
+    HOLD = "hold"      # 持有
+    CLOSE = "close"    # 平仓
+
+
+class RiskAction(Enum):
+    """风控动作"""
+    PASS = "pass"          # 通过
+    REJECT = "reject"      # 拒绝
+    MODIFY = "modify"      # 修改（如减少数量）
+    WARN = "warn"          # 警告
+
+
 # ============================================================
 # 领域对象
 # ============================================================
@@ -141,7 +157,7 @@ class MarketData:
     """
     行情数据
     
-    表示某个时间点的行情信息
+    表示某个时间点的行情信息（基类）
     """
     symbol: str           # 股票代码
     datetime: datetime    # 时间
@@ -192,6 +208,168 @@ class MarketData:
             turnover=self.turnover,
             adj_factor=adj_factor
         )
+
+
+@dataclass
+class Bar(MarketData):
+    """
+    K线数据
+    
+    继承 MarketData，表示一根K线
+    """
+    frequency: Frequency = Frequency.DAILY  # 频率
+    is_complete: bool = True  # 是否已完成（盘中可能为False）
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], frequency: Frequency = Frequency.DAILY) -> 'Bar':
+        """从字典创建"""
+        return cls(
+            symbol=data.get("symbol", ""),
+            datetime=data.get("datetime", datetime.now()),
+            open=data.get("open", 0.0),
+            high=data.get("high", 0.0),
+            low=data.get("low", 0.0),
+            close=data.get("close", 0.0),
+            volume=data.get("volume", 0.0),
+            amount=data.get("amount", 0.0),
+            change_pct=data.get("change_pct", 0.0),
+            turnover=data.get("turnover", 0.0),
+            adj_factor=data.get("adj_factor", 1.0),
+            frequency=frequency,
+        )
+
+
+@dataclass
+class Tick:
+    """
+    Tick数据
+    
+    表示逐笔报价数据（盘口）
+    """
+    symbol: str           # 股票代码
+    datetime: datetime    # 时间
+    price: float          # 最新价
+    volume: float         # 成交量
+    amount: float         # 成交额
+    bid_price: float = 0.0    # 买一价
+    bid_volume: float = 0.0   # 买一量
+    ask_price: float = 0.0    # 卖一价
+    ask_volume: float = 0.0   # 卖一量
+    open: float = 0.0         # 开盘价
+    high: float = 0.0         # 最高价
+    low: float = 0.0          # 最低价
+    pre_close: float = 0.0    # 昨收价
+    change_pct: float = 0.0   # 涨跌幅
+    
+    @property
+    def spread(self) -> float:
+        """买卖价差"""
+        if self.bid_price > 0 and self.ask_price > 0:
+            return self.ask_price - self.bid_price
+        return 0.0
+    
+    @property
+    def mid_price(self) -> float:
+        """中间价"""
+        if self.bid_price > 0 and self.ask_price > 0:
+            return (self.bid_price + self.ask_price) / 2
+        return self.price
+    
+    def to_bar(self) -> MarketData:
+        """转换为K线数据"""
+        return MarketData(
+            symbol=self.symbol,
+            datetime=self.datetime,
+            open=self.open,
+            high=self.high,
+            low=self.low,
+            close=self.price,
+            volume=self.volume,
+            amount=self.amount,
+            change_pct=self.change_pct,
+        )
+
+
+@dataclass
+class Signal:
+    """
+    策略信号
+    
+    表示策略产生的交易信号
+    """
+    signal_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    strategy_id: str = ""           # 策略ID
+    symbol: str = ""                # 股票代码
+    signal_type: SignalType = SignalType.HOLD  # 信号类型
+    price: float = 0.0             # 建议价格
+    quantity: int = 0              # 建议数量
+    reason: str = ""               # 信号原因
+    confidence: float = 1.0        # 置信度 (0-1)
+    created_at: datetime = field(default_factory=datetime.now)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    @property
+    def is_buy(self) -> bool:
+        """是否买入信号"""
+        return self.signal_type == SignalType.BUY
+    
+    @property
+    def is_sell(self) -> bool:
+        """是否卖出信号"""
+        return self.signal_type == SignalType.SELL
+    
+    def to_order(
+        self,
+        order_type: OrderType = OrderType.LIMIT,
+        account_id: str = ""
+    ) -> Order:
+        """转换为订单"""
+        if self.signal_type == SignalType.HOLD:
+            raise ValueError("Cannot create order from HOLD signal")
+        
+        direction = OrderDirection.BUY if self.is_buy else OrderDirection.SELL
+        
+        return Order(
+            symbol=self.symbol,
+            direction=direction,
+            price=self.price,
+            quantity=self.quantity,
+            order_type=order_type,
+        )
+
+
+@dataclass
+class RiskDecision:
+    """
+    风控决策
+    
+    表示风控系统的决策结果
+    """
+    decision_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    order_id: str = ""              # 关联的订单ID
+    symbol: str = ""                # 股票代码
+    action: RiskAction = RiskAction.PASS  # 决策动作
+    reason: str = ""                # 决策原因
+    original_quantity: int = 0      # 原始数量
+    modified_quantity: int = 0      # 修改后的数量（如果action=MODIFY）
+    rule_id: str = ""               # 触发的规则ID
+    created_at: datetime = field(default_factory=datetime.now)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    @property
+    def is_pass(self) -> bool:
+        """是否通过"""
+        return self.action == RiskAction.PASS
+    
+    @property
+    def is_reject(self) -> bool:
+        """是否拒绝"""
+        return self.action == RiskAction.REJECT
+    
+    @property
+    def is_modify(self) -> bool:
+        """是否修改"""
+        return self.action == RiskAction.MODIFY
 
 
 @dataclass
@@ -689,32 +867,67 @@ class Strategy:
     策略基类
     
     所有策略都应继承此类
+    
+    生命周期：
+    1. initialize() - 初始化参数
+    2. on_start() - 策略启动
+    3. on_bar(bar) - K线到达
+    4. on_tick(tick) - Tick到达
+    5. on_order(order) - 订单状态变化
+    6. on_trade(trade) - 成交回报
+    7. on_finish() - 策略结束
     """
     
     def __init__(self, strategy_id: str = None):
         self.strategy_id = strategy_id or str(uuid.uuid4())
         self.context = StrategyContext(self.strategy_id)
+        self._is_running = False
+    
+    @property
+    def is_running(self) -> bool:
+        """策略是否运行中"""
+        return self._is_running
     
     def initialize(self):
-        """初始化"""
+        """初始化，加载参数、历史数据"""
         pass
     
-    def on_bar(self, bar: MarketData):
-        """K线更新"""
-        pass
+    def on_start(self):
+        """策略启动"""
+        self._is_running = True
     
-    def on_tick(self, tick: MarketData):
-        """Tick更新"""
-        pass
+    def on_bar(self, bar: MarketData) -> Optional[Signal]:
+        """
+        K线更新
+        
+        Args:
+            bar: K线数据
+            
+        Returns:
+            Optional[Signal]: 交易信号（如果有）
+        """
+        return None
+    
+    def on_tick(self, tick: Tick) -> Optional[Signal]:
+        """
+        Tick更新
+        
+        Args:
+            tick: Tick数据
+            
+        Returns:
+            Optional[Signal]: 交易信号（如果有）
+        """
+        return None
     
     def on_order(self, order: Order):
-        """订单更新"""
+        """订单状态变化"""
         pass
     
     def on_trade(self, trade: Trade):
-        """成交更新"""
+        """成交回报"""
         pass
     
     def on_finish(self):
         """策略结束"""
-        pass
+        self._is_running = False
