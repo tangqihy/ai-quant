@@ -65,7 +65,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -74,10 +74,13 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
           script: |
-            cd /workspace/ai-quant
+            set -e
+            APP_ROOT="${{ secrets.SERVER_APP_ROOT }}"
+            [ -z "$APP_ROOT" ] && APP_ROOT="/root/.openclaw/workspace/ai-quant"
+            cd "$APP_ROOT"
             git pull origin main
-            cd frontend && pnpm install && pnpm build
-            # Restart backend service
-            cd ..
             pip install -r requirements.txt
-            pm2 restart quant-backend || pm2 start app/main.py --name quant-backend
+            cd frontend && pnpm install && pnpm build && cd ..
+            # 确保存在 .env（含 QUANT_AUTH_PASSWORD / TUSHARE_TOKEN），由服务器侧维护
+            pm2 startOrReload ecosystem.config.js --update-env
+            pm2 save
