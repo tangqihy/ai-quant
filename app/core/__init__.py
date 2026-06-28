@@ -12,6 +12,11 @@ from app.core.exceptions import (
 from app.core.config import Settings, get_settings, settings
 from app.core.logging import setup_logging, get_logger, set_request_id, get_request_id
 from app.core.health import HealthChecker, get_health_checker, health_checker
+from app.core.event_bus import (
+    EventBus, Event, EventType,
+    get_event_bus, set_event_bus,
+    subscribe, publish, publish_async,
+)
 
 __all__ = [
     "ApiResponse", "PaginatedData", "ok", "fail", "paginated",
@@ -23,4 +28,7 @@ __all__ = [
     "Settings", "get_settings", "settings",
     "setup_logging", "get_logger", "set_request_id", "get_request_id",
     "HealthChecker", "get_health_checker", "health_checker",
+    "EventBus", "Event", "EventType",
+    "get_event_bus", "set_event_bus",
+    "subscribe", "publish", "publish_async",
 ]
