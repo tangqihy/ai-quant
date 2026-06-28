@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import json
 
-from app.strategies import get as get_strategy
+from app.strategies import get_strategy
 
 
 class BacktestEngine:

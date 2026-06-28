@@ -28,3 +28,13 @@ Thumbs.db
 *.egg-info/
 build/
 dist/
+
+# Database files
+app/data/*.db
+app/data/backtest_results/*.json
+app/data/klines/*.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local

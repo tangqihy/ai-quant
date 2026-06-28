@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.models.risk import RiskRule, RiskAlert, StopLossConfig, BlacklistItem
 from app.services.risk_service import risk_service
 from app.api.deps import require_auth
+from app.core.response import ok, fail
 
 router = APIRouter(prefix="/risk", tags=["风控"], dependencies=[Depends(require_auth)])
 
@@ -18,10 +19,7 @@ router = APIRouter(prefix="/risk", tags=["风控"], dependencies=[Depends(requir
 async def get_risk_rules():
     """获取风控规则列表"""
     rules = risk_service.get_rules()
-    return {
-        "success": True,
-        "data": [r.model_dump() for r in rules]
-    }
+    return ok(data=[r.model_dump() for r in rules])
 
 
 class UpdateRuleRequest(BaseModel):
@@ -35,10 +33,7 @@ async def update_risk_rule(rule_id: str, request: UpdateRuleRequest):
     rule = risk_service.update_rule(rule_id, request.enabled, request.params)
     if not rule:
         raise HTTPException(status_code=404, detail="规则不存在")
-    return {
-        "success": True,
-        "data": rule.model_dump()
-    }
+    return ok(data=rule.model_dump())
 
 
 # ==================== 止损止盈 ====================
@@ -63,10 +58,7 @@ async def set_stop_loss(request: StopLossRequest):
         trailing_stop=request.trailing_stop,
         trailing_stop_pct=request.trailing_stop_pct
     )
-    return {
-        "success": True,
-        "data": config.model_dump()
-    }
+    return ok(data=config.model_dump())
 
 
 @router.get("/stop-loss/{symbol}")
@@ -75,10 +67,7 @@ async def get_stop_loss(symbol: str):
     config = risk_service.get_stop_loss_config(symbol)
     if not config:
         raise HTTPException(status_code=404, detail="未设置止损止盈")
-    return {
-        "success": True,
-        "data": config.model_dump()
-    }
+    return ok(data=config.model_dump())
 
 
 @router.delete("/stop-loss/{symbol}")
@@ -87,10 +76,7 @@ async def remove_stop_loss(symbol: str):
     success = risk_service.remove_stop_loss(symbol)
     if not success:
         raise HTTPException(status_code=404, detail="未设置止损止盈")
-    return {
-        "success": True,
-        "message": "止损止盈已移除"
-    }
+    return ok(message="止损止盈已移除")
 
 
 # ==================== 黑名单 ====================
@@ -111,20 +97,14 @@ async def add_to_blacklist(request: BlacklistRequest):
         description=request.description,
         expires_in_hours=request.expires_in_hours
     )
-    return {
-        "success": True,
-        "data": item.model_dump()
-    }
+    return ok(data=item.model_dump())
 
 
 @router.get("/blacklist")
 async def get_blacklist():
     """获取黑名单"""
     items = risk_service.get_blacklist()
-    return {
-        "success": True,
-        "data": [i.model_dump() for i in items]
-    }
+    return ok(data=[i.model_dump() for i in items])
 
 
 @router.delete("/blacklist/{symbol}")
@@ -133,10 +113,7 @@ async def remove_from_blacklist(symbol: str):
     success = risk_service.remove_from_blacklist(symbol)
     if not success:
         raise HTTPException(status_code=404, detail="股票不在黑名单")
-    return {
-        "success": True,
-        "message": "已从黑名单移除"
-    }
+    return ok(message="已从黑名单移除")
 
 
 # ==================== 告警 ====================
@@ -148,10 +125,7 @@ async def get_alerts(
 ):
     """获取风控告警"""
     alerts = risk_service.get_alerts(acknowledged, limit)
-    return {
-        "success": True,
-        "data": [a.model_dump() for a in alerts]
-    }
+    return ok(data=[a.model_dump() for a in alerts])
 
 
 @router.post("/alerts/{alert_id}/acknowledge")
@@ -160,20 +134,14 @@ async def acknowledge_alert(alert_id: str):
     success = risk_service.acknowledge_alert(alert_id)
     if not success:
         raise HTTPException(status_code=404, detail="告警不存在")
-    return {
-        "success": True,
-        "message": "告警已确认"
-    }
+    return ok(message="告警已确认")
 
 
 @router.delete("/alerts")
 async def clear_alerts():
     """清空告警"""
     risk_service.clear_alerts()
-    return {
-        "success": True,
-        "message": "告警已清空"
-    }
+    return ok(message="告警已清空")
 
 
 # ==================== 检查 ====================
@@ -202,7 +170,4 @@ async def check_risk(request: CheckRequest):
         account_value=request.account_value,
         positions=positions
     )
-    return {
-        "success": True,
-        "data": result.model_dump()
-    }
+    return ok(data=result.model_dump())

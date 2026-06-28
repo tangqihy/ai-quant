@@ -23,9 +23,9 @@ interface QuoteRow {
 
 const REFRESH_INTERVAL_MS = 15000;
 
-/** A 股红涨绿跌 - 赛博朋克霓虹色 */
-const COLOR_UP = '#ff0040';
-const COLOR_DOWN = '#00ff41';
+/** A 股红涨绿跌 - 赛博朋克霓虹青 / 霓虹粉 */
+const COLOR_UP = '#ff00a0';
+const COLOR_DOWN = '#00f0ff';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -195,11 +195,12 @@ const Dashboard: React.FC = () => {
   ];
 
   const tableWrapStyle: React.CSSProperties = {
-    background: '#0a0a0a',
-    borderRadius: 4,
-    border: '1px solid rgba(0, 255, 65, 0.25)',
+    background: '#050815',
+    borderRadius: 10,
+    border: '1px solid rgba(0, 240, 255, 0.24)',
     overflow: 'hidden',
-    boxShadow: '0 0 12px rgba(0, 255, 65, 0.06)',
+    boxShadow:
+      '0 0 16px rgba(0, 240, 255, 0.25), 0 0 26px rgba(255,0,160,0.28)',
   };
 
   const renderQuoteList = () => {
@@ -238,9 +239,9 @@ const Dashboard: React.FC = () => {
                   justifyContent: 'space-between',
                   padding: '12px 10px',
                   marginBottom: 8,
-                  background: 'rgba(0, 255, 65, 0.04)',
-                  borderRadius: 4,
-                  border: '1px solid rgba(0, 255, 65, 0.2)',
+                  background: 'rgba(0, 240, 255, 0.04)',
+                  borderRadius: 10,
+                  border: '1px solid rgba(0, 240, 255, 0.2)',
                   cursor: 'pointer',
                   fontFamily: "'JetBrains Mono', monospace",
                 }}
@@ -254,10 +255,10 @@ const Dashboard: React.FC = () => {
                     isUp={isUp}
                   />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ color: 'rgba(0, 255, 65, 0.9)', fontWeight: 500, fontSize: 13 }}>
+                  <div style={{ color: 'rgba(0, 240, 255, 0.9)', fontWeight: 500, fontSize: 13 }}>
                       {row.name || '-'}
                     </div>
-                    <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(0, 255, 65, 0.5)' }}>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(0, 240, 255, 0.5)' }}>
                       {row.symbol}
                     </div>
                   </div>
@@ -356,14 +357,17 @@ const Dashboard: React.FC = () => {
             title="收益曲线（示例）"
             size="small"
             style={{
-              background: '#0a0a0a',
-              border: '1px solid rgba(0, 255, 65, 0.25)',
+              background: '#050815',
+              border: '1px solid rgba(0, 240, 255, 0.24)',
               marginBottom: 16,
-              boxShadow: '0 0 12px rgba(0, 255, 65, 0.06)',
+              boxShadow:
+                '0 0 16px rgba(0, 240, 255, 0.22), 0 0 26px rgba(255,0,160,0.25)',
             }}
             headStyle={{
-              borderBottom: '1px solid rgba(0, 255, 65, 0.25)',
-              color: '#00ff41',
+              borderBottom: '1px solid rgba(0, 240, 255, 0.24)',
+              color: '#00f0ff',
+              fontFamily: "'Orbitron', system-ui",
+              letterSpacing: '0.12em',
             }}
           >
             <RevenueChart />
@@ -372,16 +376,19 @@ const Dashboard: React.FC = () => {
             title="新闻 / 快讯"
             size="small"
             style={{
-              background: '#0a0a0a',
-              border: '1px solid rgba(0, 255, 65, 0.25)',
-              boxShadow: '0 0 12px rgba(0, 255, 65, 0.06)',
+              background: '#050815',
+              border: '1px solid rgba(0, 240, 255, 0.24)',
+              boxShadow:
+                '0 0 16px rgba(0, 240, 255, 0.22), 0 0 26px rgba(255,0,160,0.25)',
             }}
             headStyle={{
-              borderBottom: '1px solid rgba(0, 255, 65, 0.25)',
-              color: '#00ff41',
+              borderBottom: '1px solid rgba(0, 240, 255, 0.24)',
+              color: '#00f0ff',
+              fontFamily: "'Orbitron', system-ui",
+              letterSpacing: '0.12em',
             }}
           >
-            <div style={{ color: 'rgba(0, 255, 65, 0.55)', fontSize: 12, textAlign: 'center', padding: 24, fontFamily: "'JetBrains Mono', monospace" }}>
+            <div style={{ color: 'rgba(0, 240, 255, 0.55)', fontSize: 12, textAlign: 'center', padding: 24, fontFamily: "'JetBrains Mono', monospace" }}>
               预留
             </div>
           </Card>

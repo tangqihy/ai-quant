@@ -5,12 +5,14 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 from app.services.stock_service import stock_service
+from app.services.realtime_service import get_realtime_quotes as get_realtime_quotes_service
 from app.services.backtest_service import run_backtest
 from app.services.storage_service import backtest_storage
 from app.services.indicator_service import indicator_service
-from app.strategies import list_for_api as get_strategies_list
+from app.strategies import list_strategies as get_strategies_list
 from app.api.deps import require_auth
 from app.core.version import get_build_info
+from app.core.response import ok, fail, paginated
 
 router = APIRouter(dependencies=[Depends(require_auth)])
 
@@ -42,25 +44,21 @@ async def get_stocks(
     try:
         result = stock_service.get_stock_list(market=market, page=page, page_size=page_size, search=search or None)
         if isinstance(result, dict):
-            return {
-                "success": True,
-                "data": result["data"],
-                "total": result["total"],
-                "page": page,
-                "page_size": page_size,
-                "total_pages": (result["total"] + page_size - 1) // page_size
-            }
+            return paginated(
+                items=result["data"],
+                total=result["total"],
+                page=page,
+                page_size=page_size,
+            )
         total = len(result)
         start = (page - 1) * page_size
         end = start + page_size
-        return {
-            "success": True,
-            "data": result[start:end],
-            "total": total,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": (total + page_size - 1) // page_size
-        }
+        return paginated(
+            items=result[start:end],
+            total=total,
+            page=page,
+            page_size=page_size,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -70,10 +68,7 @@ async def get_stock(symbol: str):
     """获取单个股票信息"""
     try:
         info = stock_service.get_stock_info(symbol)
-        return {
-            "success": True,
-            "data": info
-        }
+        return ok(data=info)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -93,12 +88,7 @@ async def get_stock_history(
             end_date=end_date,
             adjust=adjust
         )
-        return {
-            "success": True,
-            "symbol": symbol,
-            "data": klines,
-            "total": len(klines)
-        }
+        return ok(data={"symbol": symbol, "klines": klines, "total": len(klines)})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -108,10 +98,7 @@ async def get_stock_realtime(symbol: str):
     """获取股票实时行情"""
     try:
         quote = stock_service.get_realtime_quote(symbol)
-        return {
-            "success": True,
-            "data": quote
-        }
+        return ok(data=quote)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -120,15 +107,11 @@ async def get_stock_realtime(symbol: str):
 async def get_realtime_quotes(
     symbols: str = Query(..., description="股票代码逗号分隔")
 ):
-    """批量获取股票实时行情"""
+    """批量获取股票实时行情（新浪主源 + 腾讯降级 + 本地缓存）"""
     try:
         symbol_list = [s.strip() for s in symbols.split(",")]
-        quotes = stock_service.get_realtime_quotes(symbol_list)
-        return {
-            "success": True,
-            "data": quotes,
-            "total": len(quotes)
-        }
+        quotes = get_realtime_quotes_service(symbol_list)
+        return ok(data=quotes)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -152,7 +135,7 @@ async def get_indicators(
             adjust="qfq",
         )
         if not klines:
-            return {"success": True, "symbol": symbol, "data": [], "total": 0}
+            return ok(data={"symbol": symbol, "klines": [], "total": 0})
         names = [s.strip().lower() for s in indicators.split(",") if s.strip()]
         if not names:
             names = ["ma"]
@@ -178,12 +161,7 @@ async def get_indicators(
                 for i, v in enumerate(values):
                     if i < len(result_rows):
                         result_rows[i][key] = round(v, 4) if v is not None and isinstance(v, (int, float)) else v
-        return {
-            "success": True,
-            "symbol": symbol,
-            "data": result_rows,
-            "total": len(result_rows),
-        }
+        return ok(data={"symbol": symbol, "klines": result_rows, "total": len(result_rows)})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -201,10 +179,7 @@ async def run_backtest_api(config: BacktestRequest):
         )
         
         if not data or len(data) < 50:
-            return {
-                "success": False,
-                "error": "数据不足，需要至少50条K线数据"
-            }
+            return fail(error="数据不足", message="需要至少50条K线数据")
             
         # 运行回测
         strategy_params = {}
@@ -224,14 +199,14 @@ async def run_backtest_api(config: BacktestRequest):
             **strategy_params,
         )
         if "error" in result:
-            return {"success": False, "error": result["error"]}
+            return fail(error=result["error"])
         
         # 保存结果
         if config.save_result:
             task_id = backtest_storage.save_result(result)
             result['task_id'] = task_id
         
-        return result
+        return ok(data=result)
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -240,10 +215,7 @@ async def run_backtest_api(config: BacktestRequest):
 @router.get("/backtest/strategies")
 async def get_strategies():
     """获取可用策略列表（从策略注册表动态返回）"""
-    return {
-        "success": True,
-        "data": get_strategies_list(),
-    }
+    return ok(data=get_strategies_list())
 
 
 @router.get("/backtest/{task_id}")
@@ -252,10 +224,7 @@ async def get_backtest_result(task_id: str):
     result = backtest_storage.get_result(task_id)
     if result is None:
         raise HTTPException(status_code=404, detail="回测结果不存在")
-    return {
-        "success": True,
-        "data": result
-    }
+    return ok(data=result)
 
 
 @router.get("/backtest")
@@ -265,11 +234,7 @@ async def list_backtest_results(
 ):
     """列出回测历史"""
     results = backtest_storage.list_results(limit=limit, symbol=symbol)
-    return {
-        "success": True,
-        "data": results,
-        "total": len(results)
-    }
+    return ok(data=results)
 
 
 @router.delete("/backtest/{task_id}")
@@ -278,10 +243,7 @@ async def delete_backtest_result(task_id: str):
     success = backtest_storage.delete_result(task_id)
     if not success:
         raise HTTPException(status_code=404, detail="回测结果不存在")
-    return {
-        "success": True,
-        "message": "删除成功"
-    }
+    return ok(message="删除成功")
 
 
 # 导入并包含模拟交易路由
@@ -302,7 +264,4 @@ router.include_router(watchlist_router)
 @router.get("/version")
 async def get_version():
     """获取后端版本号"""
-    return {
-        "success": True,
-        "data": get_build_info()
-    }
+    return ok(data=get_build_info())

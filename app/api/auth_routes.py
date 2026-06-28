@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 
 from app.services.auth_service import verify_password, create_token, verify_token
+from app.core.response import ok, fail
 
 router = APIRouter()
 
@@ -20,19 +21,19 @@ async def login(body: LoginRequest):
     if not verify_password(body.password):
         raise HTTPException(status_code=401, detail="密码错误")
     token = create_token()
-    return {"success": True, "token": token}
+    return ok(data={"token": token})
 
 
 @router.get("/verify")
 async def verify(authorization: str | None = Header(None, alias="Authorization")):
     """
     验证当前 token 是否有效。
-    请求头需带 Authorization: Bearer <token>；未带或无效返回 401。
+    请求头需带 Authorization: Bearer *** 401。
     """
     token = _bearer_token(authorization)
     if not token or not verify_token(token):
         raise HTTPException(status_code=401, detail="未登录或 token 已失效")
-    return {"success": True, "valid": True}
+    return ok(data={"valid": True})
 
 
 def _bearer_token(authorization: str | None) -> str | None:

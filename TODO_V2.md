@@ -26,14 +26,14 @@
 | 2 | **Trading Calendar** | 交易日历，处理节假日/开盘时间 | 小猪 | 1天 | ✅ |
 | 3 | **Adjustment Manager** | 统一复权处理 | 小猪 | 1天 | ✅ |
 | 4 | **Stock Status** | 停牌/ST/涨跌停统一处理 | 小猪 | 1天 | ✅ |
-| 5 | **Domain Model** | 领域模型定义（Instrument/Order/Trade/Position/Account/Portfolio/Strategy/RiskRule/Broker/Exchange） | minimax | 2天 | ⏳ |
-| 6 | **Broker 拆分** | 撮合器独立，支持三种实现（BacktestBroker/PaperBroker/LiveBroker） | minimax | 3天 | ⏳ |
-| 7 | **Strategy API** | 固定策略接口（initialize/on_bar/on_tick/on_order/on_trade/on_finish） | minimax | 1天 | ⏳ |
-| 8 | **Account/Portfolio 分离** | 账户负责现金，组合负责持仓 | minimax | 2天 | ⏳ |
-| 9 | **模拟交易持久化** | accounts/orders/trades/positions/cash_ledger | 小猪 | 3天 | ⏳ |
-| 10 | **风控事件记录** | risk_events/risk_decisions 审计 | 小猪 | 1天 | ⏳ |
-| 11 | **回测成交模型修正** | 处理停牌/涨跌停/T+1 | minimax | 2天 | ⏳ |
-| 12 | **核心单元测试** | 覆盖率 60%+ | minimax | 2天 | ⏳ |
+| 5 | **Domain Model** | 领域模型定义（Instrument/Order/Trade/Position/Account/Portfolio/Strategy/RiskRule/Broker/Exchange） | minimax | 2天 | ✅ |
+| 6 | **Broker 拆分** | 撮合器独立，支持三种实现（BacktestBroker/PaperBroker/LiveBroker） | minimax | 3天 | ✅ |
+| 7 | **Strategy API** | 固定策略接口（initialize/on_bar/on_tick/on_order/on_trade/on_finish） | minimax | 1天 | ✅ |
+| 8 | **Account/Portfolio 分离** | 账户负责现金，组合负责持仓 | minimax | 2天 | ✅ |
+| 9 | **模拟交易持久化** | accounts/orders/trades/positions/cash_ledger | 小猪 | 3天 | ✅ |
+| 10 | **风控事件记录** | risk_events/risk_decisions 审计 | 小猪 | 1天 | ✅ |
+| 11 | **回测成交模型修正** | 处理停牌/涨跌停/T+1 | minimax | 2天 | ✅ |
+| 12 | **核心单元测试** | 覆盖率 60%+ | minimax | 2天 | ✅ |
 
 **P0 预估总工时：21天**
 
@@ -46,12 +46,12 @@
 | # | 任务 | 说明 | 负责人 | 预估工时 | 状态 |
 |---|------|------|--------|----------|------|
 | 1 | **Event Bus** | 事件总线，解耦组件 | minimax | 2天 | ⏳ |
-| 2 | **API 统一格式** | `{ success, data?, error?, message? }` | 小猪 | 1天 | ⏳ |
-| 3 | **错误处理规范** | 统一异常体系 | 小猪 | 1天 | ⏳ |
-| 4 | **配置管理** | Pydantic Settings | minimax | 1天 | ⏳ |
-| 5 | **日志规范** | 结构化日志 + 请求ID | minimax | 1天 | ⏳ |
-| 6 | **数据源降级** | 主备数据源切换 | 小猪 | 1天 | ⏳ |
-| 7 | **Health Check** | DB/数据源连通性检测 | 小猪 | 0.5天 | ⏳ |
+| 2 | **API 统一格式** | `{ success, data?, error?, message? }` | 小猪 | 1天 | ✅ |
+| 3 | **错误处理规范** | 统一异常体系 | 小猪 | 1天 | ✅ |
+| 4 | **配置管理** | Pydantic Settings | minimax | 1天 | ✅ |
+| 5 | **日志规范** | 结构化日志 + 请求ID | minimax | 1天 | ✅ |
+| 6 | **数据源降级** | 主备数据源切换 | 小猪 | 1天 | ✅ |
+| 7 | **Health Check** | DB/数据源连通性检测 | 小猪 | 0.5天 | ✅ |
 
 **P1 预估总工时：7.5天**
 

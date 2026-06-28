@@ -15,6 +15,7 @@ from app.services.watchlist_store import (
     update_stock_groups, update_stock_note, get_all_data
 )
 from app.api.deps import require_auth
+from app.core.response import ok, fail
 
 router = APIRouter(prefix="/watchlist", tags=["自选"], dependencies=[Depends(require_auth)])
 
@@ -23,10 +24,7 @@ router = APIRouter(prefix="/watchlist", tags=["自选"], dependencies=[Depends(r
 async def get_watchlist_data():
     """获取完整自选数据"""
     data = get_all_data()
-    return {
-        "success": True,
-        "data": data
-    }
+    return ok(data=data)
 
 
 # ==================== 分组管理 ====================
@@ -35,10 +33,7 @@ async def get_watchlist_data():
 async def get_watchlist_groups():
     """获取所有分组"""
     groups = get_groups()
-    return {
-        "success": True,
-        "data": groups
-    }
+    return ok(data=groups)
 
 
 @router.post("/groups")
@@ -46,10 +41,7 @@ async def create_watchlist_group(request: CreateGroupRequest):
     """创建分组"""
     group_id = str(uuid.uuid4())[:8]
     group = create_group(group_id, request.name, request.color)
-    return {
-        "success": True,
-        "data": group
-    }
+    return ok(data=group)
 
 
 @router.put("/groups/{group_id}")
@@ -58,10 +50,7 @@ async def update_watchlist_group(group_id: str, request: RenameGroupRequest):
     success = update_group(group_id, name=request.name)
     if not success:
         raise HTTPException(status_code=404, detail="分组不存在")
-    return {
-        "success": True,
-        "message": "分组更新成功"
-    }
+    return ok(message="分组更新成功")
 
 
 @router.delete("/groups/{group_id}")
@@ -70,10 +59,7 @@ async def delete_watchlist_group(group_id: str):
     success = delete_group(group_id)
     if not success:
         raise HTTPException(status_code=404, detail="分组不存在")
-    return {
-        "success": True,
-        "message": "分组删除成功"
-    }
+    return ok(message="分组删除成功")
 
 
 # ==================== 股票管理 ====================
@@ -82,10 +68,7 @@ async def delete_watchlist_group(group_id: str):
 async def get_watchlist_stocks():
     """获取所有自选股票"""
     stocks = get_stocks()
-    return {
-        "success": True,
-        "data": stocks
-    }
+    return ok(data=stocks)
 
 
 
@@ -99,11 +82,7 @@ async def add_watchlist_stock(request: AddStockRequest):
         update_stock_groups(request.symbol, request.group_ids)
         if request.note:
             update_stock_note(request.symbol, request.note)
-        return {
-            "success": True,
-            "message": "股票已更新",
-            "data": get_stock(request.symbol)
-        }
+        return ok(data=get_stock(request.symbol), message="股票已更新")
 
     stock = add_stock(
         symbol=request.symbol,
@@ -111,11 +90,7 @@ async def add_watchlist_stock(request: AddStockRequest):
         group_ids=request.group_ids,
         note=request.note
     )
-    return {
-        "success": True,
-        "message": "添加成功",
-        "data": stock
-    }
+    return ok(data=stock, message="添加成功")
 
 
 @router.delete("/stocks/{symbol}")
@@ -124,10 +99,7 @@ async def remove_watchlist_stock(symbol: str):
     success = remove_stock(symbol)
     if not success:
         raise HTTPException(status_code=404, detail="股票不在自选")
-    return {
-        "success": True,
-        "message": "移除成功"
-    }
+    return ok(message="移除成功")
 
 
 @router.put("/stocks/{symbol}/groups")
@@ -138,10 +110,7 @@ async def update_stock_groups_api(symbol: str, request: UpdateStockRequest):
     success = update_stock_groups(symbol, request.group_ids)
     if not success:
         raise HTTPException(status_code=404, detail="股票不存在")
-    return {
-        "success": True,
-        "message": "分组更新成功"
-    }
+    return ok(message="分组更新成功")
 
 
 @router.put("/stocks/{symbol}/note")
@@ -152,7 +121,4 @@ async def update_stock_note_api(symbol: str, request: UpdateStockRequest):
     success = update_stock_note(symbol, request.note)
     if not success:
         raise HTTPException(status_code=404, detail="股票不存在")
-    return {
-        "success": True,
-        "message": "备注更新成功"
-    }
+    return ok(message="备注更新成功")

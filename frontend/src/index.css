@@ -2,30 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ========== 赛博朋克 / 黑客终端 全局变量 ========== */
+/* 引入科技感字体：Orbitron / Rajdhani（用于标题 / HUD 文本） */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;800&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+/* ========== 赛博朋克 全局变量 ========== */
 :root {
-  --cyber-bg: #000000;
-  --cyber-neon-green: #00ff41;
-  --cyber-neon-red: #ff0040;
-  --cyber-neon-green-dim: rgba(0, 255, 65, 0.6);
-  --cyber-neon-red-dim: rgba(255, 0, 64, 0.6);
-  --cyber-border: rgba(0, 255, 65, 0.25);
-  --cyber-text: rgba(0, 255, 65, 0.9);
-  --cyber-text-secondary: rgba(0, 255, 65, 0.55);
-  --cyber-glow-green: 0 0 8px rgba(0, 255, 65, 0.5), 0 0 16px rgba(0, 255, 65, 0.2);
-  --cyber-glow-red: 0 0 8px rgba(255, 0, 64, 0.5), 0 0 16px rgba(255, 0, 64, 0.2);
+  --cyber-bg: #02040a;
+  --cyber-bg-elevated: #050815;
+  --cyber-neon-cyan: #00f0ff;
+  --cyber-neon-pink: #ff00a0;
+  --cyber-neon-cyan-soft: rgba(0, 240, 255, 0.5);
+  --cyber-neon-pink-soft: rgba(255, 0, 160, 0.55);
+  --cyber-border: rgba(0, 240, 255, 0.24);
+  --cyber-border-strong: rgba(0, 240, 255, 0.45);
+  --cyber-text: rgba(222, 245, 255, 0.96);
+  --cyber-text-secondary: rgba(178, 210, 232, 0.7);
+  --cyber-danger: var(--cyber-neon-pink);
   --cyber-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-  --radius: 0.5rem;
+  --cyber-font-ui: 'Rajdhani', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --cyber-font-display: 'Orbitron', 'Rajdhani', system-ui, sans-serif;
+  --radius: 0.8rem;
 }
 
-/* 全局等宽字体 + 纯黑背景 */
+/* 全局字体 + 深色背景 + 轻微色偏 */
 html, body, #root {
   background: var(--cyber-bg) !important;
-  font-family: var(--cyber-font-mono) !important;
+  font-family: var(--cyber-font-ui) !important;
   color: var(--cyber-text) !important;
 }
 
-/* ========== 扫描线效果 ========== */
+/* ========== CRT 扫描线 + 轻微色差 ========== */
 body::after {
   content: '';
   position: fixed;
@@ -35,42 +41,111 @@ body::after {
   height: 100%;
   pointer-events: none;
   z-index: 9999;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.12) 2px,
-    rgba(0, 0, 0, 0.12) 4px
-  );
-  opacity: 0.6;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.02),
+      rgba(255, 255, 255, 0.02) 1px,
+      rgba(0, 0, 0, 0.18) 1px,
+      rgba(0, 0, 0, 0.18) 3px
+    );
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+}
+
+/* 轻微色差偏移，模拟老 CRT */
+body {
+  text-shadow:
+    0 0 1px rgba(0, 240, 255, 0.3),
+    0 0 2px rgba(0, 240, 255, 0.25),
+    -1px 0 1px rgba(255, 0, 160, 0.18);
 }
 
 /* ========== 霓虹发光动画 ========== */
-@keyframes neon-glow {
-  0%, 100% { box-shadow: 0 0 6px var(--cyber-neon-green-dim), 0 0 12px rgba(0, 255, 65, 0.15); }
-  50%       { box-shadow: 0 0 10px rgba(0, 255, 65, 0.6), 0 0 20px rgba(0, 255, 65, 0.25); }
+@keyframes neon-glow-soft {
+  0%, 100% {
+    box-shadow:
+      0 0 6px rgba(0, 240, 255, 0.45),
+      0 0 18px rgba(0, 240, 255, 0.28),
+      0 0 26px rgba(255, 0, 160, 0.16);
+  }
+  50% {
+    box-shadow:
+      0 0 10px rgba(0, 240, 255, 0.9),
+      0 0 26px rgba(0, 240, 255, 0.55),
+      0 0 32px rgba(255, 0, 160, 0.35);
+  }
 }
 
 @keyframes neon-text-flicker {
-  0%, 100% { opacity: 1; text-shadow: 0 0 4px var(--cyber-neon-green); }
-  50%      { opacity: 0.92; text-shadow: 0 0 8px var(--cyber-neon-green); }
+  0%, 100% {
+    opacity: 1;
+    text-shadow:
+      0 0 4px var(--cyber-neon-cyan),
+      0 0 10px var(--cyber-neon-cyan),
+      0 0 14px var(--cyber-neon-pink-soft);
+  }
+  50% {
+    opacity: 0.92;
+    text-shadow:
+      0 0 2px var(--cyber-neon-cyan),
+      0 0 6px var(--cyber-neon-cyan),
+      0 0 12px var(--cyber-neon-pink-soft);
+  }
 }
 
 .cyber-glow {
-  animation: neon-glow 2s ease-in-out infinite;
+  animation: neon-glow-soft 2.6s ease-in-out infinite;
 }
 
-/* ========== Ant Design 全局覆盖 - 赛博朋克 ========== */
+/* ========== Glitch 故障效果 ========== */
+@keyframes glitch-skew {
+  0% { transform: skew(0deg); }
+  20% { transform: skew(2deg); }
+  40% { transform: skew(-3deg); }
+  60% { transform: skew(1deg); }
+  80% { transform: skew(-2deg); }
+  100% { transform: skew(0deg); }
+}
+
+@keyframes glitch-clip-1 {
+  0% { clip-path: inset(0 0 80% 0); transform: translate(-1px, -1px); }
+  30% { clip-path: inset(10% 0 60% 0); transform: translate(1px, 1px); }
+  60% { clip-path: inset(40% 0 30% 0); transform: translate(-2px, 0); }
+  100% { clip-path: inset(0 0 80% 0); transform: translate(0, 0); }
+}
+
+@keyframes glitch-clip-2 {
+  0% { clip-path: inset(80% 0 0 0); transform: translate(1px, 1px); }
+  30% { clip-path: inset(60% 0 10% 0); transform: translate(-1px, -1px); }
+  60% { clip-path: inset(30% 0 40% 0); transform: translate(0, 2px); }
+  100% { clip-path: inset(80% 0 0 0); transform: translate(0, 0); }
+}
+
+.glitch-text {
+  position: relative;
+  display: inline-block;
+  font-family: var(--cyber-font-display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: glitch-skew 2.8s infinite ease-in-out alternate;
+}
+
+/* ========== Ant Design 全局覆盖 - 赛博朋克 霓虹青 / 霓虹粉 ========== */
 .ant-card {
-  background: #0a0a0a !important;
+  background: radial-gradient(circle at top left, #091020 0, #050815 45%, #02040a 100%) !important;
   border: 1px solid var(--cyber-border) !important;
-  border-radius: 4px !important;
+  border-radius: 10px !important;
   color: var(--cyber-text) !important;
-  transition: box-shadow 0.2s, border-color 0.2s !important;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.18s ease-out !important;
+  overflow: hidden;
 }
 .ant-card:hover {
-  border-color: var(--cyber-neon-green-dim) !important;
-  box-shadow: var(--cyber-glow-green) !important;
+  border-color: var(--cyber-border-strong) !important;
+  box-shadow:
+    0 0 14px rgba(0, 240, 255, 0.55),
+    0 0 26px rgba(255, 0, 160, 0.26) !important;
+  transform: translateY(-2px);
 }
 .ant-card-head {
   border-bottom-color: var(--cyber-border) !important;
@@ -81,26 +156,30 @@ body::after {
 .ant-table,
 .ant-table-thead > tr > th,
 .ant-table-tbody > tr > td {
-  background: #0a0a0a !important;
+  background: #050815 !important;
   color: var(--cyber-text) !important;
   border-bottom-color: var(--cyber-border) !important;
   font-family: var(--cyber-font-mono) !important;
 }
 .ant-table-tbody > tr:hover > td {
-  background: rgba(0, 255, 65, 0.06) !important;
+  background: rgba(0, 240, 255, 0.06) !important;
 }
 
 .ant-btn-primary {
-  background: transparent !important;
-  border-color: var(--cyber-neon-green) !important;
-  color: var(--cyber-neon-green) !important;
-  box-shadow: 0 0 8px rgba(0, 255, 65, 0.3) !important;
+  background: radial-gradient(circle at 0 0, rgba(0, 240, 255, 0.45), rgba(0, 240, 255, 0.15)) !important;
+  border-color: var(--cyber-neon-cyan) !important;
+  color: #02040a !important;
+  box-shadow:
+    0 0 8px rgba(0, 240, 255, 0.4),
+    0 0 18px rgba(0, 240, 255, 0.25) !important;
 }
 .ant-btn-primary:hover {
-  border-color: var(--cyber-neon-green) !important;
-  color: #000 !important;
-  background: var(--cyber-neon-green) !important;
-  box-shadow: var(--cyber-glow-green) !important;
+  border-color: var(--cyber-neon-pink) !important;
+  color: #02040a !important;
+  background: linear-gradient(135deg, var(--cyber-neon-cyan) 0%, var(--cyber-neon-pink) 80%) !important;
+  box-shadow:
+    0 0 10px rgba(0, 240, 255, 0.6),
+    0 0 22px rgba(255, 0, 160, 0.5) !important;
 }
 .ant-btn-default,
 .ant-btn-text {
@@ -109,19 +188,21 @@ body::after {
 }
 .ant-btn-default:hover,
 .ant-btn-text:hover {
-  border-color: var(--cyber-neon-green-dim) !important;
-  color: var(--cyber-neon-green) !important;
+  border-color: var(--cyber-neon-cyan-soft) !important;
+  color: var(--cyber-neon-cyan) !important;
 }
 .ant-btn-dangerous,
 .ant-btn-danger {
-  border-color: var(--cyber-neon-red) !important;
-  color: var(--cyber-neon-red) !important;
+  border-color: var(--cyber-neon-pink) !important;
+  color: var(--cyber-neon-pink) !important;
 }
 .ant-btn-dangerous:hover,
 .ant-btn-danger:hover {
-  background: var(--cyber-neon-red) !important;
-  color: #000 !important;
-  box-shadow: var(--cyber-glow-red) !important;
+  background: var(--cyber-neon-pink) !important;
+  color: #02040a !important;
+  box-shadow:
+    0 0 10px rgba(255, 0, 160, 0.7),
+    0 0 20px rgba(255, 0, 160, 0.5) !important;
 }
 
 .ant-input,
@@ -138,13 +219,13 @@ body::after {
 .ant-input-number:focus,
 .ant-select-focused .ant-select-selector,
 .ant-picker-focused {
-  border-color: var(--cyber-neon-green) !important;
-  box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.15) !important;
+  border-color: var(--cyber-neon-cyan) !important;
+  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.25) !important;
 }
 
 .ant-tabs-tab { color: var(--cyber-text-secondary) !important; }
-.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--cyber-neon-green) !important; }
-.ant-tabs-ink-bar { background: var(--cyber-neon-green) !important; }
+.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--cyber-neon-cyan) !important; }
+.ant-tabs-ink-bar { background: linear-gradient(90deg, var(--cyber-neon-cyan), var(--cyber-neon-pink)) !important; }
 .ant-tabs-nav::before { border-bottom-color: var(--cyber-border) !important; }
 
 .ant-menu-dark,
@@ -154,11 +235,11 @@ body::after {
   color: var(--cyber-text-secondary) !important;
 }
 .ant-menu-dark .ant-menu-item-selected {
-  color: var(--cyber-neon-green) !important;
-  background: rgba(0, 255, 65, 0.08) !important;
+  color: var(--cyber-neon-cyan) !important;
+  background: rgba(0, 240, 255, 0.1) !important;
 }
 .ant-menu-dark .ant-menu-item:hover {
-  color: var(--cyber-neon-green) !important;
+  color: var(--cyber-neon-cyan) !important;
 }
 
 .ant-statistic-title { color: var(--cyber-text-secondary) !important; }
@@ -167,12 +248,14 @@ body::after {
 .ant-tag { border-radius: 2px !important; font-family: var(--cyber-font-mono) !important; }
 
 .ant-modal-content {
-  background: #0a0a0a !important;
+  background: #050815 !important;
   border: 1px solid var(--cyber-border) !important;
-  box-shadow: var(--cyber-glow-green) !important;
+  box-shadow:
+    0 0 16px rgba(0, 240, 255, 0.4),
+    0 0 28px rgba(255, 0, 160, 0.32) !important;
 }
 .ant-modal-header { background: transparent !important; border-bottom-color: var(--cyber-border) !important; }
-.ant-modal-title { color: var(--cyber-neon-green) !important; }
+.ant-modal-title { color: var(--cyber-neon-cyan) !important; font-family: var(--cyber-font-display); letter-spacing: 0.08em; }
 .ant-modal-close-x { color: var(--cyber-text-secondary) !important; }
 
 .ant-empty-description,
@@ -180,9 +263,9 @@ body::after {
 
 .ant-divider { border-color: var(--cyber-border) !important; }
 
-.ant-alert-info { background: rgba(0, 255, 65, 0.06) !important; border-color: var(--cyber-border) !important; }
-.ant-alert-warning { background: rgba(255, 0, 64, 0.08) !important; border-color: var(--cyber-neon-red-dim) !important; }
-.ant-alert-error { background: rgba(255, 0, 64, 0.12) !important; border-color: var(--cyber-neon-red) !important; }
+.ant-alert-info { background: rgba(0, 240, 255, 0.06) !important; border-color: var(--cyber-border) !important; }
+.ant-alert-warning { background: rgba(255, 0, 160, 0.12) !important; border-color: var(--cyber-neon-pink-soft) !important; }
+.ant-alert-error { background: rgba(255, 0, 160, 0.16) !important; border-color: var(--cyber-neon-pink) !important; }
 
 /* 紧凑表格（自选/行情） */
 .futu-table-compact .ant-table-thead > tr > th {
@@ -198,10 +281,10 @@ body::after {
 
 /* 市场 Tabs */
 .futu-market-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
-  color: var(--cyber-neon-green) !important;
+  color: var(--cyber-neon-cyan) !important;
 }
 .futu-market-tabs .ant-tabs-ink-bar {
-  background: var(--cyber-neon-green) !important;
+  background: linear-gradient(90deg, var(--cyber-neon-cyan), var(--cyber-neon-pink)) !important;
 }
 
 /* 底部导航 */

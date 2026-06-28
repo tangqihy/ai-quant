@@ -14,6 +14,7 @@ import {
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { SearchBar } from '../components/SearchBar';
 import { VersionDisplay } from '../components/common/VersionDisplay';
+import { GlitchText } from '../components/common/GlitchText';
 
 const { Header, Sider, Content } = Layout;
 
@@ -23,11 +24,11 @@ interface MainLayoutProps {
   onThemeToggle?: () => void;
 }
 
-const SIDER_BG = '#000000';
-const HEADER_BG = '#0a0a0a';
-const CONTENT_BG = '#000000';
-const NEON_GREEN = '#00ff41';
-const NEON_BORDER = 'rgba(0, 255, 65, 0.25)';
+const SIDER_BG = '#02040a';
+const HEADER_BG = '#050815';
+const CONTENT_BG = '#02040a';
+const NEON_CYAN = '#00f0ff';
+const NEON_BORDER = 'rgba(0, 240, 255, 0.32)';
 
 const MainLayout: React.FC<MainLayoutProps> = ({
   children,
@@ -58,7 +59,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         style={{
           background: SIDER_BG,
           borderRight: `1px solid ${NEON_BORDER}`,
-          boxShadow: '0 0 12px rgba(0, 255, 65, 0.08)',
+          boxShadow: '0 0 18px rgba(0, 240, 255, 0.18)',
         }}
       >
         <div
@@ -71,18 +72,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             borderBottom: `1px solid ${NEON_BORDER}`,
           }}
         >
-          <LineChartOutlined style={{ color: NEON_GREEN, fontSize: 20 }} />
-          <span
-            style={{
-              color: NEON_GREEN,
-              fontSize: 15,
-              fontWeight: 600,
-              fontFamily: "'JetBrains Mono', monospace",
-              textShadow: '0 0 8px rgba(0, 255, 65, 0.5)',
-            }}
-          >
-            AI 量化
-          </span>
+          <LineChartOutlined style={{ color: NEON_CYAN, fontSize: 20 }} />
+          <GlitchText
+            text="AI-QUANT"
+            className=""
+          />
         </div>
         <Menu
           theme="dark"
@@ -103,7 +97,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             left: 0,
             right: 0,
             textAlign: 'center',
-            color: 'rgba(0, 255, 65, 0.35)',
+            color: 'rgba(0, 240, 255, 0.45)',
             fontSize: 11,
             fontFamily: "'JetBrains Mono', monospace",
           }}
@@ -132,7 +126,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span
               style={{
-                color: 'rgba(0, 255, 65, 0.55)',
+                color: 'rgba(0, 240, 255, 0.65)',
                 fontSize: 12,
                 display: 'flex',
                 alignItems: 'center',
@@ -169,14 +163,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           left: 0,
           right: 0,
           height: 48,
-          background: '#0a0a0a',
+          background: '#050815',
           borderTop: `1px solid ${NEON_BORDER}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 32,
           zIndex: 100,
-          boxShadow: '0 -0 12px rgba(0, 255, 65, 0.05)',
+          boxShadow: '0 -0 14px rgba(0, 240, 255, 0.22)',
         }}
       >
         <button
@@ -185,7 +179,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           style={{
             background: 'none',
             border: 'none',
-            color: location.pathname === '/' ? NEON_GREEN : 'rgba(0, 255, 65, 0.55)',
+            color: location.pathname === '/' ? NEON_CYAN : 'rgba(0, 240, 255, 0.55)',
             fontSize: 13,
             fontWeight: location.pathname === '/' ? 600 : 400,
             cursor: 'pointer',
@@ -203,7 +197,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           style={{
             background: 'none',
             border: 'none',
-            color: location.pathname === '/backtest' ? NEON_GREEN : 'rgba(0, 255, 65, 0.55)',
+            color: location.pathname === '/backtest' ? NEON_CYAN : 'rgba(0, 240, 255, 0.55)',
             fontSize: 13,
             fontWeight: location.pathname === '/backtest' ? 600 : 400,
             cursor: 'pointer',
@@ -221,7 +215,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           style={{
             background: 'none',
             border: 'none',
-            color: location.pathname === '/analysis' ? NEON_GREEN : 'rgba(0, 255, 65, 0.55)',
+            color: location.pathname === '/analysis' ? NEON_CYAN : 'rgba(0, 240, 255, 0.55)',
             fontSize: 13,
             fontWeight: location.pathname === '/analysis' ? 600 : 400,
             cursor: 'pointer',

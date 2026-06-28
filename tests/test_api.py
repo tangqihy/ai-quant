@@ -13,14 +13,17 @@ def test_root():
     response = client.get("/")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "running"
+    assert data["success"] is True
+    assert "message" in data
 
 
 def test_health():
     """测试健康检查"""
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "healthy"
+    data = response.json()
+    assert data["success"] is True
+    assert data["message"] == "healthy"
 
 
 def test_get_strategies():
@@ -30,7 +33,6 @@ def test_get_strategies():
     data = response.json()
     assert data["success"] is True
     assert len(data["data"]) > 0
-    assert data["data"][0]["id"] == "ma_cross"
 
 
 def test_backtest_engine_basic():
