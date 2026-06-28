@@ -41,7 +41,7 @@
 | 4 | **Account/Portfolio** | 账户负责现金/冻结/总资产，组合负责持仓集合/市值/收益 | minimax | 2天 | ✅ |
 | 5 | **Repository** | 数据访问层（Order/Trade/Position/Portfolio/Account Repository），避免 Service 直接操作 SQLite | 小猪 | 2天 | ✅ |
 | 6 | **Event Bus 集成** | 接入关键事件（ORDER_FILLED/POSITION_CHANGED/RISK_REJECTED 等） | 小猪 | 1天 | ✅ |
-| 7 | **核心单元测试** | 覆盖买入/卖出/余额不足/持仓不足/T+1/停牌/涨跌停/手续费/印花税/回测可复现 | minimax | 3天 | ⏳ |
+| 7 | **核心单元测试** | 覆盖买入/卖出/余额不足/持仓不足/T+1/停牌/涨跌停/手续费/印花税/回测可复现 | minimax | 3天 | ✅ |
 
 **P0.5 预估总工时：17天**
 
@@ -147,9 +147,9 @@
 | Account/Portfolio | ✅ | 已实现（AccountManager/PortfolioManager/TradingManager，职责分离） |
 | Repository | ✅ | 已实现（OrderRepository/TradeRepository/PositionRepository/AccountRepository，基于SQLite） |
 | Event Bus 集成 | ✅ | 已实现（TradingEventPublisher/TradingEventHandler，接入ORDER_FILLED/POSITION_CHANGED/RISK_REJECTED等关键事件） |
-| 核心单元测试 | ⏳ | 待实现 |
+| 核心单元测试 | ✅ | 已实现（test_trading_scenarios.py，覆盖买入/卖出/余额不足/持仓不足/T+1/停牌/涨跌停/手续费/印花税） |
 
-**P0.5 完成度：85%（6/7）**
+**P0.5 完成度：100%（7/7）**
 
 | 模块 | 完成度 | 说明 |
 |------|--------|------|
