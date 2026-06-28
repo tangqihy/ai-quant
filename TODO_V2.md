@@ -35,7 +35,7 @@
 
 | # | 任务 | 说明 | 负责人 | 预估工时 | 状态 |
 |---|------|------|--------|----------|------|
-| 1 | **Domain Model** | 领域模型定义（Instrument/Bar/Tick/Signal/Order/Trade/Position/Portfolio/Account/StrategyContext/RiskDecision） | minimax | 3天 | ⏳ |
+| 1 | **Domain Model** | 领域模型定义（Instrument/Bar/Tick/Signal/Order/Trade/Position/Portfolio/Account/StrategyContext/RiskDecision） | minimax | 3天 | ✅ |
 | 2 | **Strategy API** | 固定策略生命周期（initialize/on_start/on_bar/on_tick/on_order/on_trade/on_finish） | minimax | 2天 | ⏳ |
 | 3 | **Broker 拆分** | 撮合器独立，支持三种实现（BacktestBroker/PaperBroker/LiveBroker），含滑点/手续费/T+1/涨跌停/停牌/部分成交/撤单 | minimax | 4天 | ⏳ |
 | 4 | **Account/Portfolio** | 账户负责现金/冻结/总资产，组合负责持仓集合/市值/收益 | minimax | 2天 | ⏳ |
@@ -141,7 +141,7 @@
 
 | 模块 | 完成度 | 说明 |
 |------|--------|------|
-| Domain Model | ⏳ | 待实现 |
+| Domain Model | ✅ | 已实现（Instrument/Bar/Tick/Signal/Order/Trade/Position/Portfolio/Account/StrategyContext/RiskDecision） |
 | Strategy API | ⏳ | 待实现 |
 | Broker 拆分 | ⏳ | 待实现 |
 | Account/Portfolio | ⏳ | 待实现 |
@@ -149,7 +149,7 @@
 | Event Bus 集成 | ⏳ | 待实现 |
 | 核心单元测试 | ⏳ | 待实现 |
 
-**P0.5 完成度：0%（0/7）**
+**P0.5 完成度：14%（1/7）**
 
 | 模块 | 完成度 | 说明 |
 |------|--------|------|
