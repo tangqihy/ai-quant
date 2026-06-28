@@ -36,11 +36,11 @@
 | # | 任务 | 说明 | 负责人 | 预估工时 | 状态 |
 |---|------|------|--------|----------|------|
 | 1 | **Domain Model** | 领域模型定义（Instrument/Bar/Tick/Signal/Order/Trade/Position/Portfolio/Account/StrategyContext/RiskDecision） | minimax | 3天 | ✅ |
-| 2 | **Strategy API** | 固定策略生命周期（initialize/on_start/on_bar/on_tick/on_order/on_trade/on_finish） | minimax | 2天 | ⏳ |
-| 3 | **Broker 拆分** | 撮合器独立，支持三种实现（BacktestBroker/PaperBroker/LiveBroker），含滑点/手续费/T+1/涨跌停/停牌/部分成交/撤单 | minimax | 4天 | ⏳ |
-| 4 | **Account/Portfolio** | 账户负责现金/冻结/总资产，组合负责持仓集合/市值/收益 | minimax | 2天 | ⏳ |
-| 5 | **Repository** | 数据访问层（Order/Trade/Position/Portfolio/Account Repository），避免 Service 直接操作 SQLite | 小猪 | 2天 | ⏳ |
-| 6 | **Event Bus 集成** | 接入关键事件（ORDER_FILLED/POSITION_CHANGED/RISK_REJECTED 等） | 小猪 | 1天 | ⏳ |
+| 2 | **Strategy API** | 固定策略生命周期（initialize/on_start/on_bar/on_tick/on_order/on_trade/on_finish） | minimax | 2天 | ✅ |
+| 3 | **Broker 拆分** | 撮合器独立，支持三种实现（BacktestBroker/PaperBroker/LiveBroker），含滑点/手续费/T+1/涨跌停/停牌/部分成交/撤单 | minimax | 4天 | ✅ |
+| 4 | **Account/Portfolio** | 账户负责现金/冻结/总资产，组合负责持仓集合/市值/收益 | minimax | 2天 | ✅ |
+| 5 | **Repository** | 数据访问层（Order/Trade/Position/Portfolio/Account Repository），避免 Service 直接操作 SQLite | 小猪 | 2天 | ✅ |
+| 6 | **Event Bus 集成** | 接入关键事件（ORDER_FILLED/POSITION_CHANGED/RISK_REJECTED 等） | 小猪 | 1天 | ✅ |
 | 7 | **核心单元测试** | 覆盖买入/卖出/余额不足/持仓不足/T+1/停牌/涨跌停/手续费/印花税/回测可复现 | minimax | 3天 | ⏳ |
 
 **P0.5 预估总工时：17天**
@@ -142,14 +142,14 @@
 | 模块 | 完成度 | 说明 |
 |------|--------|------|
 | Domain Model | ✅ | 已实现（Instrument/Bar/Tick/Signal/Order/Trade/Position/Portfolio/Account/StrategyContext/RiskDecision） |
-| Strategy API | ⏳ | 待实现 |
-| Broker 拆分 | ⏳ | 待实现 |
-| Account/Portfolio | ⏳ | 待实现 |
-| Repository | ⏳ | 待实现 |
-| Event Bus 集成 | ⏳ | 待实现 |
+| Strategy API | ✅ | 已实现（initialize/on_start/on_bar/on_tick/on_order/on_trade/on_finish，含MAStrategy/RSIStrategy示例） |
+| Broker 拆分 | ✅ | 已实现（BacktestBroker/PaperBroker/LiveBroker，含滑点/手续费/订单验证） |
+| Account/Portfolio | ✅ | 已实现（AccountManager/PortfolioManager/TradingManager，职责分离） |
+| Repository | ✅ | 已实现（OrderRepository/TradeRepository/PositionRepository/AccountRepository，基于SQLite） |
+| Event Bus 集成 | ✅ | 已实现（TradingEventPublisher/TradingEventHandler，接入ORDER_FILLED/POSITION_CHANGED/RISK_REJECTED等关键事件） |
 | 核心单元测试 | ⏳ | 待实现 |
 
-**P0.5 完成度：14%（1/7）**
+**P0.5 完成度：85%（6/7）**
 
 | 模块 | 完成度 | 说明 |
 |------|--------|------|
