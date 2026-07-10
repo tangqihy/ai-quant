@@ -324,7 +324,7 @@ class Signal:
         self,
         order_type: OrderType = OrderType.LIMIT,
         account_id: str = ""
-    ) -> Order:
+    ) -> "Order":
         """转换为订单"""
         if self.signal_type == SignalType.HOLD:
             raise ValueError("Cannot create order from HOLD signal")
