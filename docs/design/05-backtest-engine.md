@@ -1,798 +1,549 @@
-# 05 - 回测引擎技术方案
+# 05 - 回测引擎技术方案（最终版）
 
-> 本文档定义向量化日频回测引擎的设计，包括 A 股交易规则模拟、信号生成、撮合逻辑和指标计算。
+> 本文档定义回测引擎的设计，采用混合架构：向量化因子计算 + 状态化撮合。
 > 依赖文档：01-data-pipeline-architecture.md、04-pit-layer.md
 
 ---
 
-## 1. 设计目标
+## 1. 核心原则
 
-1. **向量化计算**：不逐行循环，用 Pandas/NumPy 批量处理
-2. **真实 A 股规则**：涨跌停、停牌、T+1、100股、费用
-3. **信号延迟**：T 日收盘信号 → T+1 日成交
-4. **成交量约束**：限制为当日成交额的百分比
-5. **可复现性**：相同数据 + 相同参数 = 相同结果
+1. **混合架构：** 因子向量化 + 撮合状态化
+2. **领域分离：** Signal → OrderIntent → Order → Trade
+3. **完整账本：** submit→freeze→fill→settle
+4. **可复现性：** BacktestRunManifest 记录所有配置
 
 ---
 
-## 2. A 股交易规则清单
+## 2. 混合架构
 
-### 2.1 涨跌停规则
+### 2.1 向量化 vs 状态化
 
-| 市场 | 涨跌幅限制 | 说明 |
-|------|-----------|------|
-| 主板 | ±10% | 沪深主板 |
-| 创业板 | ±20% | 2020-08-24 起 |
-| 科创板 | ±20% | 2019-07-22 起 |
-| 北交所 | ±30% | 2021-11-15 起 |
-| ST 股票 | ±5% → ±10% | 2026-07-06 起改为 ±10% |
-| 新股上市首日 | 不限（注册制）/ ±44%（核准制） | 需要特殊处理 |
+| 层 | 计算方式 | 说明 |
+|----|----------|------|
+| 因子计算 | 向量化 | 批量处理，不逐行循环 |
+| 信号生成 | 向量化 | 基于因子值批量生成信号 |
+| 订单撮合 | 状态化 | T+1、资金冻结、部分成交需要状态机 |
+| 账户管理 | 状态化 | 持仓 lot、可卖数量需要状态 |
+| 指标汇总 | 向量化 | 净值曲线、收益分布批量计算 |
 
-**交易限制：**
-- 一字涨停（开盘即涨停，全天未开板）：**不能买入**
-- 一字跌停（开盘即跌停，全天未开板）：**不能卖出**
-- 非一字涨停（盘中触及涨停但有开板）：可以买入，但成交概率低
-- 非一字跌停：可以卖出，但成交概率低
-
-### 2.2 停牌规则
-
-- 停牌股票不能交易（买入或卖出）
-- 停牌期间持仓不变，市值按停牌前价格计算
-- 复牌后按正常规则交易
-
-### 2.3 T+1 规则
-
-- 今天买入的股票，今天不能卖出
-- 今天卖出股票的资金，今天可以用于买入（资金 T+0 可用）
-- 需要跟踪每笔持仓的买入日期
-
-### 2.4 交易单位
-
-- 最小交易单位：100 股（1 手）
-- 买入数量必须是 100 的整数倍
-- 卖出可以不是 100 的整数倍（如持有 150 股，可以卖出 150 股）
-- 科创板最小交易单位：200 股（但超过 200 股后可以按 1 股递增）
-
-### 2.5 费用模型
-
-| 费用类型 | 费率 | 最低收费 | 说明 |
-|----------|------|----------|------|
-| 佣金 | 万 2.5 (0.025%) | 5 元 | 买卖双向收取 |
-| 印花税 | 千 1 (0.1%) | 无 | 仅卖出时收取 |
-| 过户费 | 十万分之一 (0.001%) | 无 | 买卖双向收取 |
+### 2.2 主循环
 
 ```python
-def calculate_commission(
-    amount: float,
-    direction: str,  # "buy" or "sell"
-    commission_rate: float = 0.00025,
-    commission_min: float = 5.0,
-    stamp_tax_rate: float = 0.001,
-    transfer_fee_rate: float = 0.00001,
-) -> dict:
-    """计算交易费用"""
-    # 佣金
-    commission = max(amount * commission_rate, commission_min)
+class BacktestEngine:
+    """混合架构回测引擎"""
     
-    # 印花税（仅卖出）
-    stamp_tax = amount * stamp_tax_rate if direction == "sell" else 0
-    
-    # 过户费
-    transfer_fee = amount * transfer_fee_rate
-    
-    total = commission + stamp_tax + transfer_fee
-    
-    return {
-        "commission": commission,
-        "stamp_tax": stamp_tax,
-        "transfer_fee": transfer_fee,
-        "total": total,
-    }
+    def run(self, strategy, start_date, end_date) -> BacktestResult:
+        """回测主循环"""
+        # 初始化 RunManifest
+        manifest = self._create_manifest(strategy, start_date, end_date)
+        
+        trading_days = self._get_trading_days(start_date, end_date)
+        
+        for date in trading_days:
+            # 1. 更新持仓状态（T+1 解除）
+            self.portfolio.update_sellable(date)
+            
+            # 2. 向量化：生成信号
+            signals = self._generate_signals_vectorized(strategy, date)
+            
+            # 3. 状态化：执行交易
+            self._execute_trades_stateful(signals, date)
+            
+            # 4. 记录净值
+            self._record_equity(date)
+        
+        # 5. 向量化：计算指标
+        metrics = self._calculate_metrics_vectorized()
+        
+        return BacktestResult(manifest=manifest, metrics=metrics, ...)
 ```
-
-### 2.6 成交量约束
-
-- 单笔订单的成交量不能超过当日成交量的一定比例（如 2%）
-- 这是为了模拟大资金的冲击成本
-- 小市值策略必须加这个约束，否则回测收益虚高
 
 ---
 
-## 3. 信号生成
+## 3. 领域模型：Signal / Order / Trade
 
-### 3.1 信号定义
+### 3.1 Signal（策略信号）
 
 ```python
 @dataclass
 class Signal:
-    """交易信号"""
+    """
+    策略信号：策略希望做什么。
+    
+    不包含执行结果（价格、数量、手续费）。
+    """
     ts_code: str           # 股票代码
     signal_date: str       # 信号产生日期（T 日收盘后）
     direction: str         # "buy" or "sell"
-    weight: float          # 目标权重（0~1），用于仓位分配
-    reason: str            # 信号原因（用于分析）
-    
-    # 以下字段由引擎填写
-    execute_date: str = "" # 执行日期（T+1）
-    price: float = 0       # 成交价格
-    quantity: int = 0      # 成交数量
-    amount: float = 0      # 成交金额
-    commission: float = 0  # 手续费
+    weight: float          # 目标权重（0~1）
+    reason: str            # 信号原因
 ```
 
-### 3.2 信号生成流程
+### 3.2 OrderIntent（订单意向）
 
 ```python
-class Strategy(ABC):
-    """策略基类"""
+@dataclass
+class OrderIntent:
+    """
+    订单意向：从 Signal 转换为可执行的订单。
     
-    @abstractmethod
-    def generate_signals(
-        self,
-        date: str,
-        cross_section: pd.DataFrame,  # 横截面数据
-        universe: list[str],           # 可交易股票池
-        positions: dict,               # 当前持仓
-    ) -> list[Signal]:
-        """
-        生成交易信号。
-        
-        调用时机：T 日收盘后
-        返回值：T+1 日要执行的信号列表
-        
-        Args:
-            date: 当前日期（T 日）
-            cross_section: 横截面数据，每行一只股票
-            universe: 可交易股票池
-            positions: 当前持仓 {ts_code: Position}
-        
-        Returns:
-            信号列表
-        """
-        pass
+    包含执行约束（价格、数量）。
+    """
+    ts_code: str
+    direction: str
+    target_quantity: int   # 目标数量
+    price_limit: Optional[float]  # 限价（None = 市价）
+    execute_date: str      # 执行日期（T+1）
+    source_signal: Signal  # 来源信号
 ```
 
-### 3.3 信号延迟实现
+### 3.3 Order（委托）
 
 ```python
-def generate_signals_on_date(self, date: str, ...) -> list[Signal]:
-    """T 日收盘后生成信号"""
-    signals = self.strategy.generate_signals(date, ...)
+@dataclass
+class Order:
+    """
+    委托：提交给撮合引擎的订单。
     
-    # 设置执行日期为 T+1
-    next_trading_day = self.calendar.get_next_trading_day(date)
-    for signal in signals:
-        signal.execute_date = next_trading_day
+    有状态机：pending → submitted → filled / cancelled / rejected
+    """
+    order_id: str
+    ts_code: str
+    direction: str
+    price: float           # 委托价格
+    quantity: int          # 委托数量
+    order_type: str        # "limit" / "market"
+    status: str            # "pending" / "submitted" / "filled" / "cancelled" / "rejected"
     
-    return signals
+    # 资金状态
+    frozen_amount: float   # 冻结金额
+    frozen_quantity: int   # 冻结数量（卖出时）
+    
+    # 时间
+    created_at: str
+    submitted_at: Optional[str]
+    filled_at: Optional[str]
+    
+    # 来源
+    source_intent: OrderIntent
+    
+    def fill(self, price: float, quantity: int, commission: float):
+        """成交"""
+        self.status = "filled"
+        self.filled_at = datetime.now().isoformat()
+        # 创建 Trade
+        ...
+    
+    def cancel(self, reason: str):
+        """撤单"""
+        self.status = "cancelled"
+        # 解冻资金
+        ...
+    
+    def reject(self, reason: str):
+        """拒单"""
+        self.status = "rejected"
+        # 解冻资金
+        ...
+```
 
-def execute_signals_on_date(self, date: str, signals: list[Signal]):
-    """T+1 日执行信号"""
-    for signal in signals:
-        if signal.execute_date != date:
-            continue  # 不是今天要执行的信号
-        
-        self._execute_single_signal(signal, date)
+### 3.4 Trade（成交）
+
+```python
+@dataclass
+class Trade:
+    """
+    成交：最终成交了什么。
+    """
+    trade_id: str
+    order_id: str
+    ts_code: str
+    direction: str
+    price: float           # 成交价格
+    quantity: int          # 成交数量
+    amount: float          # 成交金额
+    commission: float      # 手续费
+    
+    # 时间
+    trade_date: str
+    
+    # 来源
+    source_order: Order
+```
+
+### 3.5 流程图
+
+```
+Signal (策略希望做什么)
+    │
+    ▼
+OrderIntent (转换为可执行意向)
+    │
+    ▼
+Order (提交给撮合引擎)
+    │
+    ├── fill → Trade (成交)
+    ├── cancel → 解冻资金
+    └── reject → 解冻资金
 ```
 
 ---
 
-## 4. 撮合逻辑
+## 4. A 股交易规则
 
-### 4.1 撮合流程
+### 4.1 涨跌停规则
+
+| 市场 | 涨跌幅限制 |
+|------|-----------|
+| 主板 | ±10% |
+| 创业板 | ±20% |
+| 科创板 | ±20% |
+| 北交所 | ±30% |
+| ST 股票 | ±5%（2026-07-06 起改为 ±10%）|
+
+### 4.2 撮合模式
 
 ```python
-def _execute_single_signal(self, signal: Signal, date: str):
-    """执行单个信号"""
+class MatchingMode(Enum):
+    """撮合模式"""
+    STRICT = "strict"       # 一字涨停不可买，一字跌停不可卖
+    SIMPLE = "simple"       # 只根据开盘价是否封板判断
+
+def is_tradable(
+    ts_code: str,
+    date: str,
+    direction: str,
+    mode: MatchingMode,
+) -> tuple[bool, str]:
+    """判断是否可交易"""
+    bar = get_bar(ts_code, date)
     
-    # 1. 检查股票是否可交易
-    if not self._is_tradable(signal.ts_code, date):
-        signal.reject("停牌")
-        return
-    
-    # 2. 获取当日行情
-    bar = self._get_bar(signal.ts_code, date)
     if bar is None:
-        signal.reject("无行情数据")
-        return
+        return False, "无行情数据"
     
-    # 3. 检查涨跌停
-    if signal.direction == "buy":
-        if self._is_limit_up(signal.ts_code, date):
-            signal.reject("一字涨停，不能买入")
-            return
-        # 非一字涨停：可以挂单，但成交概率低
-        if self._is_touch_limit_up(signal.ts_code, date):
-            signal.reject("触及涨停，成交概率低")
-            return
+    if is_suspended(ts_code, date):
+        return False, "停牌"
     
-    elif signal.direction == "sell":
-        if self._is_limit_down(signal.ts_code, date):
-            signal.reject("一字跌停，不能卖出")
-            return
+    if direction == "buy":
+        if mode == MatchingMode.STRICT:
+            # 一字涨停：开盘价 = 最高价 = 最低价 = 涨停价
+            if bar["open"] == bar["high"] == bar["low"] == get_limit_up(ts_code, date):
+                return False, "一字涨停"
+        elif mode == MatchingMode.SIMPLE:
+            # 开盘价封板
+            if bar["open"] == get_limit_up(ts_code, date):
+                return False, "开盘涨停"
     
-    # 4. 计算成交价格
-    price = self._determine_price(signal, bar)
+    elif direction == "sell":
+        if mode == MatchingMode.STRICT:
+            if bar["open"] == bar["high"] == bar["low"] == get_limit_down(ts_code, date):
+                return False, "一字跌停"
+        elif mode == MatchingMode.SIMPLE:
+            if bar["open"] == get_limit_down(ts_code, date):
+                return False, "开盘跌停"
     
-    # 5. 计算成交数量
-    quantity = self._determine_quantity(signal, price, bar)
-    
-    # 6. 检查 T+1
-    if signal.direction == "sell":
-        if not self._can_sell(signal.ts_code, date):
-            signal.reject("T+1 限制，今日买入的股票不能卖出")
-            return
-    
-    # 7. 计算费用
-    amount = price * quantity
-    fees = calculate_commission(amount, signal.direction)
-    
-    # 8. 执行成交
-    if signal.direction == "buy":
-        self.account.freeze(amount + fees["total"])
-        self.portfolio.buy(signal.ts_code, price, quantity, date)
-    else:
-        self.portfolio.sell(signal.ts_code, quantity)
-        self.account.deposit(amount - fees["total"])
-    
-    # 9. 记录
-    signal.price = price
-    signal.quantity = quantity
-    signal.amount = amount
-    signal.commission = fees["total"]
+    return True, "可交易"
 ```
 
-### 4.2 成交价格确定
+### 4.3 成交量约束
 
 ```python
-def _determine_price(self, signal: Signal, bar: dict) -> float:
+def calculate_max_quantity(
+    ts_code: str,
+    date: str,
+    participation_rate: float = 0.02,
+) -> int:
     """
-    确定成交价格。
+    计算最大可成交量。
     
-    规则：
-    - 买入：使用开盘价（假设以开盘价成交）
-    - 卖出：使用开盘价
-    - 加滑点
+    基于数量约束（不是金额约束）。
     """
-    base_price = bar["open"]
+    bar = get_bar(ts_code, date)
     
-    if signal.direction == "buy":
-        # 买入加滑点
-        price = base_price * (1 + self.slippage_rate)
-    else:
-        # 卖出减滑点
-        price = base_price * (1 - self.slippage_rate)
+    # Tushare vol 单位是手，需要转换为股
+    day_volume_shares = bar["vol"] * 100
     
-    # 确保价格在涨跌停范围内
-    price = max(price, bar["low_limit"])  # 跌停价
-    price = min(price, bar["high_limit"])  # 涨停价
+    max_quantity = int(day_volume_shares * participation_rate)
     
-    return round(price, 2)
-```
-
-### 4.3 成交数量确定
-
-```python
-def _determine_quantity(self, signal: Signal, price: float, bar: dict) -> int:
-    """
-    确定成交数量。
-    
-    考虑因素：
-    1. 目标权重
-    2. 可用资金
-    3. 最小交易单位（100 股）
-    4. 成交量约束
-    """
-    if signal.direction == "buy":
-        # 1. 按目标权重计算目标金额
-        target_amount = self.account.total_value * signal.weight
-        
-        # 2. 可用资金限制
-        available_amount = min(target_amount, self.account.available_cash)
-        
-        # 3. 成交量约束
-        volume_limit = bar["vol"] * 100 * self.volume_limit_pct  # vol 单位是手
-        volume_limit_amount = volume_limit * price
-        
-        # 4. 取较小值
-        actual_amount = min(available_amount, volume_limit_amount)
-        
-        # 5. 计算数量（向下取整到 100 股）
-        quantity = int(actual_amount / price / 100) * 100
-        
-        # 6. 确保至少 100 股
-        if quantity < 100:
-            quantity = 0
-        
-        return quantity
-    
-    else:  # sell
-        # 卖出：按目标权重计算
-        position = self.portfolio.get_position(signal.ts_code)
-        if position is None:
-            return 0
-        
-        # 目标卖出数量
-        target_quantity = int(position.quantity * signal.weight / 100) * 100
-        
-        # 可卖数量限制（T+1）
-        available_quantity = position.available_quantity
-        
-        # 取较小值
-        quantity = min(target_quantity, available_quantity)
-        
-        return quantity
+    # 向下取整到 100 股
+    return (max_quantity // 100) * 100
 ```
 
 ---
 
-## 5. 向量化实现
+## 5. 订单生命周期
 
-### 5.1 核心思想
-
-不逐日逐股票循环，而是：
-1. 预计算所有日期的信号
-2. 按日期批量执行
-3. 用 Pandas 向量化操作
-
-### 5.2 信号矩阵
+### 5.1 完整账本
 
 ```python
-def build_signal_matrix(
-    self,
-    start_date: str,
-    end_date: str,
-) -> pd.DataFrame:
-    """
-    构建信号矩阵。
+class OrderLedger:
+    """订单账本"""
     
-    返回 DataFrame：
-    - index: trade_date
-    - columns: ts_code
-    - values: weight (0=不操作, >0=买入权重, <0=卖出权重)
-    """
-    trading_days = self._get_trading_days(start_date, end_date)
-    
-    signals = []
-    for date in trading_days:
-        # 获取横截面数据
-        cross_section = self.pit.get_cross_section(date)
-        universe = self.pit.get_universe(date)
+    def submit(self, intent: OrderIntent) -> Order:
+        """
+        提交订单。
         
-        # 调用策略
-        day_signals = self.strategy.generate_signals(
-            date, cross_section, universe, self.portfolio.positions
+        流程：
+        1. 验证可交易性
+        2. 计算委托价格和数量
+        3. 冻结资金（买入）或冻结持仓（卖出）
+        4. 创建 Order
+        """
+        # 验证可交易性
+        tradable, reason = is_tradable(
+            intent.ts_code, intent.execute_date, intent.direction, self.matching_mode
+        )
+        if not tradable:
+            return self._reject(intent, reason)
+        
+        # 计算委托价格
+        price = self._determine_price(intent)
+        
+        # 计算委托数量
+        quantity = self._determine_quantity(intent, price)
+        
+        if quantity == 0:
+            return self._reject(intent, "数量不足")
+        
+        # 冻结资金
+        if intent.direction == "buy":
+            amount = price * quantity
+            commission = calculate_commission(amount, "buy")
+            self.account.freeze(amount + commission["total"])
+        else:
+            self.portfolio.freeze(intent.ts_code, quantity)
+        
+        # 创建 Order
+        order = Order(
+            order_id=str(uuid.uuid4()),
+            ts_code=intent.ts_code,
+            direction=intent.direction,
+            price=price,
+            quantity=quantity,
+            order_type="limit",
+            status="submitted",
+            frozen_amount=price * quantity if intent.direction == "buy" else 0,
+            frozen_quantity=quantity if intent.direction == "sell" else 0,
+            created_at=datetime.now().isoformat(),
+            submitted_at=datetime.now().isoformat(),
+            source_intent=intent,
         )
         
-        for signal in day_signals:
-            signals.append({
-                "signal_date": date,
-                "execute_date": self.calendar.get_next_trading_day(date),
-                "ts_code": signal.ts_code,
-                "direction": signal.direction,
-                "weight": signal.weight,
-            })
+        return order
     
-    return pd.DataFrame(signals)
+    def fill(self, order: Order, fill_price: float, fill_quantity: int) -> Trade:
+        """
+        成交流程。
+        
+        流程：
+        1. 计算成交金额和手续费
+        2. 解冻资金，扣除实际支出
+        3. 更新持仓
+        4. 创建 Trade
+        """
+        amount = fill_price * fill_quantity
+        commission = calculate_commission(amount, order.direction)
+        
+        if order.direction == "buy":
+            # 解冻，扣除实际支出
+            self.account.unfreeze(order.frozen_amount)
+            self.account.withdraw(amount + commission["total"])
+            self.portfolio.buy(order.ts_code, fill_price, fill_quantity, order.execute_date)
+        else:
+            # 解冻持仓，收到资金
+            self.portfolio.unfreeze(order.ts_code, order.frozen_quantity)
+            self.portfolio.sell(order.ts_code, fill_quantity)
+            self.account.deposit(amount - commission["total"])
+        
+        # 更新 Order 状态
+        order.fill(fill_price, fill_quantity, commission["total"])
+        
+        # 创建 Trade
+        trade = Trade(
+            trade_id=str(uuid.uuid4()),
+            order_id=order.order_id,
+            ts_code=order.ts_code,
+            direction=order.direction,
+            price=fill_price,
+            quantity=fill_quantity,
+            amount=amount,
+            commission=commission["total"],
+            trade_date=order.execute_date,
+            source_order=order,
+        )
+        
+        return trade
+    
+    def cancel(self, order: Order, reason: str):
+        """
+        撤单流程。
+        
+        流程：
+        1. 解冻资金或持仓
+        2. 更新 Order 状态
+        """
+        if order.direction == "buy":
+            self.account.unfreeze(order.frozen_amount)
+        else:
+            self.portfolio.unfreeze(order.ts_code, order.frozen_quantity)
+        
+        order.cancel(reason)
 ```
 
-### 5.3 向量化撮合
-
-```python
-def execute_signals_vectorized(
-    self,
-    signals: pd.DataFrame,
-    date: str,
-    market_data: pd.DataFrame,
-):
-    """
-    向量化执行当日信号。
-    
-    Args:
-        signals: 当日要执行的信号
-        date: 当前日期
-        market_data: 当日行情数据
-    """
-    # 合并信号和行情
-    merged = signals.merge(market_data, on="ts_code", how="left")
-    
-    # 买入信号
-    buy_signals = merged[merged["direction"] == "buy"].copy()
-    if len(buy_signals) > 0:
-        # 计算买入价格（开盘价 + 滑点）
-        buy_signals["price"] = buy_signals["open"] * (1 + self.slippage_rate)
-        
-        # 计算买入数量
-        buy_signals["target_amount"] = self.account.total_value * buy_signals["weight"]
-        buy_signals["quantity"] = (
-            buy_signals["target_amount"] / buy_signals["price"] / 100
-        ).astype(int) * 100
-        
-        # 成交量约束
-        buy_signals["vol_limit"] = buy_signals["vol"] * 100 * self.volume_limit_pct
-        buy_signals["quantity"] = buy_signals[["quantity", "vol_limit"]].min(axis=1).astype(int)
-        
-        # 批量执行
-        for _, row in buy_signals.iterrows():
-            if row["quantity"] >= 100:
-                self._execute_buy(row["ts_code"], row["price"], row["quantity"])
-    
-    # 卖出信号
-    sell_signals = merged[merged["direction"] == "sell"].copy()
-    if len(sell_signals) > 0:
-        sell_signals["price"] = sell_signals["open"] * (1 - self.slippage_rate)
-        
-        for _, row in sell_signals.iterrows():
-            position = self.portfolio.get_position(row["ts_code"])
-            if position and position.available_quantity > 0:
-                quantity = min(
-                    int(position.quantity * row["weight"] / 100) * 100,
-                    position.available_quantity
-                )
-                if quantity > 0:
-                    self._execute_sell(row["ts_code"], row["price"], quantity)
-```
-
----
-
-## 6. 账户管理
-
-### 6.1 Account 类
+### 5.2 T+1 Lot 追踪
 
 ```python
 @dataclass
-class Account:
-    """账户"""
-    initial_capital: float
-    cash: float
-    frozen: float  # 冻结资金（挂单未成交）
-    
-    @property
-    def available_cash(self) -> float:
-        """可用现金"""
-        return self.cash - self.frozen
-    
-    @property
-    def total_value(self) -> float:
-        """总资产 = 现金 + 持仓市值"""
-        return self.cash + self.portfolio.market_value
-    
-    def freeze(self, amount: float):
-        """冻结资金"""
-        if amount > self.available_cash:
-            raise InsufficientBalanceError()
-        self.frozen += amount
-    
-    def unfreeze(self, amount: float):
-        """解冻资金"""
-        self.frozen -= amount
-    
-    def deposit(self, amount: float):
-        """入金"""
-        self.cash += amount
-    
-    def withdraw(self, amount: float):
-        """出金"""
-        if amount > self.available_cash:
-            raise InsufficientBalanceError()
-        self.cash -= amount
-```
-
-### 6.2 Portfolio 类
-
-```python
-@dataclass
-class Position:
-    """持仓"""
+class PositionLot:
+    """持仓 Lot"""
     ts_code: str
+    acquired_date: str     # 买入日期
     quantity: int          # 总数量
-    available_quantity: int  # 可卖数量（T+1）
+    remaining_quantity: int  # 剩余数量
     cost_price: float      # 成本价
-    buy_date: str          # 买入日期
-    
-    @property
-    def market_value(self) -> float:
-        """市值（需要当前价格）"""
-        return self.quantity * self.current_price
-    
-    @property
-    def unrealized_pnl(self) -> float:
-        """浮动盈亏"""
-        return (self.current_price - self.cost_price) * self.quantity
-
 
 class Portfolio:
     """组合"""
     
     def __init__(self):
-        self.positions: dict[str, Position] = {}
+        self.lots: dict[str, list[PositionLot]] = {}  # ts_code -> lots
     
     def buy(self, ts_code: str, price: float, quantity: int, date: str):
         """买入"""
-        if ts_code in self.positions:
-            # 加仓
-            pos = self.positions[ts_code]
-            total_cost = pos.cost_price * pos.quantity + price * quantity
-            pos.quantity += quantity
-            pos.cost_price = total_cost / pos.quantity
-        else:
-            # 新建仓位
-            self.positions[ts_code] = Position(
-                ts_code=ts_code,
-                quantity=quantity,
-                available_quantity=0,  # T+1，今天买的今天不能卖
-                cost_price=price,
-                buy_date=date,
-            )
+        lot = PositionLot(
+            ts_code=ts_code,
+            acquired_date=date,
+            quantity=quantity,
+            remaining_quantity=quantity,  # T+1，今天买的今天不能卖
+            cost_price=price,
+        )
+        
+        if ts_code not in self.lots:
+            self.lots[ts_code] = []
+        self.lots[ts_code].append(lot)
     
     def sell(self, ts_code: str, quantity: int):
         """卖出"""
-        pos = self.positions[ts_code]
-        pos.quantity -= quantity
-        pos.available_quantity -= quantity
+        lots = self.lots[ts_code]
+        remaining = quantity
         
-        if pos.quantity <= 0:
-            del self.positions[ts_code]
+        for lot in lots:
+            if lot.remaining_quantity <= 0:
+                continue
+            
+            sell_qty = min(remaining, lot.remaining_quantity)
+            lot.remaining_quantity -= sell_qty
+            remaining -= sell_qty
+            
+            if remaining <= 0:
+                break
+        
+        # 清理空 lot
+        self.lots[ts_code] = [l for l in lots if l.remaining_quantity > 0]
     
-    def update_available(self):
-        """更新可卖数量（每日开盘时调用）"""
-        for pos in self.positions.values():
-            pos.available_quantity = pos.quantity
+    def update_sellable(self, date: str):
+        """更新可卖数量（T+1 解除）"""
+        for ts_code, lots in self.lots.items():
+            for lot in lots:
+                if lot.acquired_date < date:
+                    # T+1 解除，全部可卖
+                    pass  # remaining_quantity 已经等于 quantity
     
-    @property
-    def market_value(self) -> float:
-        """总市值"""
-        return sum(pos.market_value for pos in self.positions.values())
+    def get_sellable_quantity(self, ts_code: str) -> int:
+        """获取可卖数量"""
+        if ts_code not in self.lots:
+            return 0
+        return sum(lot.remaining_quantity for lot in self.lots[ts_code])
+    
+    def get_total_quantity(self, ts_code: str) -> int:
+        """获取总数量"""
+        if ts_code not in self.lots:
+            return 0
+        return sum(lot.quantity for lot in self.lots[ts_code])
+    
+    def freeze(self, ts_code: str, quantity: int):
+        """冻结持仓（卖出时）"""
+        remaining = quantity
+        for lot in self.lots[ts_code]:
+            freeze_qty = min(remaining, lot.remaining_quantity)
+            lot.remaining_quantity -= freeze_qty
+            remaining -= freeze_qty
+            if remaining <= 0:
+                break
+    
+    def unfreeze(self, ts_code: str, quantity: int):
+        """解冻持仓（撤单时）"""
+        remaining = quantity
+        for lot in reversed(self.lots[ts_code]):
+            unfreeze_qty = min(remaining, lot.quantity - lot.remaining_quantity)
+            lot.remaining_quantity += unfreeze_qty
+            remaining -= unfreeze_qty
+            if remaining <= 0:
+                break
 ```
 
 ---
 
-## 7. 指标计算
-
-### 7.1 核心指标
+## 6. BacktestRunManifest
 
 ```python
-class PerformanceMetrics:
-    """绩效指标"""
+@dataclass
+class BacktestRunManifest:
+    """回测运行清单"""
+    run_id: str                    # UUID
+    strategy_name: str             # 策略名称
+    strategy_version: str          # 策略版本
+    parameters: dict               # 策略参数
     
-    @staticmethod
-    def calculate(equity_curve: pd.Series, benchmark: pd.Series = None) -> dict:
-        """
-        计算绩效指标。
-        
-        Args:
-            equity_curve: 净值曲线（每日净值）
-            benchmark: 基准净值曲线（可选）
-        
-        Returns:
-            指标字典
-        """
-        returns = equity_curve.pct_change().dropna()
-        
-        metrics = {
-            # 收益指标
-            "total_return": (equity_curve.iloc[-1] / equity_curve.iloc[0]) - 1,
-            "annual_return": (equity_curve.iloc[-1] / equity_curve.iloc[0]) ** (252 / len(equity_curve)) - 1,
-            
-            # 风险指标
-            "annual_volatility": returns.std() * np.sqrt(252),
-            "max_drawdown": PerformanceMetrics._max_drawdown(equity_curve),
-            "max_drawdown_duration": PerformanceMetrics._max_drawdown_duration(equity_curve),
-            
-            # 风险调整收益
-            "sharpe_ratio": PerformanceMetrics._sharpe(returns),
-            "sortino_ratio": PerformanceMetrics._sortino(returns),
-            "calmar_ratio": PerformanceMetrics._calmar(equity_curve, returns),
-            
-            # 交易统计
-            "win_rate": PerformanceMetrics._win_rate(returns),
-            "profit_loss_ratio": PerformanceMetrics._profit_loss_ratio(returns),
-            "trade_count": PerformanceMetrics._trade_count(returns),
-        }
-        
-        # 基准对比
-        if benchmark is not None:
-            metrics["excess_return"] = metrics["total_return"] - ((benchmark.iloc[-1] / benchmark.iloc[0]) - 1)
-            metrics["information_ratio"] = PerformanceMetrics._information_ratio(returns, benchmark.pct_change().dropna())
-            metrics["beta"] = PerformanceMetrics._beta(returns, benchmark.pct_change().dropna())
-            metrics["alpha"] = metrics["annual_return"] - metrics["beta"] * ((benchmark.iloc[-1] / benchmark.iloc[0]) ** (252 / len(benchmark)) - 1)
-        
-        return metrics
+    start_date: str                # 回测开始日期
+    end_date: str                  # 回测结束日期
     
-    @staticmethod
-    def _max_drawdown(equity_curve: pd.Series) -> float:
-        """最大回撤"""
-        peak = equity_curve.expanding().max()
-        drawdown = (equity_curve - peak) / peak
-        return drawdown.min()
+    universe_definition: str       # 股票池定义（如 "000300.SH"）
+    dataset_version: str           # 数据集版本
+    data_cutoff: str               # 数据截止日期
     
-    @staticmethod
-    def _sharpe(returns: pd.Series, risk_free_rate: float = 0.03) -> float:
-        """夏普比率"""
-        excess_returns = returns - risk_free_rate / 252
-        return excess_returns.mean() / excess_returns.std() * np.sqrt(252) if excess_returns.std() > 0 else 0
+    adjustment_mode: str           # 复权模式（"qfq" / "hfq"）
+    broker_model: str              # 撮合模式（"strict" / "simple"）
+    fee_model: dict                # 费用模型参数
     
-    @staticmethod
-    def _sortino(returns: pd.Series, risk_free_rate: float = 0.03) -> float:
-        """索提诺比率"""
-        excess_returns = returns - risk_free_rate / 252
-        downside_returns = excess_returns[excess_returns < 0]
-        downside_std = downside_returns.std() * np.sqrt(252)
-        return excess_returns.mean() * 252 / downside_std if downside_std > 0 else 0
-```
-
-### 7.2 月度收益分布
-
-```python
-def monthly_returns(equity_curve: pd.Series) -> pd.DataFrame:
-    """计算月度收益"""
-    monthly = equity_curve.resample("ME").last()
-    returns = monthly.pct_change().dropna()
+    code_commit: str               # 代码提交 hash
+    created_at: str                # 创建时间
     
-    # 转为年-月矩阵
-    returns_df = pd.DataFrame({
-        "year": returns.index.year,
-        "month": returns.index.month,
-        "return": returns.values,
-    })
-    
-    pivot = returns_df.pivot(index="year", columns="month", values="return")
-    pivot.columns = [f"{m}月" for m in pivot.columns]
-    
-    return pivot
+    # 结果
+    total_return: Optional[float] = None
+    annual_return: Optional[float] = None
+    max_drawdown: Optional[float] = None
+    sharpe_ratio: Optional[float] = None
 ```
 
 ---
 
-## 8. 回测主循环
+## 7. 使用示例
 
 ```python
-class BacktestEngineV2:
-    """向量化回测引擎"""
-    
-    def __init__(
-        self,
-        pit: PITQuery,
-        initial_capital: float = 1000000,
-        commission_rate: float = 0.00025,
-        slippage_rate: float = 0.001,
-        volume_limit_pct: float = 0.02,
-    ):
-        self.pit = pit
-        self.account = Account(initial_capital)
-        self.portfolio = Portfolio()
-        self.commission_rate = commission_rate
-        self.slippage_rate = slippage_rate
-        self.volume_limit_pct = volume_limit_pct
-        
-        # 记录
-        self.equity_curve = []
-        self.trade_log = []
-        self.signal_log = []
-    
-    def run(self, strategy: Strategy, start_date: str, end_date: str) -> dict:
-        """
-        运行回测。
-        
-        Args:
-            strategy: 策略实例
-            start_date: 开始日期
-            end_date: 结束日期
-        
-        Returns:
-            回测结果（指标 + 净值曲线 + 交易记录）
-        """
-        trading_days = self._get_trading_days(start_date, end_date)
-        
-        for date in trading_days:
-            # 1. 更新可卖数量（T+1 解除）
-            self.portfolio.update_available()
-            
-            # 2. 更新持仓市值
-            self._update_market_value(date)
-            
-            # 3. 生成信号（T 日收盘后）
-            if date != trading_days[-1]:  # 最后一天不生成信号
-                cross_section = self.pit.get_cross_section(date)
-                universe = self.pit.get_universe(date)
-                signals = strategy.generate_signals(
-                    date, cross_section, universe, self.portfolio.positions
-                )
-                
-                # 设置执行日期
-                next_day = self._get_next_trading_day(date)
-                for signal in signals:
-                    signal.execute_date = next_day
-                
-                self.signal_log.extend(signals)
-            
-            # 4. 执行信号（T+1 日开盘）
-            today_signals = [s for s in self.signal_log if s.execute_date == date]
-            if today_signals:
-                market_data = self._get_market_data(date)
-                self._execute_signals(today_signals, market_data)
-            
-            # 5. 记录净值
-            self.equity_curve.append({
-                "date": date,
-                "equity": self.account.total_value,
-                "cash": self.account.cash,
-                "market_value": self.portfolio.market_value,
-            })
-        
-        # 计算指标
-        equity_series = pd.Series(
-            [e["equity"] for e in self.equity_curve],
-            index=[e["date"] for e in self.equity_curve],
-        )
-        
-        metrics = PerformanceMetrics.calculate(equity_series)
-        
-        return {
-            "metrics": metrics,
-            "equity_curve": self.equity_curve,
-            "trade_log": self.trade_log,
-            "signal_log": self.signal_log,
-        }
-```
-
----
-
-## 9. 使用示例
-
-```python
-from app.backtest.engine_v2 import BacktestEngineV2
-from app.data.pit import PITQuery, PITDataManager
-from app.data.duckdb_client import DuckDBClient
+from app.backtest.engine import BacktestEngine
+from app.backtest.manifest import BacktestRunManifest
 
 # 初始化
-db = DuckDBClient()
-pit = PITDataManager(db)
-pit_query = PITQuery(pit)
-
-engine = BacktestEngineV2(
+engine = BacktestEngine(
     pit=pit_query,
-    initial_capital=1000000,
-    commission_rate=0.00025,
-    slippage_rate=0.001,
-    volume_limit_pct=0.02,
+    adjustment=AdjustmentManager(anchor_date="20260630"),
+    matching_mode=MatchingMode.STRICT,
+    fee_model={"commission_rate": 0.00025, "stamp_tax_rate": 0.001},
 )
 
-# 定义策略
-class SmallCapValueStrategy(Strategy):
-    def generate_signals(self, date, cross_section, universe, positions):
-        # 小市值 + 低 PE 选股
-        df = cross_section.copy()
-        df = df[df["ts_code"].isin(universe)]
-        df = df[df["pe_ttm"] > 0]  # 排除亏损股
-        
-        # 计算因子排名
-        df["mv_rank"] = df["total_mv"].rank()  # 市值越小排名越前
-        df["pe_rank"] = df["pe_ttm"].rank()     # PE 越低排名越前
-        df["score"] = df["mv_rank"] + df["pe_rank"]
-        
-        # 选前 20 只
-        selected = df.nsmallest(20, "score")
-        
-        signals = []
-        for _, row in selected.iterrows():
-            signals.append(Signal(
-                ts_code=row["ts_code"],
-                signal_date=date,
-                direction="buy",
-                weight=1.0 / 20,  # 等权重
-                reason=f"小市值+低PE, score={row['score']:.0f}",
-            ))
-        
-        return signals
-
 # 运行回测
-strategy = SmallCapValueStrategy()
-result = engine.run(strategy, "20230101", "20260630")
+result = engine.run(
+    strategy=SmallCapValueStrategy(),
+    start_date="20230101",
+    end_date="20260630",
+)
 
-# 输出结果
-print(f"总收益: {result['metrics']['total_return']:.2%}")
-print(f"年化收益: {result['metrics']['annual_return']:.2%}")
-print(f"最大回撤: {result['metrics']['max_drawdown']:.2%}")
-print(f"夏普比率: {result['metrics']['sharpe_ratio']:.2f}")
+# 保存 RunManifest
+result.manifest.save("results/run_manifest.json")
+
+# 输出指标
+print(f"总收益: {result.metrics['total_return']:.2%}")
+print(f"最大回撤: {result.metrics['max_drawdown']:.2%}")
+print(f"夏普比率: {result.metrics['sharpe_ratio']:.2f}")
 ```
