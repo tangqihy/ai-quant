@@ -152,12 +152,12 @@ INTERFACE_CONFIG: dict[str, dict] = {
     },
     "fina_indicator": {
         "fields": FINA_INDICATOR_FIELDS,
-        "primary_key": ["ts_code", "ann_date", "end_date", "report_type"],
+        "primary_key": ["ts_code", "ann_date", "end_date"],
         "description": "财务指标",
     },
     "income": {
         "fields": {},  # full field list omitted – handled by normalizer later
-        "primary_key": ["ts_code", "ann_date", "end_date", "report_type"],
+        "primary_key": ["ts_code", "ann_date", "end_date"],
         "description": "利润表",
     },
     "balancesheet": {
@@ -177,7 +177,7 @@ INTERFACE_CONFIG: dict[str, dict] = {
     },
     "trade_cal": {
         "fields": {},
-        "primary_key": ["exchange_id", "cal_date"],
+        "primary_key": ["exchange", "cal_date"],
         "description": "交易日历",
     },
     "stock_basic": {

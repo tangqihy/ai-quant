@@ -206,13 +206,20 @@ class PITDataManager:
         client = self.client
         client._ensure_view("stock_basic")
 
+        # Check available columns
+        try:
+            cols_df = client.query("DESCRIBE stock_basic")
+            available_cols = set(cols_df["column_name"].tolist())
+        except Exception:
+            available_cols = set()
+
         where = [
             "list_date IS NOT NULL",
             "list_date <= ?",
         ]
         params: list = [_normalise_date(as_of_date)]
 
-        if exclude_delisted:
+        if exclude_delisted and "delist_date" in available_cols:
             where.append("(delist_date IS NULL OR delist_date > ?)")
             params.append(_normalise_date(as_of_date))
 
@@ -388,9 +395,13 @@ class PITQuery:
             logger.debug("daily_basic view not available for cross-section")
 
         # --- PIT financial indicators ------------------------------------
-        fina = self.pit.get_financial_pit_batch(
-            ts_codes, as_of_date, report_type=1, interface="fina_indicator"
-        )
+        fina = pd.DataFrame()
+        try:
+            fina = self.pit.get_financial_pit_batch(
+                ts_codes, as_of_date, report_type=1, interface="fina_indicator"
+            )
+        except Exception:
+            logger.debug("fina_indicator not available for cross-section")
 
         # --- Merge -------------------------------------------------------
         merged = pd.DataFrame({"ts_code": ts_codes})

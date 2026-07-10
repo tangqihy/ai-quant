@@ -119,7 +119,7 @@ class DuckDBClient:
     ) -> str:
         """Create a view over *all* versioned data (not just latest).
 
-        Useful for PIT queries that need access to ``ingested_at``.
+        Useful for PIT queries that need access to ``ingest_date``.
         """
         view_name = view_name or f"{interface}_versions"
         versions_dir = self.normalized_dir / "versions" / interface
@@ -146,6 +146,16 @@ class DuckDBClient:
     # ------------------------------------------------------------------
     # SQL query interface
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _date_str(d: str | None) -> str | None:
+        """Normalize YYYYMMDD or YYYY-MM-DD to DATE literal for DuckDB."""
+        if d is None:
+            return None
+        d = d.strip()
+        if len(d) == 8 and d.isdigit():
+            d = f"{d[:4]}-{d[4:6]}-{d[6:]}"
+        return f"DATE '{d}'"
 
     def query(self, sql: str, params: list | None = None) -> pd.DataFrame:
         """Execute a SQL query and return a pandas DataFrame.
@@ -202,10 +212,10 @@ class DuckDBClient:
         params: list = [ts_code]
 
         if start_date:
-            where.append("trade_date >= ?")
+            where.append("trade_date >= CAST(? AS DATE)")
             params.append(_parse_date(start_date))
         if end_date:
-            where.append("trade_date <= ?")
+            where.append("trade_date <= CAST(? AS DATE)")
             params.append(_parse_date(end_date))
 
         sql = f"""
@@ -232,10 +242,10 @@ class DuckDBClient:
         params: list = [ts_code]
 
         if start_date:
-            where.append("trade_date >= ?")
+            where.append("trade_date >= CAST(? AS DATE)")
             params.append(_parse_date(start_date))
         if end_date:
-            where.append("trade_date <= ?")
+            where.append("trade_date <= CAST(? AS DATE)")
             params.append(_parse_date(end_date))
 
         sql = f"""
@@ -255,38 +265,61 @@ class DuckDBClient:
     ) -> Optional[pd.DataFrame]:
         """PIT query: get the most recent financial data visible as of *as_of_date*.
 
-        Uses **versions** view (which includes ``ingested_at``) to apply the
+        Uses **versions** view (which includes ``ingest_date``) to apply the
         full PIT version-selection logic:
 
         1. ``published_at <= as_of_date``  (visibility)
         2. Max ``end_date``                (latest report period)
         3. Max ``published_at``            (latest announcement)
-        4. Max ``ingested_at``             (latest ingestion – tiebreaker)
+        4. Max ``ingest_date``             (latest ingestion – tiebreaker)
         """
         view = f"{interface}_versions"
         self._ensure_versions_view(interface, view)
 
+        # Check if f_ann_date column exists
+        try:
+            cols_df = self.query(f"DESCRIBE {view}")
+            available_cols = set(cols_df["column_name"].tolist())
+            has_report_type = "report_type" in available_cols
+            has_f_ann_date = "f_ann_date" in available_cols
+        except Exception:
+            has_report_type = False
+            has_f_ann_date = False
+
+        # published_at expression depends on whether f_ann_date exists
+        if has_f_ann_date:
+            published_at_expr = """COALESCE(
+                CASE WHEN f_ann_date IS NOT NULL THEN f_ann_date END,
+                ann_date
+            )"""
+            f_ann_date_order = "CASE WHEN f_ann_date IS NOT NULL THEN 0 ELSE 1 END ASC,"
+        else:
+            published_at_expr = "ann_date"
+            f_ann_date_order = ""
+
         # published_at is derived from ann_date; we coalesce f_ann_date/ann_date
+        where_clauses = [
+            "ts_code = ?",
+            f"{published_at_expr} <= ?",
+        ]
+        params = [ts_code, _parse_date(as_of_date)]
+
+        if has_report_type:
+            where_clauses.insert(1, "report_type = ?")
+            params.insert(1, report_type)
+
         sql = f"""
             SELECT *
             FROM {view}
-            WHERE ts_code = ?
-              AND report_type = ?
-              AND COALESCE(
-                  CASE WHEN f_ann_date IS NOT NULL THEN f_ann_date END,
-                  ann_date
-              ) <= ?
+            WHERE {" AND ".join(where_clauses)}
             ORDER BY
                 end_date DESC,
-                COALESCE(
-                    CASE WHEN f_ann_date IS NOT NULL THEN f_ann_date END,
-                    ann_date
-                ) DESC,
-                CASE WHEN f_ann_date IS NOT NULL THEN 0 ELSE 1 END ASC,
-                ingested_at DESC
+                {published_at_expr} DESC,
+                {f_ann_date_order}
+                ingest_date DESC
             LIMIT 1
         """
-        result = self.query(sql, [ts_code, report_type, _parse_date(as_of_date)])
+        result = self.query(sql, params)
         return result if len(result) > 0 else None
 
     def get_financial_pit_batch(
@@ -306,8 +339,34 @@ class DuckDBClient:
         if not ts_codes:
             return pd.DataFrame()
 
+        # Check available columns
+        try:
+            cols_df = self.query(f"DESCRIBE {view}")
+            available_cols = set(cols_df["column_name"].tolist())
+            has_report_type = "report_type" in available_cols
+            has_f_ann_date = "f_ann_date" in available_cols
+        except Exception:
+            has_report_type = False
+            has_f_ann_date = False
+
+        # published_at expression depends on whether f_ann_date exists
+        if has_f_ann_date:
+            published_at_expr = """COALESCE(
+                CASE WHEN f_ann_date IS NOT NULL THEN f_ann_date END,
+                ann_date
+            )"""
+            f_ann_date_order = "CASE WHEN f_ann_date IS NOT NULL THEN 0 ELSE 1 END ASC,"
+        else:
+            published_at_expr = "ann_date"
+            f_ann_date_order = ""
+
         placeholders = ", ".join("?" for _ in ts_codes)
-        params = list(ts_codes) + [report_type, _parse_date(as_of_date)]
+        params = list(ts_codes) + [_parse_date(as_of_date)]
+
+        report_type_filter = ""
+        if has_report_type:
+            report_type_filter = "AND report_type = ?"
+            params.insert(-1, report_type)  # Insert before as_of_date
 
         sql = f"""
             SELECT *
@@ -317,20 +376,14 @@ class DuckDBClient:
                         PARTITION BY ts_code
                         ORDER BY
                             end_date DESC,
-                            COALESCE(
-                                CASE WHEN f_ann_date IS NOT NULL THEN f_ann_date END,
-                                ann_date
-                            ) DESC,
-                            CASE WHEN f_ann_date IS NOT NULL THEN 0 ELSE 1 END ASC,
-                            ingested_at DESC
+                            {published_at_expr} DESC,
+                            {f_ann_date_order}
+                            ingest_date DESC
                     ) AS _rn
                 FROM {view}
                 WHERE ts_code IN ({placeholders})
-                  AND report_type = ?
-                  AND COALESCE(
-                      CASE WHEN f_ann_date IS NOT NULL THEN f_ann_date END,
-                      ann_date
-                  ) <= ?
+                  {report_type_filter}
+                  AND {published_at_expr} <= ?
             )
             WHERE _rn = 1
         """
