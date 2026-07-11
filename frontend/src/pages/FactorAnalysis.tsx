@@ -63,7 +63,9 @@ const FactorAnalysis: React.FC = () => {
         setSelectedFactor(icData.factors[0].name);
       }
     } catch (e: any) {
-      message.error('获取因子数据失败: ' + (e.message || ''));
+      // 提取后端返回的真实错误信息，而非 generic 的 axios 文案
+      const detail = e?.response?.data?.detail || e?.message || '';
+      message.error('获取因子数据失败: ' + detail);
     } finally {
       setLoading(false);
     }
@@ -529,6 +531,28 @@ const FactorAnalysis: React.FC = () => {
         )}
 
         {/* 无数据提示 */}
+        {!loading && factorData && factorData.factors.length === 0 && (
+          <Card style={{ ...cardStyle, textAlign: 'center', padding: 40 }}>
+            <Empty
+              description={
+                <div style={{ color: 'rgba(0, 240, 255, 0.5)', fontSize: 14, lineHeight: 1.8 }}>
+                  {factorData.needs_generation ? (
+                    <>
+                      <div>因子IC数据尚未生成</div>
+                      <div style={{ fontSize: 12, marginTop: 8, color: 'rgba(0, 240, 255, 0.35)' }}>
+                        请在后端运行 <code style={{ color: NEON_GREEN }}>python scripts/run_factor_ic.py</code>
+                        <br />
+                        该脚本会下载行情数据并计算各因子的IC/ICIR，生成 <code style={{ color: NEON_GREEN }}>data/factor_ic.json</code>
+                      </div>
+                    </>
+                  ) : (
+                    '暂无因子数据'
+                  )}
+                </div>
+              }
+            />
+          </Card>
+        )}
         {!loading && !factorData && (
           <Card style={{ ...cardStyle, textAlign: 'center', padding: 60 }}>
             <Empty

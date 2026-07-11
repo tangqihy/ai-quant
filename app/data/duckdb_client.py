@@ -441,16 +441,19 @@ class DuckDBClient:
         """Return all trade dates in the given range from trade_cal."""
         self._ensure_view("trade_cal")
 
+        # cal_date 以 'YYYYMMDD' 字符串存储，同格式字符串比较字典序正确
+        sd = start_date.replace("-", "")
+        ed = end_date.replace("-", "")
         sql = """
             SELECT cal_date
             FROM trade_cal
-            WHERE exchange_id = ?
+            WHERE exchange = ?
               AND is_open = 1
               AND cal_date >= ?
               AND cal_date <= ?
             ORDER BY cal_date
         """
-        result = self.query(sql, [exchange, _parse_date(start_date), _parse_date(end_date)])
+        result = self.query(sql, [exchange, sd, ed])
         return result["cal_date"].tolist()
 
     # ------------------------------------------------------------------

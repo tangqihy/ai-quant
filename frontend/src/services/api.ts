@@ -142,6 +142,9 @@ export interface FactorICData {
   neutralization: string;
   factors: FactorItem[];
   event_factors: EventFactor[];
+  /** 数据未生成时为 true，前端展示引导 */
+  needs_generation?: boolean;
+  message?: string;
 }
 
 export interface FactorItem {
@@ -177,6 +180,8 @@ export interface FactorSummary {
   neutralization: string;
   updated_at: string;
   top_factors: { name: string; display_name: string; icir: number }[];
+  needs_generation?: boolean;
+  message?: string;
 }
 
 export async function getFactorIC() {

@@ -386,7 +386,8 @@ class ICAnalyzer:
 # ------------------------------------------------------------------
 
 def _norm(d: str) -> str:
+    """归一化为存储格式 ``YYYYMMDD``（normalized 层的 trade_date 以该字符串存储）。"""
     s = str(d).replace("-", "")
     if len(s) == 8 and s.isdigit():
-        return f"{s[:4]}-{s[4:6]}-{s[6:8]}"
+        return s
     return str(d)

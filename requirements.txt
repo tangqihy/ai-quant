@@ -8,3 +8,7 @@ pandas
 tushare
 pytest
 httpx
+# 数据管线 + 因子框架
+duckdb
+pyarrow
+scipy

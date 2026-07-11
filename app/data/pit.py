@@ -213,15 +213,17 @@ class PITDataManager:
         except Exception:
             available_cols = set()
 
+        # list_date 以 'YYYYMMDD' 字符串存储，统一用 YYYYMMDD 比较
+        as_of_yyyymmdd = _normalise_date(as_of_date).replace("-", "")
         where = [
             "list_date IS NOT NULL",
             "list_date <= ?",
         ]
-        params: list = [_normalise_date(as_of_date)]
+        params: list = [as_of_yyyymmdd]
 
         if exclude_delisted and "delist_date" in available_cols:
             where.append("(delist_date IS NULL OR delist_date > ?)")
-            params.append(_normalise_date(as_of_date))
+            params.append(as_of_yyyymmdd)
 
         sql = f"""
             SELECT ts_code
