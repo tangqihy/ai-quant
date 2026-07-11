@@ -190,7 +190,7 @@ const StrategyTemplate: React.FC = () => {
       label: '均线交叉策略',
       children: (
         <Card>
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space orientation="vertical" style={{ width: '100%' }}>
             <Alert
               message="策略说明"
               description="基于短期和长期均线交叉产生买卖信号。当短期均线上穿长期均线时买入（金叉），下穿时卖出（死叉）。"
@@ -218,7 +218,7 @@ const StrategyTemplate: React.FC = () => {
       label: 'RSI策略',
       children: (
         <Card>
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space orientation="vertical" style={{ width: '100%' }}>
             <Alert
               message="策略说明"
               description="基于RSI指标的超买超卖策略。RSI低于超卖阈值时买入，高于超买阈值时卖出。"
@@ -247,7 +247,7 @@ const StrategyTemplate: React.FC = () => {
       label: '自定义策略模板',
       children: (
         <Card>
-          <Space direction="vertical" style={{ width: '100%' }}>
+          <Space orientation="vertical" style={{ width: '100%' }}>
             <Alert
               message="开发指南"
               description="复制此模板，修改策略ID、名称和generate_signals方法，实现你自己的策略逻辑。"

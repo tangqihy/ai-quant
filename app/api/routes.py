@@ -5,6 +5,7 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 from app.services.stock_service import stock_service
+from app.services.tushare_service import tushare_service
 from app.services.backtest_service import run_backtest
 from app.services.storage_service import backtest_storage
 from app.services.indicator_service import indicator_service
@@ -77,16 +78,25 @@ async def get_stock_history(
     symbol: str,
     start_date: Optional[str] = Query(None, description="开始日期 YYYYMMDD"),
     end_date: Optional[str] = Query(None, description="结束日期 YYYYMMDD"),
-    adjust: str = Query("qfq", description="复权类型: qfq-前复权, hfq-后复权, ''-不复权")
+    adjust: str = Query("qfq", description="复权类型: qfq-前复权, hfq-后复权, ''-不复权"),
+    period: str = Query("daily", description="周期: daily/1min/5min/15min/30min/60min"),
 ):
-    """获取股票历史K线数据（日线）"""
+    """获取股票历史K线数据（日线或分钟线）"""
     try:
-        klines = stock_service.get_stock_history(
-            symbol=symbol,
-            start_date=start_date,
-            end_date=end_date,
-            adjust=adjust
-        )
+        if period and period != "daily":
+            klines = tushare_service.get_stock_minutes(
+                symbol=symbol,
+                freq=period,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        else:
+            klines = stock_service.get_stock_history(
+                symbol=symbol,
+                start_date=start_date,
+                end_date=end_date,
+                adjust=adjust
+            )
         return ok(data={"symbol": symbol, "klines": klines, "total": len(klines)})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -262,6 +272,23 @@ router.include_router(risk_router)
 # 导入并包含自选路由
 from app.api.watchlist_routes import router as watchlist_router
 router.include_router(watchlist_router)
+
+
+# ==================== 新闻资讯 ====================
+
+@router.get("/news")
+async def get_news(
+    limit: int = Query(20, ge=1, le=50, description="返回条数"),
+    src: str = Query("auto", description="来源: auto / tushare / eastmoney"),
+):
+    """获取财经新闻 / 快讯列表"""
+    try:
+        from app.services.news_service import get_news as fetch_news
+
+        items = fetch_news(limit=limit, src=src)
+        return ok(data={"items": items, "total": len(items)})
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"获取新闻失败: {e}")
 
 
 # ==================== 版本号 ====================

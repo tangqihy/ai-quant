@@ -30,6 +30,12 @@ interface KLineChartProps {
   symbol?: string;
   data?: KLineData[];
   height?: number;
+  /** 起始日期 YYYYMMDD */
+  startDate?: string;
+  /** 结束日期 YYYYMMDD */
+  endDate?: string;
+  /** K线周期: daily / 1min / 5min / 15min / 30min / 60min */
+  period?: string;
   /** 要在 K 线上叠加的指标，如 ['ma', 'boll']；不传则使用 data 或历史接口并默认画 MA5/10/20 */
   overlays?: OverlayIndicator[];
 }
@@ -64,6 +70,9 @@ const KLineChart: React.FC<KLineChartProps> = ({
   symbol = '600519',
   data: propData,
   height = 400,
+  startDate,
+  endDate,
+  period = 'daily',
   overlays,
 }) => {
   const [dates, setDates] = useState<string[]>([]);
@@ -89,16 +98,19 @@ const KLineChart: React.FC<KLineChartProps> = ({
       return;
     }
 
+    let cancelled = false;
     const fetch = async () => {
       setLoading(true);
       try {
         if (overlays && overlays.length > 0) {
-          const res = await getIndicators(symbol, overlays.join(','));
-          if (res.success && res.data?.length > 0) {
+          const res = await getIndicators(symbol, overlays.join(','), startDate, endDate);
+          if (cancelled) return;
+          const rows: KLineData[] = res?.data?.klines ?? (Array.isArray(res?.data) ? res.data : []);
+          if (res.success && rows.length > 0) {
             const d: string[] = [];
             const ohlc: number[][] = [];
             const vol: number[] = [];
-            res.data.forEach((item: KLineData) => {
+            rows.forEach((item: KLineData) => {
               d.push(item.date);
               ohlc.push([item.open, item.close, item.low, item.high]);
               vol.push(item.volume);
@@ -106,15 +118,19 @@ const KLineChart: React.FC<KLineChartProps> = ({
             setDates(d);
             setOhlcData(ohlc);
             setVolumes(vol);
-            setIndicatorRows(res.data);
+            setIndicatorRows(rows);
+          } else {
+            setDates([]); setOhlcData([]); setVolumes([]); setIndicatorRows(null);
           }
         } else {
-          const res = await getStockHistory(symbol);
-          if (res.success && res.data?.length > 0) {
+          const res = await getStockHistory(symbol, startDate, endDate, 'qfq', period);
+          if (cancelled) return;
+          const rows: KLineData[] = res?.data?.klines ?? (Array.isArray(res?.data) ? res.data : []);
+          if (res.success && rows.length > 0) {
             const d: string[] = [];
             const ohlc: number[][] = [];
             const vol: number[] = [];
-            res.data.forEach((item: KLineData) => {
+            rows.forEach((item: KLineData) => {
               d.push(item.date);
               ohlc.push([item.open, item.close, item.low, item.high]);
               vol.push(item.volume);
@@ -123,16 +139,21 @@ const KLineChart: React.FC<KLineChartProps> = ({
             setOhlcData(ohlc);
             setVolumes(vol);
             setIndicatorRows(null);
+          } else {
+            setDates([]); setOhlcData([]); setVolumes([]); setIndicatorRows(null);
           }
         }
       } catch {
-        // 静默失败
+        if (!cancelled) {
+          setDates([]); setOhlcData([]); setVolumes([]); setIndicatorRows(null);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetch();
-  }, [symbol, propData, overlays?.join(',')]);
+    return () => { cancelled = true; };
+  }, [symbol, propData, overlays?.join(','), startDate, endDate, period]);
 
   const closeData = ohlcData.map((d) => d[1]);
 
@@ -189,6 +210,22 @@ const KLineChart: React.FC<KLineChartProps> = ({
   const NEON_AXIS = 'rgba(0, 255, 65, 0.5)';
   const NEON_GRID = 'rgba(0, 255, 65, 0.08)';
 
+  const isMinute = period && period !== 'daily';
+  // 分钟线数据量大，默认显示最近一段；日线默认显示全量
+  const defaultStart = isMinute ? 60 : 0;
+  const defaultEnd = 100;
+
+  // x 轴标签格式化：日线显示 MM-DD，分钟线显示 MM-DD HH:mm
+  const axisLabelFormatter = (val: string) => {
+    if (!val) return '';
+    if (isMinute) {
+      // '2026-07-03 09:35:00' -> '07-03 09:35'
+      const m = val.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/);
+      return m ? `${m[2]}-${m[3]} ${m[4]}` : val.slice(5, 16);
+    }
+    return val.length >= 10 ? val.slice(5, 10) : val;
+  };
+
   const series: any[] = [
     {
       name: 'K线',
@@ -243,7 +280,7 @@ const KLineChart: React.FC<KLineChartProps> = ({
         data: dates,
         boundaryGap: false,
         axisLine: { lineStyle: { color: NEON_AXIS } },
-        axisLabel: { color: NEON_AXIS },
+        axisLabel: { color: NEON_AXIS, formatter: axisLabelFormatter },
         splitLine: { show: false },
         min: 'dataMin',
         max: 'dataMax',
@@ -280,18 +317,24 @@ const KLineChart: React.FC<KLineChartProps> = ({
       },
     ],
     dataZoom: [
-      { type: 'inside', xAxisIndex: [0, 1], start: 70, end: 100 },
+      { type: 'inside', xAxisIndex: [0, 1], start: defaultStart, end: defaultEnd },
       {
         show: true,
         xAxisIndex: [0, 1],
         type: 'slider',
         bottom: 60,
-        start: 70,
-        end: 100,
+        start: defaultStart,
+        end: defaultEnd,
         borderColor: NEON_AXIS,
         fillerColor: 'rgba(0, 255, 65, 0.2)',
         handleStyle: { color: NEON_DOWN },
         textStyle: { color: NEON_AXIS },
+        labelFormatter: (val: string) => {
+          if (!val) return '';
+          const s = dates[val as unknown as number] || val;
+          if (isMinute) return s ? s.slice(11, 16) : '';
+          return s ? s.slice(5, 10) : '';
+        },
       },
     ],
     series,
@@ -299,6 +342,14 @@ const KLineChart: React.FC<KLineChartProps> = ({
 
   if (loading && !propData) {
     return <div style={{ textAlign: 'center', padding: 40 }}>加载中...</div>;
+  }
+
+  if (!propData && !loading && dates.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: 40, color: 'rgba(0, 255, 65, 0.5)' }}>
+        暂无 K 线数据
+      </div>
+    );
   }
 
   return <ReactECharts option={option} style={{ height, width: '100%' }} />;

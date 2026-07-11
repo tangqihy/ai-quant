@@ -94,25 +94,27 @@ const BacktestConfig: React.FC = () => {
                   name="stockCode"
                   rules={[{ required: true, message: '请输入或选择股票代码' }]}
                 >
-                  <Space.Compact style={{ width: '100%' }}>
-                    <Input placeholder="例如 600519，或从自选选择" style={{ flex: 1 }} />
-                    <Dropdown
-                      menu={{
-                        items: stocks.map((s) => ({ 
-                          key: s.symbol, 
-                          label: `${s.symbol} ${s.name}`,
-                          onClick: ({ key }) => {
-                            form.setFieldsValue({ stockCode: key });
-                          }
-                        })),
-                      }}
-                      disabled={stocks.length === 0}
-                    >
-                      <Button>
-                        从自选 <DownOutlined />
-                      </Button>
-                    </Dropdown>
-                  </Space.Compact>
+                  <Input
+                    placeholder="例如 600519，或从自选选择"
+                    addonAfter={
+                      <Dropdown
+                        menu={{
+                          items: stocks.map((s) => ({
+                            key: s.symbol,
+                            label: `${s.symbol} ${s.name}`,
+                            onClick: ({ key }) => {
+                              form.setFieldsValue({ stockCode: key });
+                            },
+                          })),
+                        }}
+                        disabled={stocks.length === 0}
+                      >
+                        <Button type="text" size="small" style={{ padding: '0 4px' }}>
+                          从自选 <DownOutlined />
+                        </Button>
+                      </Dropdown>
+                    }
+                  />
                 </Form.Item>
                 
                 <Form.Item label="回测时间范围" name="dateRange" rules={[{ required: true, message: '请选择时间范围' }]}>

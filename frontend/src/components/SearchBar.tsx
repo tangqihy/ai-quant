@@ -16,7 +16,7 @@ export const SearchBar: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const { isInWatchlist, groups } = useWatchlist();
+  const { isInWatchlist, isLoaded } = useWatchlist();
 
   const doSearch = useCallback(async (q: string) => {
     const term = (q || '').trim();
@@ -74,6 +74,10 @@ export const SearchBar: React.FC = () => {
   }, []);
 
   const handleSelectStock = (item: { symbol: string; name: string }) => {
+    if (!isLoaded) {
+      message.warning('自选数据加载中，请稍候再操作');
+      return;
+    }
     setSelectedStock(item);
     setModalVisible(true);
     setDropdownVisible(false);

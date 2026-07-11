@@ -348,7 +348,7 @@ const SimulationTrading: React.FC = () => {
               value={account?.total_value || 0}
               prefix="¥"
               precision={2}
-              valueStyle={{ color: isUp ? '#ff0040' : '#00ff41', fontSize: 24 }}
+              styles={{ content: { color: isUp ? '#ff0040' : '#00ff41', fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -360,7 +360,7 @@ const SimulationTrading: React.FC = () => {
               prefix={pnl >= 0 ? '+' : ''}
               suffix={`(${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`}
               precision={2}
-              valueStyle={{ color: pnl >= 0 ? '#ff0040' : '#00ff41' }}
+              styles={{ content: { color: pnl >= 0 ? '#ff0040' : '#00ff41' } }}
             />
           </Card>
         </Col>

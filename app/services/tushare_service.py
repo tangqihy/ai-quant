@@ -4,7 +4,8 @@ Tushare Pro 数据服务
 直接使用 tushare Python SDK，token 从环境变量 / .env 的 TUSHARE_TOKEN 读取。
 """
 import logging
-from typing import List, Dict, Optional
+import time
+from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta
 
 import tushare as ts
@@ -100,7 +101,7 @@ class TushareService:
         adjust: str = "qfq"
     ) -> List[Dict]:
         """
-        获取历史K线数据
+        获取历史K线数据（日线）
         symbol: 股票代码 (如 600519)
         start_date: 开始日期 (YYYYMMDD)
         end_date: 结束日期 (YYYYMMDD)
@@ -174,6 +175,94 @@ class TushareService:
             })
 
         results.sort(key=lambda x: x['date'])
+        return results
+
+    # ==================== 分钟K线 ====================
+    # 新浪财经公开接口，无限流
+    _MINS_CACHE: Dict[str, Any] = {}
+
+    def get_stock_minutes(
+        self,
+        symbol: str,
+        freq: str = "5min",
+        start_date: str = None,
+        end_date: str = None,
+    ) -> List[Dict]:
+        """
+        获取分钟级K线数据（新浪财经公开接口）。
+        freq: 1min/5min/15min/30min/60min
+        start_date/end_date: YYYYMMDD（用于过滤，新浪按 datalen 拉取后裁剪）
+        """
+        freq = (freq or "5min").lower()
+        scale_map = {"1min": 1, "5min": 5, "15min": 15, "30min": 30, "60min": 60}
+        scale = scale_map.get(freq, 5)
+
+        today = datetime.now()
+        if not end_date:
+            end_date = today.strftime("%Y%m%d")
+        if not start_date:
+            start_date = (today - timedelta(days=10)).strftime("%Y%m%d")
+        start_date = start_date.replace("-", "")
+        end_date = end_date.replace("-", "")
+
+        cache_key = f"sina:{symbol}:{freq}:{start_date}:{end_date}"
+        cached = TushareService._MINS_CACHE.get(cache_key)
+        if cached and (time.time() - cached["ts"] < 60):
+            return cached["items"]
+
+        # 新浪 symbol: sh600519 / sz000001 / bj830xxx
+        s = symbol.split(".")[0]
+        if s.startswith("6"):
+            sina_sym = f"sh{s}"
+        elif s.startswith("8") or s.startswith("4"):
+            sina_sym = f"bj{s}"
+        else:
+            sina_sym = f"sz{s}"
+
+        # datalen: 取足够多的条数覆盖日期范围；分钟线每天 240 根
+        days_span = max((datetime.strptime(end_date, "%Y%m%d") - datetime.strptime(start_date, "%Y%m%d")).days, 1)
+        datalen = min(max(days_span, 1) * 240, 5000)
+
+        url = (
+            "https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/"
+            f"CN_MarketData.getKLineData?symbol={sina_sym}&scale={scale}&ma=no&datalen={datalen}"
+        )
+        try:
+            import subprocess
+            import json as _json
+
+            r = subprocess.run(
+                ["curl", "-s", "--max-time", "10", "-H", "User-Agent: Mozilla/5.0", url],
+                capture_output=True, text=True, timeout=12,
+            )
+            rows = _json.loads(r.stdout or "[]") or []
+        except Exception as e:
+            logger.warning(f"sina minutes failed: {e}")
+            return []
+
+        start_norm = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:8]}"
+        end_norm = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:8]}"
+        results: List[Dict] = []
+        for row in rows:
+            day = str(row.get("day", ""))
+            if not day:
+                continue
+            # 过滤日期范围
+            day_date = day[:10]
+            if day_date < start_norm or day_date > end_norm:
+                continue
+            results.append({
+                "date": day,
+                "open": float(row.get("open", 0) or 0),
+                "high": float(row.get("high", 0) or 0),
+                "low": float(row.get("low", 0) or 0),
+                "close": float(row.get("close", 0) or 0),
+                "volume": float(row.get("volume", 0) or 0),
+                "amount": 0,
+            })
+        results.sort(key=lambda x: x["date"])
+
+        TushareService._MINS_CACHE[cache_key] = {"ts": time.time(), "items": results}
         return results
 
     def get_realtime_quotes(self, symbols: List[str]) -> List[Dict]:

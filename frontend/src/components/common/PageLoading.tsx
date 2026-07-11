@@ -118,7 +118,7 @@ export const DataLoading: React.FC<{ height?: number }> = ({ height = 200 }) => 
         height,
       }}
     >
-      <Spin size="large" tip="数据加载中..." />
+      <Spin size="large" description="数据加载中..." />
     </motion.div>
   );
 };

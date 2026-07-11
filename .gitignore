@@ -42,3 +42,6 @@ app/data/klines/*.db
 # Runtime data
 data/
 .hermes/
+
+# Local dev runtime (pids / logs)
+.dev/

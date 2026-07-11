@@ -67,7 +67,12 @@ function App() {
         ...antdConfig,
       }}
     >
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <WatchlistProvider>
           <AppRoutes isDark={isDark} onThemeToggle={toggleTheme} />
         </WatchlistProvider>

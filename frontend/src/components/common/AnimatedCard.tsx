@@ -49,18 +49,20 @@ export const AnimatedCard: React.FC<AnimatedCardProps> = ({
           boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
           cursor: onClick ? 'pointer' : 'default',
         }}
-        bodyStyle={{ padding: 20 }}
+        styles={{ body: { padding: 20 } }}
       >
         <Statistic
           title={<span style={{ fontSize: 14, color: '#8c8c8c' }}>{title}</span>}
           value={isNumber ? undefined : value}
           prefix={prefix}
           suffix={suffix}
-          valueStyle={{
-            fontSize: 32,
-            fontWeight: 700,
-            color,
-            ...valueStyle,
+          styles={{
+            content: {
+              fontSize: 32,
+              fontWeight: 700,
+              color,
+              ...valueStyle,
+            },
           }}
           formatter={() =>
             isNumber ? (

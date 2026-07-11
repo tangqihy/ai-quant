@@ -1,11 +1,10 @@
-import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   WatchlistData,
   WatchlistGroup,
   WatchlistItem,
   AddToWatchlistParams,
   CreateGroupParams,
-  GROUP_COLORS,
 } from '../types/watchlist';
 import {
   getWatchlistData,
@@ -20,19 +19,35 @@ import {
 import { getToken } from '../services/auth';
 import { message } from 'antd';
 
-const generateId = () => Math.random().toString(36).substring(2, 15);
-
-const getDefaultData = (): WatchlistData => ({
-  groups: [
-    { id: generateId(), name: '默认分组', color: GROUP_COLORS[0], createdAt: Date.now() },
-  ],
+const emptyData = (): WatchlistData => ({
+  groups: [],
   stocks: [],
   version: 1,
 });
 
+function mapServerData(serverData: any): WatchlistData {
+  const groups: WatchlistGroup[] = (serverData.groups || []).map((g: any) => ({
+    id: g.id,
+    name: g.name,
+    color: g.color,
+    createdAt: new Date(g.created_at).getTime(),
+    updatedAt: g.updated_at ? new Date(g.updated_at).getTime() : undefined,
+  }));
+  const stocks: WatchlistItem[] = (serverData.stocks || []).map((s: any) => ({
+    symbol: s.symbol,
+    name: s.name,
+    groupIds: s.group_ids || [],
+    note: s.note,
+    addedAt: new Date(s.created_at).getTime(),
+    updatedAt: s.updated_at ? new Date(s.updated_at).getTime() : undefined,
+  }));
+  return { groups, stocks, version: 1 };
+}
+
 export interface WatchlistContextValue {
   groups: WatchlistGroup[];
   stocks: WatchlistItem[];
+  /** 首次加载是否完成（未完成前禁止写操作） */
   isLoaded: boolean;
   isLoading: boolean;
   createGroup: (params: CreateGroupParams) => Promise<WatchlistGroup | null>;
@@ -52,67 +67,75 @@ export interface WatchlistContextValue {
 const WatchlistContext = createContext<WatchlistContextValue | null>(null);
 
 export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [data, setData] = useState<WatchlistData>(getDefaultData());
+  const [data, setData] = useState<WatchlistData>(emptyData);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const isLoadedRef = useRef(false);
+  // 加载序号：写操作会递增，使进行中的拉取结果失效，避免覆盖本地已提交的变更
+  const loadSeqRef = useRef(0);
 
-  // 从服务器加载数据
+  const ensureReady = useCallback((): boolean => {
+    if (!isLoadedRef.current) {
+      message.warning('自选数据加载中，请稍候再操作');
+      return false;
+    }
+    return true;
+  }, []);
+
+  /** 本地写成功后作废进行中的拉取，防止旧快照盖掉新数据 */
+  const invalidateInflightLoads = useCallback(() => {
+    loadSeqRef.current += 1;
+  }, []);
+
   const loadFromServer = useCallback(async () => {
-    // 未登录时不加载数据
     if (!getToken()) {
+      setData(emptyData());
+      setIsLoading(false);
+      isLoadedRef.current = true;
       setIsLoaded(true);
       return;
     }
+
+    const seq = ++loadSeqRef.current;
     setIsLoading(true);
+
     try {
       const res = await getWatchlistData();
+      if (seq !== loadSeqRef.current) return;
+
       if (res.data?.success && res.data.data) {
-        const serverData = res.data.data;
-        // 转换服务器数据格式
-        const groups: WatchlistGroup[] = (serverData.groups || []).map((g: any) => ({
-          id: g.id,
-          name: g.name,
-          color: g.color,
-          createdAt: new Date(g.created_at).getTime(),
-          updatedAt: g.updated_at ? new Date(g.updated_at).getTime() : undefined,
-        }));
-        const stocks: WatchlistItem[] = (serverData.stocks || []).map((s: any) => ({
-          symbol: s.symbol,
-          name: s.name,
-          groupIds: s.group_ids || [],
-          note: s.note,
-          addedAt: new Date(s.created_at).getTime(),
-          updatedAt: s.updated_at ? new Date(s.updated_at).getTime() : undefined,
-        }));
-        setData({
-          groups: groups.length > 0 ? groups : getDefaultData().groups,
-          stocks,
-          version: 1,
-        });
+        setData(mapServerData(res.data.data));
+      } else {
+        setData(emptyData());
       }
+      isLoadedRef.current = true;
+      setIsLoaded(true);
     } catch (error) {
+      if (seq !== loadSeqRef.current) return;
       console.error('Failed to load watchlist from server:', error);
-      // 未登录时不显示错误提示
       if (getToken()) {
         message.error('加载自选数据失败');
       }
-    } finally {
-      setIsLoading(false);
+      // 失败也标记 loaded，避免永久锁死写操作；保留已有本地数据
+      isLoadedRef.current = true;
       setIsLoaded(true);
+    } finally {
+      if (seq === loadSeqRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
-  // 初始加载 - 只在组件挂载时执行一次
   useEffect(() => {
     loadFromServer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadFromServer]);
 
-  // 创建分组
   const createGroup = useCallback(async (params: CreateGroupParams): Promise<WatchlistGroup | null> => {
+    if (!ensureReady()) return null;
     try {
       const res = await createWatchlistGroup(params.name, params.color);
       if (res.data?.success) {
+        invalidateInflightLoads();
         const newGroup = res.data.data;
         const group: WatchlistGroup = {
           id: newGroup.id,
@@ -127,16 +150,17 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }));
         return group;
       }
-    } catch (error) {
+    } catch {
       message.error('创建分组失败');
     }
     return null;
-  }, []);
+  }, [ensureReady, invalidateInflightLoads]);
 
-  // 删除分组
   const deleteGroup = useCallback(async (groupId: string) => {
+    if (!ensureReady()) return;
     try {
       await deleteWatchlistGroup(groupId);
+      invalidateInflightLoads();
       setData(prev => ({
         ...prev,
         groups: prev.groups.filter(g => g.id !== groupId),
@@ -145,28 +169,29 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           groupIds: s.groupIds.filter(id => id !== groupId),
         })),
       }));
-    } catch (error) {
+    } catch {
       message.error('删除分组失败');
     }
-  }, []);
+  }, [ensureReady, invalidateInflightLoads]);
 
-  // 重命名分组
   const renameGroup = useCallback(async (groupId: string, newName: string) => {
+    if (!ensureReady()) return;
     try {
       await updateWatchlistGroup(groupId, newName);
+      invalidateInflightLoads();
       setData(prev => ({
         ...prev,
         groups: prev.groups.map(g =>
           g.id === groupId ? { ...g, name: newName } : g
         ),
       }));
-    } catch (error) {
+    } catch {
       message.error('重命名分组失败');
     }
-  }, []);
+  }, [ensureReady, invalidateInflightLoads]);
 
-  // 添加股票
   const addStock = useCallback(async (params: AddToWatchlistParams): Promise<boolean> => {
+    if (!ensureReady()) return false;
     try {
       const res = await addWatchlistStock(
         params.symbol,
@@ -175,6 +200,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         params.note
       );
       if (res.data?.success) {
+        invalidateInflightLoads();
         const stock = res.data.data;
         const newStock: WatchlistItem = {
           symbol: stock.symbol,
@@ -187,86 +213,82 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setData(prev => ({
           ...prev,
           stocks: prev.stocks.some(s => s.symbol === newStock.symbol)
-            ? prev.stocks.map(s => s.symbol === newStock.symbol ? newStock : s)
+            ? prev.stocks.map(s => (s.symbol === newStock.symbol ? newStock : s))
             : [...prev.stocks, newStock],
         }));
         return true;
       }
-    } catch (error) {
+    } catch {
       message.error('添加自选失败');
     }
     return false;
-  }, []);
+  }, [ensureReady, invalidateInflightLoads]);
 
-  // 移除股票
   const removeStock = useCallback(async (symbol: string) => {
+    if (!ensureReady()) return;
     try {
       await removeWatchlistStock(symbol);
+      invalidateInflightLoads();
       setData(prev => ({
         ...prev,
         stocks: prev.stocks.filter(s => s.symbol !== symbol),
       }));
-    } catch (error) {
+    } catch {
       message.error('移除自选失败');
     }
-  }, []);
+  }, [ensureReady, invalidateInflightLoads]);
 
-  // 更新股票分组
   const updateStockGroups = useCallback(async (symbol: string, groupIds: string[]) => {
+    if (!ensureReady()) return;
     try {
       await updateStockGroupsApi(symbol, groupIds);
+      invalidateInflightLoads();
       setData(prev => ({
         ...prev,
         stocks: prev.stocks.map(s =>
           s.symbol === symbol ? { ...s, groupIds } : s
         ),
       }));
-    } catch (error) {
+    } catch {
       message.error('更新分组失败');
     }
-  }, []);
+  }, [ensureReady, invalidateInflightLoads]);
 
-  // 更新股票备注
   const updateStockNote = useCallback(async (symbol: string, note: string) => {
+    if (!ensureReady()) return;
     try {
       await updateStockNoteApi(symbol, note);
+      invalidateInflightLoads();
       setData(prev => ({
         ...prev,
         stocks: prev.stocks.map(s =>
           s.symbol === symbol ? { ...s, note } : s
         ),
       }));
-    } catch (error) {
+    } catch {
       message.error('更新备注失败');
     }
-  }, []);
+  }, [ensureReady, invalidateInflightLoads]);
 
-  // 检查是否在自选
   const isInWatchlist = useCallback((symbol: string) => {
     return data.stocks.some(s => s.symbol === symbol);
   }, [data.stocks]);
 
-  // 根据分组获取股票
   const getStocksByGroup = useCallback((groupId: string) => {
-    if (groupId === 'all') {
-      return data.stocks;
-    }
+    if (groupId === 'all') return data.stocks;
     return data.stocks.filter(s => s.groupIds.includes(groupId));
   }, [data.stocks]);
 
-  // 根据代码获取单个股票
   const getStock = useCallback((symbol: string) => {
     return data.stocks.find(s => s.symbol === symbol);
   }, [data.stocks]);
 
-  // 获取股票所属分组
   const getStockGroups = useCallback((symbol: string) => {
     const stock = data.stocks.find(s => s.symbol === symbol);
     if (!stock) return [];
     return data.groups.filter(g => stock.groupIds.includes(g.id));
   }, [data.stocks, data.groups]);
 
-  // 刷新数据
   const refresh = useCallback(async () => {
     await loadFromServer();
   }, [loadFromServer]);
@@ -290,7 +312,23 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       getStockGroups,
       refresh,
     }),
-    [data, isLoaded, isLoading, createGroup, deleteGroup, renameGroup, addStock, removeStock, updateStockGroups, updateStockNote, isInWatchlist, getStocksByGroup, getStock, getStockGroups, refresh]
+    [
+      data,
+      isLoaded,
+      isLoading,
+      createGroup,
+      deleteGroup,
+      renameGroup,
+      addStock,
+      removeStock,
+      updateStockGroups,
+      updateStockNote,
+      isInWatchlist,
+      getStocksByGroup,
+      getStock,
+      getStockGroups,
+      refresh,
+    ]
   );
 
   return <WatchlistContext.Provider value={value}>{children}</WatchlistContext.Provider>;

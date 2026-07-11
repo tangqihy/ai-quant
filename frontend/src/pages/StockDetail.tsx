@@ -14,6 +14,7 @@ import {
   Typography,
   Modal,
   Empty,
+  Radio,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -24,7 +25,7 @@ import {
 } from '@ant-design/icons';
 import { useWatchlist } from '../hooks/useWatchlist';
 import AddToWatchlistModal from '../components/watchlist/AddToWatchlistModal';
-import { getStockHistory, getRealtimeQuotes } from '../services/api';
+import { getRealtimeQuotes } from '../services/api';
 import KLineChart from '../components/charts/KLineChart';
 
 const { Title, Text } = Typography;
@@ -48,11 +49,12 @@ export const StockDetail: React.FC = () => {
     removeStock,
     getStockGroups,
     groups,
+    isLoaded,
   } = useWatchlist();
 
   const [loading, setLoading] = useState(true);
   const [quote, setQuote] = useState<StockQuote | null>(null);
-  const [klineData, setKlineData] = useState<any[]>([]);
+  const [klinePeriod, setKlinePeriod] = useState<string>('daily');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const stockGroups = symbol ? getStockGroups(symbol) : [];
 
@@ -65,16 +67,17 @@ export const StockDetail: React.FC = () => {
       return;
     }
 
-    // 如果不在自选中，提示并跳转首页
+    // 自选数据未就绪时不要误判「不在自选」
+    if (!isLoaded) return;
+
     if (!isInWatchlist(symbol)) {
       message.warning('该股票不在您的自选列表中，请先添加');
       navigate('/');
       return;
     }
 
-    // 加载数据
     loadStockData();
-  }, [symbol, isInWatchlist, navigate]);
+  }, [symbol, isLoaded, isInWatchlist, navigate]);
 
   const loadStockData = async () => {
     if (!symbol) return;
@@ -96,13 +99,7 @@ export const StockDetail: React.FC = () => {
         });
       }
 
-      // 获取K线数据（最近一年）
-      const endDate = dayjs().format('YYYYMMDD');
-      const startDate = dayjs().subtract(1, 'year').format('YYYYMMDD');
-      const historyRes = await getStockHistory(symbol, startDate, endDate);
-      if (historyRes.success) {
-        setKlineData(historyRes.data || []);
-      }
+      // K 线数据由 KLineChart 组件根据 symbol + period 自行拉取
     } catch (e) {
       message.error('加载股票数据失败');
     } finally {
@@ -126,10 +123,10 @@ export const StockDetail: React.FC = () => {
     });
   };
 
-  if (loading) {
+  if (!isLoaded || loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400, color: '#00ff41' }}>
-        <Spin size="large" tip="加载中..." />
+        <Spin size="large" description={isLoaded ? '加载中...' : '自选数据加载中...'} />
       </div>
     );
   }
@@ -171,7 +168,7 @@ export const StockDetail: React.FC = () => {
       >
         <Row gutter={[24, 16]} align="middle">
           <Col xs={24} md={12}>
-            <Space direction="vertical" size={4}>
+            <Space orientation="vertical" size={4}>
               <Space>
                 <Title level={3} style={{ margin: 0 }}>{quote.name}</Title>
                 <Text type="secondary" style={{ fontSize: 16, fontFamily: 'monospace' }}>
@@ -206,7 +203,7 @@ export const StockDetail: React.FC = () => {
                   title="当前价格"
                   value={quote.price}
                   precision={2}
-                  valueStyle={{ color, fontSize: 28, fontWeight: 'bold' }}
+                  styles={{ content: { color, fontSize: 28, fontWeight: 'bold' } }}
                 />
               </Col>
               <Col span={8}>
@@ -215,12 +212,12 @@ export const StockDetail: React.FC = () => {
                   value={quote.change_pct}
                   precision={2}
                   suffix="%"
-                  valueStyle={{ color, fontSize: 28, fontWeight: 'bold' }}
+                  styles={{ content: { color, fontSize: 28, fontWeight: 'bold' } }}
                   prefix={isUp ? '+' : ''}
                 />
               </Col>
               <Col span={8} style={{ textAlign: 'right' }}>
-                <Space direction="vertical">
+                <Space orientation="vertical">
                   <Button
                     type="primary"
                     danger
@@ -271,14 +268,29 @@ export const StockDetail: React.FC = () => {
             <span style={{ color: '#00ff41' }}>K线走势</span>
           </Space>
         }
+        extra={
+          <Radio.Group
+            size="small"
+            value={klinePeriod}
+            onChange={(e) => setKlinePeriod(e.target.value)}
+            optionType="button"
+            buttonStyle="solid"
+          >
+            <Radio.Button value="daily">日线</Radio.Button>
+            <Radio.Button value="60min">60分</Radio.Button>
+            <Radio.Button value="30min">30分</Radio.Button>
+            <Radio.Button value="15min">15分</Radio.Button>
+            <Radio.Button value="5min">5分</Radio.Button>
+          </Radio.Group>
+        }
         style={{
           background: '#0a0a0a',
           border: neonBorder,
           boxShadow: '0 0 12px rgba(0, 255, 65, 0.06)',
         }}
-        headStyle={{ borderBottom: neonBorder, color: '#00ff41' }}
+        styles={{ header: { borderBottom: neonBorder, color: '#00ff41' } }}
       >
-        <KLineChart data={klineData} height={400} />
+        <KLineChart symbol={symbol} period={klinePeriod} height={400} />
       </Card>
 
       {/* 添加到自选弹窗（用于调整分组） */}

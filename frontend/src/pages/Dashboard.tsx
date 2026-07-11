@@ -6,6 +6,7 @@ import { getRealtimeQuotes } from '../services/api';
 import { useWatchlist } from '../hooks/useWatchlist';
 import RevenueChart from '../components/charts/RevenueChart';
 import Sparkline from '../components/Sparkline';
+import NewsFeed from '../components/NewsFeed';
 import { formatPrice, formatChangePct, formatChangeAmount, formatVolume } from '../lib/utils';
 
 const { useBreakpoint } = Grid;
@@ -31,7 +32,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const screens = useBreakpoint();
   const isMobile = !screens.md;
-  const { stocks, getStocksByGroup, groups } = useWatchlist();
+  const { stocks, getStocksByGroup, groups, isLoaded } = useWatchlist();
   const [marketTab, setMarketTab] = useState<'cn' | 'hk' | 'us'>('cn');
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
   const [quoteRows, setQuoteRows] = useState<QuoteRow[]>([]);
@@ -93,13 +94,15 @@ const Dashboard: React.FC = () => {
   }, [symbols, stocks, selectedGroupId, getStocksByGroup]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     fetchQuotes(true);
-  }, []);
+  }, [isLoaded, fetchQuotes]);
 
   useEffect(() => {
+    if (!isLoaded) return;
     const timer = setInterval(() => fetchQuotes(false), REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [fetchQuotes]);
+  }, [isLoaded, fetchQuotes]);
 
   const columns = [
     {
@@ -204,6 +207,13 @@ const Dashboard: React.FC = () => {
   };
 
   const renderQuoteList = () => {
+    if (!isLoaded) {
+      return (
+        <div style={{ textAlign: 'center', padding: 48 }}>
+          <Spin description="自选数据加载中..." />
+        </div>
+      );
+    }
     if (symbols.length === 0) {
       return (
         <Empty
@@ -363,11 +373,13 @@ const Dashboard: React.FC = () => {
               boxShadow:
                 '0 0 16px rgba(0, 240, 255, 0.22), 0 0 26px rgba(255,0,160,0.25)',
             }}
-            headStyle={{
-              borderBottom: '1px solid rgba(0, 240, 255, 0.24)',
-              color: '#00f0ff',
-              fontFamily: "'Orbitron', system-ui",
-              letterSpacing: '0.12em',
+            styles={{
+              header: {
+                borderBottom: '1px solid rgba(0, 240, 255, 0.24)',
+                color: '#00f0ff',
+                fontFamily: "'Orbitron', system-ui",
+                letterSpacing: '0.12em',
+              },
             }}
           >
             <RevenueChart />
@@ -381,16 +393,17 @@ const Dashboard: React.FC = () => {
               boxShadow:
                 '0 0 16px rgba(0, 240, 255, 0.22), 0 0 26px rgba(255,0,160,0.25)',
             }}
-            headStyle={{
-              borderBottom: '1px solid rgba(0, 240, 255, 0.24)',
-              color: '#00f0ff',
-              fontFamily: "'Orbitron', system-ui",
-              letterSpacing: '0.12em',
+            styles={{
+              header: {
+                borderBottom: '1px solid rgba(0, 240, 255, 0.24)',
+                color: '#00f0ff',
+                fontFamily: "'Orbitron', system-ui",
+                letterSpacing: '0.12em',
+              },
+              body: { padding: '8px 12px 12px' },
             }}
           >
-            <div style={{ color: 'rgba(0, 240, 255, 0.55)', fontSize: 12, textAlign: 'center', padding: 24, fontFamily: "'JetBrains Mono', monospace" }}>
-              预留
-            </div>
+            <NewsFeed limit={20} maxHeight={420} />
           </Card>
         </div>
       </div>

@@ -288,13 +288,16 @@ body {
 }
 
 /* 底部导航 */
+.futu-menu-toggle { display: none !important; }
 @media (min-width: 992px) {
   .futu-bottom-nav { display: none !important; }
+  .futu-menu-toggle { display: none !important; }
 }
 @media (max-width: 991px) {
   .futu-bottom-nav { left: 0 !important; }
+  .futu-menu-toggle { display: inline-flex !important; }
   .search-bar-wrap { width: 100% !important; max-width: 100% !important; }
-  .futu-dashboard-sidebar { display: none !important; }
+  .futu-dashboard-sidebar { width: 100% !important; max-width: 100% !important; }
   .futu-content-with-bottom-nav { padding-bottom: 64px !important; }
 }
 

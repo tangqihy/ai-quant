@@ -3,16 +3,15 @@ import {
   Modal,
   Form,
   Input,
-  Checkbox,
   Space,
   Tag,
   Button,
   message,
   Empty,
+  Spin,
 } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useWatchlist } from '../../hooks/useWatchlist';
-import { WatchlistGroup, GROUP_COLORS } from '../../types/watchlist';
 
 interface AddToWatchlistModalProps {
   visible: boolean;
@@ -30,15 +29,16 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
   stockName,
 }) => {
   const [form] = Form.useForm();
-  const { groups, addStock, createGroup, isInWatchlist, getStock } = useWatchlist();
+  const { groups, addStock, createGroup, getStock, isLoaded } = useWatchlist();
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [isNewGroupVisible, setIsNewGroupVisible] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [existingStock, setExistingStock] = useState<ReturnType<typeof getStock>>(undefined);
 
-  // 当弹窗打开时，检查是否已在自选中
+  // 当弹窗打开且数据就绪时，同步已有自选信息
   useEffect(() => {
-    if (visible) {
+    if (visible && isLoaded) {
       const stock = getStock(stockSymbol);
       setExistingStock(stock);
       if (stock) {
@@ -51,28 +51,39 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
         form.resetFields();
       }
     }
-  }, [visible, stockSymbol, getStock, form]);
+  }, [visible, isLoaded, stockSymbol, getStock, form]);
 
   const handleOk = async () => {
+    if (!isLoaded) {
+      message.warning('自选数据加载中，请稍候再操作');
+      return;
+    }
     try {
       const values = await form.validateFields();
-
-      await addStock({
+      setSubmitting(true);
+      const ok = await addStock({
         symbol: stockSymbol,
         name: stockName,
         groupIds: selectedGroups,
         note: values.note,
       });
+      if (!ok) return;
 
       message.success(existingStock ? '已更新自选信息' : '成功添加到自选');
       onSuccess?.();
       onCancel();
     } catch (e) {
       console.error(e);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleCreateGroup = async () => {
+    if (!isLoaded) {
+      message.warning('自选数据加载中，请稍候再操作');
+      return;
+    }
     if (!newGroupName.trim()) {
       message.warning('请输入分组名称');
       return;
@@ -101,6 +112,7 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
       onOk={handleOk}
       onCancel={onCancel}
       okText={existingStock ? '更新' : '添加'}
+      okButtonProps={{ disabled: !isLoaded, loading: submitting }}
       width={480}
     >
       <div style={{ marginBottom: 16 }}>
@@ -109,6 +121,11 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
         <span>{stockName}</span>
       </div>
 
+      {!isLoaded ? (
+        <div style={{ textAlign: 'center', padding: 32 }}>
+          <Spin description="自选数据加载中..." />
+        </div>
+      ) : (
       <Form form={form} layout="vertical">
         <Form.Item label="选择分组（可选）">
           {groups.length === 0 ? (
@@ -173,6 +190,7 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
           />
         </Form.Item>
       </Form>
+      )}
     </Modal>
   );
 };

@@ -15,6 +15,7 @@ import {
   Typography,
   Tooltip,
   Popconfirm,
+  Spin,
 } from 'antd';
 import {
   PlusOutlined,
@@ -42,6 +43,7 @@ export const WatchlistManager: React.FC = () => {
     removeStock,
     updateStockGroups,
     getStocksByGroup,
+    isLoaded,
   } = useWatchlist();
 
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
@@ -59,12 +61,17 @@ export const WatchlistManager: React.FC = () => {
 
   // 处理创建分组
   const handleCreateGroup = async () => {
+    if (!isLoaded) {
+      message.warning('自选数据加载中，请稍候再操作');
+      return;
+    }
     try {
       const values = await createForm.validateFields();
-      await createGroup({
+      const group = await createGroup({
         name: values.name,
         color: typeof values.color === 'string' ? values.color : values.color?.toHexString(),
       });
+      if (!group) return;
       message.success('分组创建成功');
       setIsCreateModalOpen(false);
       createForm.resetFields();
@@ -174,7 +181,7 @@ export const WatchlistManager: React.FC = () => {
     Modal.confirm({
       title: `调整 ${stock.name} 的分组`,
       content: (
-        <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}>
+        <Space orientation="vertical" style={{ width: '100%', marginTop: 16 }}>
           {groups.map(group => (
             <label
               key={group.id}
@@ -208,6 +215,7 @@ export const WatchlistManager: React.FC = () => {
   };
 
   return (
+    <Spin spinning={!isLoaded} description="自选数据加载中...">
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Space>
@@ -217,6 +225,7 @@ export const WatchlistManager: React.FC = () => {
         <Button
           type="primary"
           icon={<PlusOutlined />}
+          disabled={!isLoaded}
           onClick={() => setIsCreateModalOpen(true)}
         >
           新建分组
@@ -234,7 +243,7 @@ export const WatchlistManager: React.FC = () => {
               borderColor: selectedGroupId === 'all' ? '#00ff41' : undefined,
               boxShadow: selectedGroupId === 'all' ? '0 0 12px rgba(0, 255, 65, 0.25)' : undefined,
             }}
-            bodyStyle={{ padding: 16 }}
+            styles={{ body: { padding: 16 } }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div
@@ -355,6 +364,7 @@ export const WatchlistManager: React.FC = () => {
         </Form>
       </Modal>
     </div>
+    </Spin>
   );
 };
 

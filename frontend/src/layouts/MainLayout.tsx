@@ -1,5 +1,5 @@
-import React from 'react';
-import { Layout, Menu } from 'antd';
+import React, { useState } from 'react';
+import { Layout, Menu, Drawer, Button } from 'antd';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   StarFilled,
@@ -11,6 +11,7 @@ import {
   UserOutlined,
   BookOutlined,
   FundOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { SearchBar } from '../components/SearchBar';
@@ -38,6 +39,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const menuItems = [
     { key: '/', icon: <StarFilled />, label: '自选' },
@@ -52,12 +54,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
   const selectedKey = location.pathname === '/' ? '/' : location.pathname;
 
+  const go = (key: string) => {
+    navigate(key);
+    setDrawerOpen(false);
+  };
+
   return (
     <Layout style={{ minHeight: '100vh', background: CONTENT_BG }}>
       <Sider
         width={200}
         breakpoint="lg"
         collapsedWidth="0"
+        trigger={null}
         style={{
           background: SIDER_BG,
           borderRight: `1px solid ${NEON_BORDER}`,
@@ -122,7 +130,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             boxShadow: '0 0 12px rgba(0, 255, 65, 0.05)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, gap: 8 }}>
+            <Button
+              className="futu-menu-toggle"
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={() => setDrawerOpen(true)}
+              style={{ color: NEON_CYAN, fontSize: 18 }}
+            />
             <SearchBar />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -157,6 +172,44 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           {children}
         </Content>
       </Layout>
+      {/* 移动端侧边菜单 Drawer */}
+      <Drawer
+        placement="left"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        closable={false}
+        size={220}
+        styles={{
+          body: {
+            padding: 0,
+            background: SIDER_BG,
+          },
+          header: { display: 'none' },
+        }}
+      >
+        <div
+          style={{
+            height: 56,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            borderBottom: `1px solid ${NEON_BORDER}`,
+            color: NEON_CYAN,
+          }}
+        >
+          <LineChartOutlined style={{ fontSize: 20 }} />
+          <GlitchText text="AI-QUANT" className="" />
+        </div>
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[selectedKey]}
+          items={menuItems}
+          onClick={({ key }) => go(key)}
+          style={{ background: 'transparent', borderRight: 'none' }}
+        />
+      </Drawer>
       <nav
         className="futu-bottom-nav"
         style={{

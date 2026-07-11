@@ -39,7 +39,7 @@ export const GroupCard: React.FC<GroupCardProps> = ({
         background: '#0a0a0a',
         border: '1px solid rgba(0, 255, 65, 0.25)',
       }}
-      bodyStyle={{ padding: 16 }}
+      styles={{ body: { padding: 16 } }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div

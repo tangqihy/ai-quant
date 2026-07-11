@@ -25,10 +25,11 @@ export async function getStockHistory(
   symbol: string,
   startDate?: string,
   endDate?: string,
-  adjust = 'qfq'
+  adjust = 'qfq',
+  period = 'daily'
 ) {
   const { data } = await api.get(`/stocks/${symbol}/history`, {
-    params: { start_date: startDate, end_date: endDate, adjust },
+    params: { start_date: startDate, end_date: endDate, adjust, period },
   });
   return data;
 }
@@ -44,6 +45,25 @@ export async function getIndicators(
     params: { indicators, start_date: startDate, end_date: endDate },
   });
   return data;
+}
+
+// 财经新闻 / 快讯
+export interface NewsItem {
+  title: string;
+  summary: string;
+  source: string;
+  published_at: string;
+  url: string;
+  provider: string;
+}
+
+export async function getNews(limit = 20, src = 'auto') {
+  const { data } = await api.get('/news', { params: { limit, src } });
+  return data as {
+    success: boolean;
+    data?: { items: NewsItem[]; total: number };
+    message?: string;
+  };
 }
 
 // 单个股票实时行情
