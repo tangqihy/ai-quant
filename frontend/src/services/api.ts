@@ -113,4 +113,65 @@ export async function verifyAuthApi() {
   return data;
 }
 
+// ---------- 因子分析 ----------
+export interface FactorICData {
+  updated_at: string;
+  test_period: string;
+  cross_sections: number;
+  forward_days: number;
+  neutralization: string;
+  factors: FactorItem[];
+  event_factors: EventFactor[];
+}
+
+export interface FactorItem {
+  name: string;
+  display_name: string;
+  category: string;
+  direction: number;
+  icir: number;
+  ic_mean: number;
+  ic_std: number;
+  verdict: 'effective' | 'weak' | 'invalid';
+  description: string;
+  group_returns: number[];
+  group_labels: string[];
+}
+
+export interface EventFactor {
+  name: string;
+  display_name: string;
+  icir: number;
+  verdict: string;
+  description: string;
+}
+
+export interface FactorSummary {
+  total_factors: number;
+  effective_count: number;
+  weak_count: number;
+  invalid_count: number;
+  test_period: string;
+  cross_sections: number;
+  forward_days: number;
+  neutralization: string;
+  updated_at: string;
+  top_factors: { name: string; display_name: string; icir: number }[];
+}
+
+export async function getFactorIC() {
+  const { data } = await api.get('/factors/ic');
+  return data as FactorICData;
+}
+
+export async function getFactorSummary() {
+  const { data } = await api.get('/factors/summary');
+  return data as FactorSummary;
+}
+
+export async function getFactorDistribution(factorName: string) {
+  const { data } = await api.get(`/factors/${factorName}/distribution`);
+  return data;
+}
+
 export default api;

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.api import routes
 from app.api import auth_routes
+from app.api.factor_routes import router as factor_router
 from app.core.response import ok, fail
 from app.core.exceptions import AppError
 from app.core.config import settings
@@ -103,6 +104,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # 注册路由（auth 不鉴权，其余 /api/* 需 token）
 app.include_router(auth_routes.router, prefix="/api/auth", tags=["auth"])
 app.include_router(routes.router, prefix="/api")
+app.include_router(factor_router, prefix="/api")
 
 
 @app.get("/")

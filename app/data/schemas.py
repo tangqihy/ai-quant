@@ -200,6 +200,16 @@ INTERFACE_CONFIG: dict[str, dict] = {
         "primary_key": ["ts_code", "ann_date", "end_date", "div_proc"],
         "description": "分红送股",
     },
+    "repurchase": {
+        "fields": {},
+        "primary_key": ["ts_code", "ann_date", "end_date"],
+        "description": "股票回购",
+    },
+    "share_float": {
+        "fields": {},
+        "primary_key": ["ts_code", "ann_date", "float_date"],
+        "description": "限售股解禁",
+    },
 }
 
 

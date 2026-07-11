@@ -38,3 +38,7 @@ app/data/klines/*.db
 .env
 .env.local
 .env.*.local
+
+# Runtime data
+data/
+.hermes/

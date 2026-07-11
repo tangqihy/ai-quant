@@ -12,6 +12,7 @@ import StockDetail from './pages/StockDetail';
 import SimulationTrading from './pages/SimulationTrading';
 import RiskManagement from './pages/RiskManagement';
 import StrategyTemplate from './pages/StrategyTemplate';
+import FactorAnalysis from './pages/FactorAnalysis';
 import Login from './pages/Login';
 import { PageTransition } from './components/common/PageTransition';
 import { useTheme } from './hooks/useTheme';
@@ -44,6 +45,7 @@ const AppRoutes: React.FC<{ isDark: boolean; onThemeToggle: () => void }> = ({ i
                   <Route path="/simulation" element={<PageTransition><SimulationTrading /></PageTransition>} />
                   <Route path="/risk" element={<PageTransition><RiskManagement /></PageTransition>} />
                   <Route path="/strategy-template" element={<PageTransition><StrategyTemplate /></PageTransition>} />
+                  <Route path="/factors" element={<PageTransition><FactorAnalysis /></PageTransition>} />
                 </Routes>
               </MainLayout>
             </RequireAuth>

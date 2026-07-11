@@ -10,6 +10,7 @@ import {
   SafetyOutlined,
   UserOutlined,
   BookOutlined,
+  FundOutlined,
 } from '@ant-design/icons';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { SearchBar } from '../components/SearchBar';
@@ -43,6 +44,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     { key: '/watchlist', icon: <FolderOutlined />, label: '分组管理' },
     { key: '/backtest', icon: <ExperimentOutlined />, label: '回测' },
     { key: '/analysis', icon: <LineChartOutlined />, label: '分析' },
+    { key: '/factors', icon: <FundOutlined />, label: '因子分析' },
     { key: '/simulation', icon: <DollarOutlined />, label: '模拟交易' },
     { key: '/risk', icon: <SafetyOutlined />, label: '风控管理' },
     { key: '/strategy-template', icon: <BookOutlined />, label: '策略模板' },
