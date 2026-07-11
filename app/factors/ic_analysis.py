@@ -288,13 +288,29 @@ class ICAnalyzer:
         try:
             self.pit.client._ensure_view("daily")
             placeholders = ", ".join("?" for _ in ts_codes)
-            sql = f"""
-                SELECT ts_code, trade_date, {price_field}
-                FROM daily
-                WHERE ts_code IN ({placeholders})
-                  AND trade_date IN (?, ?)
-            """
-            params = list(ts_codes) + [sd, ed]
+
+            # 检查 trade_date 列类型
+            col_type = self._get_column_type("daily", "trade_date")
+
+            if "TIMESTAMP" in col_type.upper():
+                sd_fmt = f"{sd[:4]}-{sd[4:6]}-{sd[6:8]}"
+                ed_fmt = f"{ed[:4]}-{ed[4:6]}-{ed[6:8]}"
+                sql = f"""
+                    SELECT ts_code, trade_date, {price_field}
+                    FROM daily
+                    WHERE ts_code IN ({placeholders})
+                      AND trade_date IN (?::TIMESTAMP, ?::TIMESTAMP)
+                """
+                params = list(ts_codes) + [sd_fmt, ed_fmt]
+            else:
+                sql = f"""
+                    SELECT ts_code, trade_date, {price_field}
+                    FROM daily
+                    WHERE ts_code IN ({placeholders})
+                      AND trade_date IN (?, ?)
+                """
+                params = list(ts_codes) + [sd, ed]
+
             df = self.pit.client.query(sql, params)
         except Exception:
             logger.debug("_get_forward_returns query failed", exc_info=True)
@@ -336,6 +352,17 @@ class ICAnalyzer:
             self.pit.client._ensure_view("daily")
             placeholders = ", ".join("?" for _ in ts_codes)
 
+            # 检查 trade_date 列类型
+            col_type = self._get_column_type("daily", "trade_date")
+
+            if "TIMESTAMP" in col_type.upper():
+                sd_fmt = f"{sd[:4]}-{sd[4:6]}-{sd[6:8]}"
+                date_param = "?::TIMESTAMP"
+                param_val = sd_fmt
+            else:
+                date_param = "?"
+                param_val = sd
+
             # Check for missing bars (suspended) and limit-up at T+1
             sql = f"""
                 SELECT
@@ -356,9 +383,9 @@ class ICAnalyzer:
                     WHERE ts_code IN ({placeholders})
                 ) u
                 LEFT JOIN daily d
-                    ON u.ts_code = d.ts_code AND d.trade_date = ?
+                    ON u.ts_code = d.ts_code AND d.trade_date = {date_param}
             """
-            params = list(ts_codes) + [sd]
+            params = list(ts_codes) + [param_val]
             df = self.pit.client.query(sql, params)
 
             if df.empty:
@@ -372,13 +399,63 @@ class ICAnalyzer:
             # Fallback: mark all as tradable
             return pd.DataFrame({"ts_code": ts_codes, "is_tradable": True})
 
+    def _get_column_type(self, table: str, column: str) -> str:
+        """Get the DuckDB column type for a given table.column."""
+        try:
+            desc = self.pit.client.query(f"DESCRIBE {table}")
+            row = desc[desc["column_name"] == column]
+            if len(row) > 0:
+                return str(row["column_type"].iloc[0])
+        except Exception:
+            pass
+        return ""
+
     def _get_trading_days(self, start_date: str, end_date: str) -> list[str]:
         """Get sorted trading day list."""
+        sd = _norm(start_date)
+        ed = _norm(end_date)
+
+        # 优先从 trade_cal 获取
         try:
-            dates = self.pit.client.get_trade_dates(start_date, end_date)
-            return [_norm(d) for d in dates]
+            dates = self.pit.client.get_trade_dates(sd, ed)
+            normalized = [_norm(d) for d in dates]
+            # 如果 trade_cal 返回的数据足够（覆盖了起始日期附近），直接用
+            if normalized and normalized[0] <= sd:
+                return normalized
         except Exception:
-            return []
+            normalized = []
+
+        # 回退：从 daily 表提取实际交易日
+        try:
+            self.pit.client._ensure_view("daily")
+            col_type = self._get_column_type("daily", "trade_date")
+            if "TIMESTAMP" in col_type.upper():
+                sd_fmt = f"{sd[:4]}-{sd[4:6]}-{sd[6:8]}"
+                ed_fmt = f"{ed[:4]}-{ed[4:6]}-{ed[6:8]}"
+                sql = """
+                    SELECT DISTINCT trade_date FROM daily
+                    WHERE trade_date >= ?::TIMESTAMP AND trade_date <= ?::TIMESTAMP
+                    ORDER BY trade_date
+                """
+                df = self.pit.client.query(sql, [sd_fmt, ed_fmt])
+            else:
+                sql = """
+                    SELECT DISTINCT trade_date FROM daily
+                    WHERE trade_date >= ? AND trade_date <= ?
+                    ORDER BY trade_date
+                """
+                df = self.pit.client.query(sql, [sd, ed])
+            fallback = [_norm(d) for d in df["trade_date"].tolist()]
+            if fallback:
+                logger.info(
+                    "Using daily table for trading days (%d days, %s ~ %s)",
+                    len(fallback), fallback[0], fallback[-1],
+                )
+                return fallback
+        except Exception:
+            logger.debug("Fallback to daily table failed", exc_info=True)
+
+        return normalized
 
 
 # ------------------------------------------------------------------
@@ -386,8 +463,17 @@ class ICAnalyzer:
 # ------------------------------------------------------------------
 
 def _norm(d: str) -> str:
-    """归一化为存储格式 ``YYYYMMDD``（normalized 层的 trade_date 以该字符串存储）。"""
-    s = str(d).replace("-", "")
-    if len(s) == 8 and s.isdigit():
-        return s
-    return str(d)
+    """归一化为存储格式 ``YYYYMMDD``。
+
+    支持输入格式：YYYYMMDD, YYYY-MM-DD, YYYY-MM-DD HH:MM:SS, datetime对象等。
+    """
+    s = str(d).strip()
+    # 处理 "YYYY-MM-DD HH:MM:SS" 或 "YYYY-MM-DD" 格式
+    if " " in s:
+        s = s.split(" ")[0]
+    s = s.replace("-", "")
+    # 取前8位数字
+    digits = "".join(c for c in s if c.isdigit())[:8]
+    if len(digits) == 8:
+        return digits
+    return s

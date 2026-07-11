@@ -206,24 +206,33 @@ class PITDataManager:
         client = self.client
         client._ensure_view("stock_basic")
 
-        # Check available columns
+        # Check available columns and types
         try:
             cols_df = client.query("DESCRIBE stock_basic")
             available_cols = set(cols_df["column_name"].tolist())
+            # 检查 list_date 列类型
+            list_date_row = cols_df[cols_df["column_name"] == "list_date"]
+            list_date_type = str(list_date_row["column_type"].iloc[0]) if len(list_date_row) > 0 else ""
         except Exception:
             available_cols = set()
+            list_date_type = ""
 
-        # list_date 以 'YYYYMMDD' 字符串存储，统一用 YYYYMMDD 比较
         as_of_yyyymmdd = _normalise_date(as_of_date).replace("-", "")
+        as_of_fmt = f"{as_of_yyyymmdd[:4]}-{as_of_yyyymmdd[4:6]}-{as_of_yyyymmdd[6:8]}"
+
+        is_timestamp = "TIMESTAMP" in list_date_type.upper()
+        date_op = "?::TIMESTAMP" if is_timestamp else "?"
+        date_val = as_of_fmt if is_timestamp else as_of_yyyymmdd
+
         where = [
             "list_date IS NOT NULL",
-            "list_date <= ?",
+            f"list_date <= {date_op}",
         ]
-        params: list = [as_of_yyyymmdd]
+        params: list = [date_val]
 
         if exclude_delisted and "delist_date" in available_cols:
-            where.append("(delist_date IS NULL OR delist_date > ?)")
-            params.append(as_of_yyyymmdd)
+            where.append(f"(delist_date IS NULL OR delist_date > {date_op})")
+            params.append(date_val)
 
         sql = f"""
             SELECT ts_code
@@ -359,6 +368,22 @@ class PITQuery:
         client = self.client
         normalised_as_of = _normalise_date(as_of_date)
 
+        # 检查 trade_date 列类型
+        def _date_param(date_str: str) -> tuple[str, str]:
+            """返回 (SQL参数占位符, 参数值)，自动适配 TIMESTAMP_NS 或字符串列。"""
+            try:
+                desc = client.query("DESCRIBE daily")
+                row = desc[desc["column_name"] == "trade_date"]
+                col_type = str(row["column_type"].iloc[0]) if len(row) > 0 else ""
+            except Exception:
+                col_type = ""
+            if "TIMESTAMP" in col_type.upper():
+                fmt = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}" if len(date_str) == 8 else date_str
+                return "?::TIMESTAMP", fmt
+            return "?", date_str
+
+        date_op, date_val = _date_param(normalised_as_of)
+
         # --- daily bars (latest on or before as_of) ----------------------
         client._ensure_view("daily")
         placeholders = ", ".join("?" for _ in ts_codes)
@@ -368,10 +393,10 @@ class PITQuery:
                 SELECT *
                 FROM daily
                 WHERE ts_code IN ({placeholders})
-                  AND trade_date <= ?
+                  AND trade_date <= {date_op}
                 ORDER BY ts_code, trade_date DESC
             """
-            params = list(ts_codes) + [normalised_as_of]
+            params = list(ts_codes) + [date_val]
             daily_all = client.query(daily_sql, params)
             # Dedup: keep latest trade_date per ts_code
             if len(daily_all) > 0 and "ts_code" in daily_all.columns:
@@ -387,7 +412,7 @@ class PITQuery:
                 SELECT *
                 FROM daily_basic
                 WHERE ts_code IN ({placeholders})
-                  AND trade_date <= ?
+                  AND trade_date <= {date_op}
                 ORDER BY ts_code, trade_date DESC
             """
             basic_all = client.query(basic_sql, params)

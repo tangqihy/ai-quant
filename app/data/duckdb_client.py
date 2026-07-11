@@ -441,20 +441,55 @@ class DuckDBClient:
         """Return all trade dates in the given range from trade_cal."""
         self._ensure_view("trade_cal")
 
-        # cal_date 以 'YYYYMMDD' 字符串存储，同格式字符串比较字典序正确
+        # 检查 cal_date 列类型：如果是 TIMESTAMP_NS 则用日期格式比较
+        try:
+            col_info = self.query(
+                "SELECT data_type FROM information_schema.columns "
+                "WHERE table_name = 'trade_cal' AND column_name = 'cal_date'"
+            )
+            col_type = col_info["data_type"].iloc[0] if len(col_info) > 0 else ""
+        except Exception:
+            # 回退用 DESCRIBE
+            try:
+                desc = self.query("DESCRIBE trade_cal")
+                row = desc[desc["column_name"] == "cal_date"]
+                col_type = row["column_type"].iloc[0] if len(row) > 0 else ""
+            except Exception:
+                col_type = ""
+
         sd = start_date.replace("-", "")
         ed = end_date.replace("-", "")
-        sql = """
-            SELECT cal_date
-            FROM trade_cal
-            WHERE exchange = ?
-              AND is_open = 1
-              AND cal_date >= ?
-              AND cal_date <= ?
-            ORDER BY cal_date
-        """
-        result = self.query(sql, [exchange, sd, ed])
-        return result["cal_date"].tolist()
+
+        if "TIMESTAMP" in col_type.upper():
+            # cal_date 是 datetime 类型，需要用日期字符串格式比较
+            sd_fmt = f"{sd[:4]}-{sd[4:6]}-{sd[6:8]}"
+            ed_fmt = f"{ed[:4]}-{ed[4:6]}-{ed[6:8]}"
+            sql = """
+                SELECT CAST(cal_date AS VARCHAR) AS cal_date
+                FROM trade_cal
+                WHERE exchange = ?
+                  AND is_open = 1
+                  AND cal_date >= ?::TIMESTAMP
+                  AND cal_date <= ?::TIMESTAMP
+                ORDER BY cal_date
+            """
+            result = self.query(sql, [exchange, sd_fmt, ed_fmt])
+        else:
+            # cal_date 是字符串类型
+            sql = """
+                SELECT cal_date
+                FROM trade_cal
+                WHERE exchange = ?
+                  AND is_open = 1
+                  AND cal_date >= ?
+                  AND cal_date <= ?
+                ORDER BY cal_date
+            """
+            result = self.query(sql, [exchange, sd, ed])
+
+        # 统一返回 YYYYMMDD 格式字符串
+        dates = result["cal_date"].tolist()
+        return [str(d).replace("-", "")[:8] for d in dates]
 
     # ------------------------------------------------------------------
     # Internal
