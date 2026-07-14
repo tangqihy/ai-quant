@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Statistic, Table, Select, Input, Button, Space, Tabs, message, Spin, DatePicker, Radio } from 'antd';
 import { ArrowDownOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
@@ -55,6 +55,7 @@ const Analysis: React.FC = () => {
         initial_capital: 1000000,
         start_date: activeRange.start,
         end_date: activeRange.end,
+        engine: 'v2',
       });
       if (res.success) {
         setResult(res);
@@ -142,6 +143,21 @@ const Analysis: React.FC = () => {
       render: (_: any, r: any) => ((r.cost || r.proceeds || 0) / 10000).toFixed(2) + '万',
     },
   ];
+
+  useEffect(() => {
+    const raw = localStorage.getItem('lastBacktestResult');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed?.success && parsed?.daily_values) {
+        setResult(parsed);
+        if (parsed.symbol) setSymbol(parsed.symbol);
+        if (parsed.strategy) setStrategy(parsed.strategy);
+      }
+    } catch {
+      // ignore invalid cache
+    }
+  }, []);
 
   return (
     <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>

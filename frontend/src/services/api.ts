@@ -106,6 +106,7 @@ export interface BacktestConfig {
   short_window?: number;
   long_window?: number;
   initial_capital?: number;
+  engine?: 'v1' | 'v2';
 }
 
 // 运行回测
@@ -130,6 +131,11 @@ export async function loginApi(password: string) {
 
 export async function verifyAuthApi() {
   const { data } = await api.get<{ success: boolean; valid?: boolean }>('/auth/verify');
+  return data;
+}
+
+export async function logoutApi() {
+  const { data } = await api.post<{ success: boolean; message?: string }>('/auth/logout');
   return data;
 }
 
@@ -197,6 +203,16 @@ export async function getFactorSummary() {
 export async function getFactorDistribution(factorName: string) {
   const { data } = await api.get(`/factors/${factorName}/distribution`);
   return data;
+}
+
+export async function refreshFactorIC(params?: {
+  start?: string;
+  end?: string;
+  forward_days?: number;
+  skip_download?: boolean;
+}) {
+  const { data } = await api.post('/factors/refresh', null, { params });
+  return data as { success: boolean; message?: string; output?: string[] };
 }
 
 export default api;

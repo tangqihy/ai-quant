@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from app.services.stock_service import stock_service
 from app.services.tushare_service import tushare_service
 from app.services.backtest_service import run_backtest
+from app.services.backtest_v2_service import run_backtest_v2
 from app.services.storage_service import backtest_storage
 from app.services.indicator_service import indicator_service
 from app.strategies import list_strategies as get_strategies_list
@@ -31,6 +32,7 @@ class BacktestRequest(BaseModel):
     period: Optional[int] = None
     oversold: Optional[int] = None
     overbought: Optional[int] = None
+    engine: str = "v2"
 
 
 @router.get("/stocks")
@@ -200,15 +202,26 @@ async def run_backtest_api(config: BacktestRequest):
             strategy_params["oversold"] = config.oversold
         if config.overbought is not None:
             strategy_params["overbought"] = config.overbought
-        result = run_backtest(
-            symbol=config.symbol,
-            data=data,
-            strategy=config.strategy,
-            short_window=config.short_window,
-            long_window=config.long_window,
-            initial_capital=config.initial_capital,
-            **strategy_params,
-        )
+        if (config.engine or "v2").lower() == "v1":
+            result = run_backtest(
+                symbol=config.symbol,
+                data=data,
+                strategy=config.strategy,
+                short_window=config.short_window,
+                long_window=config.long_window,
+                initial_capital=config.initial_capital,
+                **strategy_params,
+            )
+        else:
+            result = run_backtest_v2(
+                symbol=config.symbol,
+                data=data,
+                strategy=config.strategy,
+                short_window=config.short_window,
+                long_window=config.long_window,
+                initial_capital=config.initial_capital,
+                **strategy_params,
+            )
         if "error" in result:
             return fail(error=result["error"])
         

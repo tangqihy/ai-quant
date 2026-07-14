@@ -62,7 +62,7 @@ jobs:
   deploy:
     needs: [backend-test, frontend-test]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && secrets.SERVER_HOST != '' && secrets.SERVER_USER != '' && secrets.SERVER_SSH_KEY != ''
     steps:
       - uses: actions/checkout@v4
 

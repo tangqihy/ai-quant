@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, InputNumber, DatePicker, Button, Space, Divider, Row, Col, message, Spin, Dropdown } from 'antd';
 import { PlayCircleOutlined, SaveOutlined, UndoOutlined, DownOutlined } from '@ant-design/icons';
 import { runBacktest, BacktestResult } from '../services/api';
@@ -18,6 +18,8 @@ interface BacktestConfig {
   shortWindow: number;
   longWindow: number;
 }
+
+const CONFIG_KEY = 'lastBacktestConfig';
 
 const BacktestConfig: React.FC = () => {
   const [form] = Form.useForm();
@@ -42,7 +44,8 @@ const BacktestConfig: React.FC = () => {
         strategy: values.strategyType,
         short_window: values.shortWindow || 5,
         long_window: values.longWindow || 20,
-        initial_capital: values.initialCapital || 1000000
+        initial_capital: values.initialCapital || 1000000,
+        engine: 'v2',
       });
       
       if (backtestResult.success) {
@@ -66,6 +69,35 @@ const BacktestConfig: React.FC = () => {
     setResult(null);
     message.info('表单已重置');
   };
+
+  const onSaveConfig = () => {
+    const values = form.getFieldsValue();
+    localStorage.setItem(
+      CONFIG_KEY,
+      JSON.stringify({
+        ...values,
+        dateRange: values.dateRange?.map((d: any) => (d ? d.format('YYYYMMDD') : null)),
+      })
+    );
+    message.success('配置已保存');
+  };
+
+  useEffect(() => {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      form.setFieldsValue({
+        ...parsed,
+        dateRange:
+          parsed.dateRange && parsed.dateRange[0] && parsed.dateRange[1]
+            ? [dayjs(parsed.dateRange[0], 'YYYYMMDD'), dayjs(parsed.dateRange[1], 'YYYYMMDD')]
+            : undefined,
+      });
+    } catch {
+      // ignore broken cache
+    }
+  }, [form]);
 
   return (
     <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
@@ -216,7 +248,7 @@ const BacktestConfig: React.FC = () => {
             <Button type="primary" htmlType="submit" icon={<PlayCircleOutlined />} loading={loading}>
               开始回测
             </Button>
-            <Button icon={<SaveOutlined />}>
+            <Button icon={<SaveOutlined />} onClick={onSaveConfig}>
               保存配置
             </Button>
             <Button icon={<UndoOutlined />} onClick={onReset}>

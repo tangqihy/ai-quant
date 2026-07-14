@@ -24,6 +24,7 @@ from app.domain import (
     Exchange, Market
 )
 from app.brokers.broker import BacktestBroker
+from app.backtest.engine_v2 import CashAccount, Portfolio as V2Portfolio, FeeModel, OrderLedger, OrderIntent, Signal
 
 
 class TestTradingScenarios:
@@ -125,131 +126,99 @@ class TestTradingScenarios:
     
     def test_insufficient_balance(self):
         """测试余额不足"""
-        # 创建大额买入订单
-        order = Order(
-            symbol='600519',
-            direction=OrderDirection.BUY,
-            price=1200.0,
-            quantity=10000,  # 1200万，超过账户资金
-            order_type=OrderType.LIMIT
+        account = CashAccount(initial_cash=1000)
+        portfolio = V2Portfolio()
+        ledger = OrderLedger(account=account, portfolio=portfolio, fee_model=FeeModel())
+        intent = OrderIntent(
+            ts_code="600519",
+            direction="buy",
+            target_quantity=10000,
+            execute_date="2024-01-10",
+            source_signal=Signal(ts_code="600519", signal_date="2024-01-10", direction="buy", weight=1.0),
         )
-        
-        # 验证订单验证失败
-        # 注意：这里需要在 Broker 中实现余额检查
-        # 当前实现可能没有这个检查，所以这个测试可能会失败
-        pass
+        bar = {"open": 1200.0, "high": 1210.0, "low": 1190.0, "close": 1200.0, "vol": 1000, "limit_up": 1320.0, "limit_down": 1080.0, "suspended": False}
+        order = ledger.submit(intent, bar)
+        assert order.status == "rejected"
+        assert order.reject_reason in ("资金不足", "数量不足")
     
     def test_insufficient_position(self):
         """测试持仓不足"""
-        # 尝试卖出没有持仓的股票
-        order = Order(
-            symbol='600519',
-            direction=OrderDirection.SELL,
-            price=1200.0,
-            quantity=100,
-            order_type=OrderType.LIMIT
+        account = CashAccount(initial_cash=1000000)
+        portfolio = V2Portfolio()
+        ledger = OrderLedger(account=account, portfolio=portfolio, fee_model=FeeModel())
+        intent = OrderIntent(
+            ts_code="600519",
+            direction="sell",
+            target_quantity=100,
+            execute_date="2024-01-10",
+            source_signal=Signal(ts_code="600519", signal_date="2024-01-10", direction="sell", weight=1.0),
         )
-        
-        # 验证订单验证失败
-        # 注意：这里需要在 Broker 中实现持仓检查
-        # 当前实现可能没有这个检查，所以这个测试可能会失败
-        pass
+        bar = {"open": 1200.0, "high": 1210.0, "low": 1190.0, "close": 1200.0, "vol": 1000, "limit_up": 1320.0, "limit_down": 1080.0, "suspended": False}
+        order = ledger.submit(intent, bar)
+        assert order.status == "rejected"
+        assert order.reject_reason in ("可卖不足(可卖0)", "数量不足")
     
     def test_t_plus_1(self):
         """测试T+1限制"""
-        # 买入
-        buy_order = Order(
-            symbol='600519',
-            direction=OrderDirection.BUY,
-            price=1200.0,
-            quantity=100,
-            order_type=OrderType.LIMIT
+        account = CashAccount(initial_cash=1000000)
+        portfolio = V2Portfolio()
+        ledger = OrderLedger(account=account, portfolio=portfolio, fee_model=FeeModel())
+        buy_intent = OrderIntent(
+            ts_code="600519",
+            direction="buy",
+            target_quantity=100,
+            execute_date="2024-01-10",
+            source_signal=Signal(ts_code="600519", signal_date="2024-01-10", direction="buy", weight=1.0),
         )
-        self.broker.submit_order(buy_order)
-        
-        bar = MarketData(
-            symbol='600519',
-            datetime=datetime.now(),
-            open=1200.0,
-            high=1200.0,
-            low=1200.0,
-            close=1200.0,
-            volume=50000,
-            amount=60000000
+        bar = {"open": 1200.0, "high": 1200.0, "low": 1200.0, "close": 1200.0, "vol": 1000, "limit_up": 1320.0, "limit_down": 1080.0, "suspended": False}
+        buy_order = ledger.submit(buy_intent, bar)
+        assert buy_order.status == "filled"
+
+        sell_intent = OrderIntent(
+            ts_code="600519",
+            direction="sell",
+            target_quantity=100,
+            execute_date="2024-01-10",  # same day
+            source_signal=Signal(ts_code="600519", signal_date="2024-01-10", direction="sell", weight=1.0),
         )
-        self.broker.match(bar)
-        
-        # 尝试当日卖出
-        sell_order = Order(
-            symbol='600519',
-            direction=OrderDirection.SELL,
-            price=1200.0,
-            quantity=100,
-            order_type=OrderType.LIMIT
-        )
-        
-        # 验证T+1限制
-        # 注意：这里需要在 Broker 中实现T+1检查
-        # 当前实现可能没有这个检查，所以这个测试可能会失败
-        pass
+        sell_order = ledger.submit(sell_intent, bar)
+        assert sell_order.status == "rejected"
+        assert sell_order.reject_reason in ("可卖不足(可卖0)", "数量不足")
     
     def test_price_limit_up(self):
         """测试涨停限制"""
-        # 创建买入订单
-        order = Order(
-            symbol='600519',
-            direction=OrderDirection.BUY,
-            price=1320.0,  # 涨停价
-            quantity=100,
-            order_type=OrderType.LIMIT
+        account = CashAccount(initial_cash=1000000)
+        portfolio = V2Portfolio()
+        ledger = OrderLedger(account=account, portfolio=portfolio, fee_model=FeeModel())
+        intent = OrderIntent(
+            ts_code="600519",
+            direction="buy",
+            target_quantity=100,
+            execute_date="2024-01-10",
+            source_signal=Signal(ts_code="600519", signal_date="2024-01-10", direction="buy", weight=1.0),
         )
-        self.broker.submit_order(order)
-        
-        # 涨停K线
-        bar = MarketData(
-            symbol='600519',
-            datetime=datetime.now(),
-            open=1320.0,
-            high=1320.0,
-            low=1320.0,
-            close=1320.0,
-            volume=50000,
-            amount=60000000
-        )
-        
-        # 验证涨停限制
-        # 注意：这里需要在 Broker 中实现涨停检查
-        # 当前实现可能没有这个检查，所以这个测试可能会失败
-        pass
+        bar = {"open": 1320.0, "high": 1320.0, "low": 1320.0, "close": 1320.0, "vol": 1000, "limit_up": 1320.0, "limit_down": 1080.0, "suspended": False}
+        order = ledger.submit(intent, bar)
+        assert order.status == "rejected"
+        assert order.reject_reason in ("一字涨停", "开盘涨停")
     
     def test_price_limit_down(self):
         """测试跌停限制"""
-        # 创建卖出订单
-        order = Order(
-            symbol='600519',
-            direction=OrderDirection.SELL,
-            price=1080.0,  # 跌停价
-            quantity=100,
-            order_type=OrderType.LIMIT
+        account = CashAccount(initial_cash=1000000)
+        portfolio = V2Portfolio()
+        portfolio.buy("600519", 1200.0, 100, "2024-01-09")
+        ledger = OrderLedger(account=account, portfolio=portfolio, fee_model=FeeModel())
+        intent = OrderIntent(
+            ts_code="600519",
+            direction="sell",
+            target_quantity=100,
+            execute_date="2024-01-10",
+            source_signal=Signal(ts_code="600519", signal_date="2024-01-10", direction="sell", weight=1.0),
         )
-        self.broker.submit_order(order)
-        
-        # 跌停K线
-        bar = MarketData(
-            symbol='600519',
-            datetime=datetime.now(),
-            open=1080.0,
-            high=1080.0,
-            low=1080.0,
-            close=1080.0,
-            volume=50000,
-            amount=60000000
-        )
-        
-        # 验证跌停限制
-        # 注意：这里需要在 Broker 中实现跌停检查
-        # 当前实现可能没有这个检查，所以这个测试可能会失败
-        pass
+        bar = {"open": 1080.0, "high": 1080.0, "low": 1080.0, "close": 1080.0, "vol": 1000, "limit_up": 1320.0, "limit_down": 1080.0, "suspended": False}
+        order = ledger.submit(intent, bar)
+        assert order.status == "rejected"
+        assert order.reject_reason in ("一字跌停", "开盘跌停")
     
     def test_commission_calculation(self):
         """测试手续费计算"""

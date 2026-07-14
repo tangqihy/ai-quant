@@ -4,11 +4,13 @@
 import uuid
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional, Literal
+from typing import Any, Dict, List, Optional, Literal
 from dataclasses import dataclass, field
 
 from app.models.simulation import Order, Trade, Position, Account
 from app.services.stock_service import stock_service
+from app.services.simulation_store import simulation_store
+from app.strategies import get_trading_strategy_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,8 @@ class SimulationService:
 
     def __init__(self):
         self._state = SimulationState()
+        self._strategy_instances: Dict[str, Any] = {}
+        self._load_state()
 
     def reset_account(self, initial_capital: float = 1000000.0):
         """重置账户"""
@@ -44,6 +48,7 @@ class SimulationService:
             total_value=initial_capital
         )
         logger.info(f"Account reset with initial capital: {initial_capital}")
+        self._save_state()
 
     def get_account(self) -> Account:
         """获取账户信息"""
@@ -74,7 +79,7 @@ class SimulationService:
         """创建订单"""
         order_id = str(uuid.uuid4())[:8]
 
-        # 风控检查
+        # 风控检查（轻量规则）
         rejection_reason = self._check_risk(symbol, action, price, quantity)
         if rejection_reason:
             order = Order(
@@ -89,11 +94,45 @@ class SimulationService:
             )
             self._state.orders[order_id] = order
             logger.warning(f"Order rejected: {rejection_reason}")
+            self._save_state()
             return order
+
+        # 风控服务检查（统一规则中心）
+        try:
+            from app.services.risk_service import risk_service
+
+            ref_price = price
+            if ref_price is None or ref_price <= 0:
+                q = stock_service.get_realtime_quote(symbol)
+                ref_price = float(q.get("price", 0) or 0)
+            check = risk_service.check_order(
+                symbol=symbol,
+                action=action,
+                quantity=quantity,
+                price=ref_price or 0.0,
+                account_value=self._state.account.total_value,
+                positions=self._state.positions,
+            )
+            if check.blocked:
+                order = Order(
+                    id=order_id,
+                    symbol=symbol,
+                    action=action,
+                    order_type=order_type,
+                    price=price,
+                    quantity=quantity,
+                    status="REJECTED",
+                    rejected_reason=check.message or "风控拒绝",
+                )
+                self._state.orders[order_id] = order
+                self._save_state()
+                return order
+        except Exception as exc:
+            logger.warning("risk_service check failed, fallback to local risk: %s", exc)
 
         # 冻结资金（买入时）
         if action == "BUY":
-            estimated_cost = self._estimate_cost(action, price, quantity, order_type)
+            estimated_cost = self._estimate_cost(action, symbol, price, quantity, order_type)
             if self._state.account.cash < estimated_cost:
                 order = Order(
                     id=order_id,
@@ -106,6 +145,7 @@ class SimulationService:
                     rejected_reason="资金不足"
                 )
                 self._state.orders[order_id] = order
+                self._save_state()
                 return order
             self._state.account.frozen_cash += estimated_cost
             self._state.account.cash -= estimated_cost
@@ -125,6 +165,7 @@ class SimulationService:
                     rejected_reason="持仓不足"
                 )
                 self._state.orders[order_id] = order
+                self._save_state()
                 return order
 
         order = Order(
@@ -142,15 +183,15 @@ class SimulationService:
         # 立即撮合市价单
         if order_type == "MARKET":
             self._match_order(order)
-
+        self._save_state()
         return order
 
-    def _estimate_cost(self, action: str, price: Optional[float], quantity: int,
+    def _estimate_cost(self, action: str, symbol: str, price: Optional[float], quantity: int,
                        order_type: str) -> float:
         """预估成本"""
         if order_type == "MARKET":
             # 市价单使用最新价估算
-            quote = stock_service.get_realtime_quote("symbol")  # 这里需要传入实际symbol
+            quote = stock_service.get_realtime_quote(symbol)
             price = quote.get("price", 0) if quote else 0
 
         if not price:
@@ -194,13 +235,14 @@ class SimulationService:
         # 解冻资金
         if order.action == "BUY":
             unfilled = order.quantity - order.filled_quantity
-            estimated_cost = self._estimate_cost(order.action, order.price, unfilled, order.order_type)
+            estimated_cost = self._estimate_cost(order.action, order.symbol, order.price, unfilled, order.order_type)
             self._state.account.frozen_cash -= estimated_cost
             self._state.account.cash += estimated_cost
 
         order.status = "CANCELLED"
         order.updated_at = datetime.now()
         logger.info(f"Order cancelled: {order_id}")
+        self._save_state()
         return True
 
     def get_orders(self, status: Optional[str] = None) -> List[Order]:
@@ -282,7 +324,7 @@ class SimulationService:
             self._state.account.frozen_cash -= actual_cost
             # 解冻多余资金
             if order.order_type == "LIMIT":
-                estimated = self._estimate_cost(order.action, order.price, quantity, order.order_type)
+                estimated = self._estimate_cost(order.action, order.symbol, order.price, quantity, order.order_type)
                 self._state.account.cash += estimated - actual_cost
         else:  # SELL
             self._update_position_sell(order.symbol, price, quantity)
@@ -296,6 +338,7 @@ class SimulationService:
         self._state.account.total_transfer_fee += transfer_fee
 
         logger.info(f"Trade executed: {trade.id} {order.action} {order.symbol} {quantity}@{price}")
+        self._save_state()
 
     def _update_position_buy(self, symbol: str, price: float, quantity: int):
         """更新持仓（买入）"""
@@ -340,6 +383,49 @@ class SimulationService:
             trades.extend(recent_trades)
 
         return trades
+
+    def get_or_create_strategy(self, strategy_id: str, **kwargs):
+        """
+        模拟交易侧对接 Strategy 基类（Trading Core API）。
+        """
+        key = f"{strategy_id}:{kwargs}"
+        if key in self._strategy_instances:
+            return self._strategy_instances[key]
+        strategy = get_trading_strategy_adapter(strategy_id, **kwargs)
+        if strategy is None:
+            return None
+        try:
+            strategy.start()
+        except Exception:
+            logger.debug("strategy start failed", exc_info=True)
+        self._strategy_instances[key] = strategy
+        return strategy
+
+    def _save_state(self) -> None:
+        payload = {
+            "account": self._state.account.model_dump(mode="json"),
+            "orders": {k: v.model_dump(mode="json") for k, v in self._state.orders.items()},
+            "trades": [t.model_dump(mode="json") for t in self._state.trades],
+            "positions": {k: v.model_dump(mode="json") for k, v in self._state.positions.items()},
+        }
+        simulation_store.save_json("simulation_state", payload)
+
+    def _load_state(self) -> None:
+        payload = simulation_store.load_json("simulation_state")
+        if not payload:
+            return
+        try:
+            self._state.account = Account.model_validate(payload.get("account", {}))
+            self._state.orders = {
+                k: Order.model_validate(v) for k, v in (payload.get("orders", {}) or {}).items()
+            }
+            self._state.trades = [Trade.model_validate(v) for v in payload.get("trades", []) or []]
+            self._state.positions = {
+                k: Position.model_validate(v)
+                for k, v in (payload.get("positions", {}) or {}).items()
+            }
+        except Exception as exc:
+            logger.warning("failed to load persisted simulation state: %s", exc)
 
 
 # 全局实例

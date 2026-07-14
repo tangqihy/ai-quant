@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import dayjs from 'dayjs';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -19,7 +18,6 @@ import {
 import {
   ArrowLeftOutlined,
   StarFilled,
-  StarOutlined,
   EditOutlined,
   LineChartOutlined,
 } from '@ant-design/icons';
@@ -50,6 +48,7 @@ export const StockDetail: React.FC = () => {
     getStockGroups,
     groups,
     isLoaded,
+    addStock,
   } = useWatchlist();
 
   const [loading, setLoading] = useState(true);
@@ -69,12 +68,6 @@ export const StockDetail: React.FC = () => {
 
     // 自选数据未就绪时不要误判「不在自选」
     if (!isLoaded) return;
-
-    if (!isInWatchlist(symbol)) {
-      message.warning('该股票不在您的自选列表中，请先添加');
-      navigate('/');
-      return;
-    }
 
     loadStockData();
   }, [symbol, isLoaded, isInWatchlist, navigate]);
@@ -131,13 +124,13 @@ export const StockDetail: React.FC = () => {
     );
   }
 
-  if (!inWatchlist || !quote) {
+  if (!quote) {
     return (
       <Empty
-        description="股票不在自选列表中"
+        description="暂无股票数据"
         extra={
           <Button type="primary" onClick={() => navigate('/')}>
-            返回自选
+            返回首页
           </Button>
         }
       />
@@ -184,14 +177,29 @@ export const StockDetail: React.FC = () => {
                     {g.name}
                   </Tag>
                 ))}
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={() => setIsAddModalOpen(true)}
-                >
-                  调整分组
-                </Button>
+                {inWatchlist ? (
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<EditOutlined />}
+                    onClick={() => setIsAddModalOpen(true)}
+                  >
+                    调整分组
+                  </Button>
+                ) : (
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<StarFilled />}
+                    onClick={async () => {
+                      if (!symbol) return;
+                      const ok = await addStock({ symbol, name: quote.name, groupIds: [] });
+                      if (ok) message.success('已加入自选');
+                    }}
+                  >
+                    加入自选
+                  </Button>
+                )}
               </Space>
             </Space>
           </Col>
@@ -217,16 +225,18 @@ export const StockDetail: React.FC = () => {
                 />
               </Col>
               <Col span={8} style={{ textAlign: 'right' }}>
-                <Space orientation="vertical">
-                  <Button
-                    type="primary"
-                    danger
-                    icon={<StarFilled />}
-                    onClick={handleRemoveFromWatchlist}
-                  >
-                    移除自选
-                  </Button>
-                </Space>
+                {inWatchlist && (
+                  <Space orientation="vertical">
+                    <Button
+                      type="primary"
+                      danger
+                      icon={<StarFilled />}
+                      onClick={handleRemoveFromWatchlist}
+                    >
+                      移除自选
+                    </Button>
+                  </Space>
+                )}
               </Col>
             </Row>
           </Col>

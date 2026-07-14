@@ -141,6 +141,8 @@ class StockService:
             for item in results:
                 if not item.get('name'):
                     item['name'] = name_map.get(item['symbol'], '')
+                item['is_delayed'] = True
+                item['delay_note'] = '当前为日线近似行情，非逐笔实时'
 
             result_map = {item.get("symbol"): item for item in results}
             return [
@@ -178,6 +180,8 @@ class StockService:
             "volume": 0,
             "amount": 0,
             "turnover": 0,
+            "is_delayed": True,
+            "delay_note": "当前为日线近似行情，非逐笔实时",
         }
 
     @staticmethod

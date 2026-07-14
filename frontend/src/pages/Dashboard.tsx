@@ -37,6 +37,7 @@ const Dashboard: React.FC = () => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
   const [quoteRows, setQuoteRows] = useState<QuoteRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [dailyValues, setDailyValues] = useState<{ date: string; value: number }[]>([]);
 
   const symbols = useMemo(() => {
     const list = selectedGroupId === 'all' ? stocks : getStocksByGroup(selectedGroupId);
@@ -103,6 +104,17 @@ const Dashboard: React.FC = () => {
     const timer = setInterval(() => fetchQuotes(false), REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [isLoaded, fetchQuotes]);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('lastBacktestResult');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      setDailyValues(parsed?.daily_values || []);
+    } catch {
+      setDailyValues([]);
+    }
+  }, []);
 
   const columns = [
     {
@@ -364,7 +376,7 @@ const Dashboard: React.FC = () => {
 
         <div className="futu-dashboard-sidebar" style={{ width: 400, flexShrink: 0 }}>
           <Card
-            title="收益曲线（示例）"
+            title="收益曲线"
             size="small"
             style={{
               background: '#050815',
@@ -382,7 +394,7 @@ const Dashboard: React.FC = () => {
               },
             }}
           >
-            <RevenueChart />
+            <RevenueChart dailyValues={dailyValues} />
           </Card>
           <Card
             title="新闻 / 快讯"

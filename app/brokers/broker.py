@@ -307,6 +307,30 @@ class PaperBroker(Broker):
     
     def __init__(self, exchange: ExchangeInfo):
         super().__init__(exchange)
+        self._connected = True
+
+    @property
+    def connected(self) -> bool:
+        return self._connected
+
+    def set_connected(self, connected: bool) -> None:
+        self._connected = connected
+
+    def match_quote(self, price: float, symbol: str = "", when: Optional[datetime] = None) -> List[Trade]:
+        """
+        使用实时行情快照触发撮合，便于模拟交易复用 Broker 逻辑。
+        """
+        bar = MarketData(
+            symbol=symbol or "",
+            datetime=when or datetime.now(),
+            open=price,
+            high=price,
+            low=price,
+            close=price,
+            volume=0,
+            amount=0,
+        )
+        return self.match(bar)
 
 
 class LiveBroker(Broker):

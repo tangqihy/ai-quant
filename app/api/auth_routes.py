@@ -5,7 +5,7 @@
 from fastapi import APIRouter, HTTPException, Header
 from pydantic import BaseModel
 
-from app.services.auth_service import verify_password, create_token, verify_token
+from app.services.auth_service import verify_password, create_token, verify_token, revoke_token
 from app.core.response import ok, fail
 
 router = APIRouter()
@@ -38,6 +38,15 @@ async def verify(authorization: str | None = Header(None, alias="Authorization")
     response = ok(data={"valid": True})
     response["valid"] = True
     return response
+
+
+@router.post("/logout")
+async def logout(authorization: str | None = Header(None, alias="Authorization")):
+    """登出并使当前 token 失效。"""
+    token = _bearer_token(authorization)
+    if token:
+        revoke_token(token)
+    return ok(message="已登出")
 
 
 def _bearer_token(authorization: str | None) -> str | None:

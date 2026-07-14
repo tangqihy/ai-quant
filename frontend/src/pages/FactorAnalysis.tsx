@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Row, Col, Statistic, Table, Select, Tag, Spin, message, Empty } from 'antd';
+import { Card, Row, Col, Statistic, Table, Select, Tag, Spin, message, Empty, Button, Space } from 'antd';
 import {
   CheckCircleOutlined,
   WarningOutlined,
@@ -12,6 +12,7 @@ import type { ColumnsType } from 'antd/es/table';
 import {
   getFactorIC,
   getFactorSummary,
+  refreshFactorIC,
   FactorICData,
   FactorItem,
   EventFactor,
@@ -48,6 +49,20 @@ const FactorAnalysis: React.FC = () => {
   const [factorData, setFactorData] = useState<FactorICData | null>(null);
   const [summary, setSummary] = useState<FactorSummary | null>(null);
   const [selectedFactor, setSelectedFactor] = useState<string>('');
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      await refreshFactorIC({ skip_download: true, forward_days: 10 });
+      message.success('因子数据已刷新');
+      await fetchData();
+    } catch (e: any) {
+      const detail = e?.response?.data?.detail || e?.message || '';
+      message.error('刷新失败: ' + detail);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -361,6 +376,11 @@ const FactorAnalysis: React.FC = () => {
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
         <FundOutlined style={{ color: NEON_CYAN, fontSize: 24 }} />
         <GlitchText text="因子分析" />
+        <Space>
+          <Button size="small" onClick={handleRefresh} loading={loading}>
+            刷新IC
+          </Button>
+        </Space>
         {factorData?.updated_at && (
           <span style={{ color: 'rgba(0, 240, 255, 0.4)', fontSize: 12, marginLeft: 'auto' }}>
             更新: {factorData.updated_at}

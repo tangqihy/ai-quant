@@ -18,6 +18,7 @@ import {
   Empty,
   Badge,
   Tooltip,
+  Alert,
 } from 'antd';
 import {
   ReloadOutlined,
@@ -338,6 +339,12 @@ const SimulationTrading: React.FC = () => {
       <h2 style={{ marginBottom: 24, color: '#00ff41' }}>
         <LineChartOutlined /> 模拟交易
       </h2>
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 12 }}
+        message="行情说明：当前使用延时近似行情（基于日线），仅用于策略验证与流程联调。"
+      />
 
       {/* 账户概览 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>

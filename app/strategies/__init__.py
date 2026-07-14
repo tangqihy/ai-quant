@@ -25,6 +25,11 @@ _BACKTEST_STRATEGIES: Dict[str, BaseStrategy] = {
     "rsi": BacktestRSIStrategy(),
 }
 
+_TRADING_STRATEGY_ALIAS = {
+    "ma_cross": "MA",
+    "rsi": "RSI",
+}
+
 
 def get(strategy_id: str) -> Optional[BaseStrategy]:
     """获取回测策略实例。"""
@@ -34,6 +39,17 @@ def get(strategy_id: str) -> Optional[BaseStrategy]:
 def get_strategy(strategy_id: str) -> Optional[BaseStrategy]:
     """兼容旧调用名，返回支持 generate_signals 的回测策略。"""
     return get(strategy_id)
+
+
+def get_trading_strategy_adapter(strategy_id: str, **kwargs) -> Optional[Strategy]:
+    """
+    将回测策略ID映射到 TradingCore Strategy，供模拟/实盘链路复用。
+    """
+    alias = _TRADING_STRATEGY_ALIAS.get(strategy_id, strategy_id)
+    try:
+        return get_trading_strategy(alias, **kwargs)
+    except Exception:
+        return None
 
 
 def get_all() -> List[BaseStrategy]:
@@ -76,4 +92,5 @@ __all__ = [
     "get_all",
     "list_for_api",
     "list_strategies",
+    "get_trading_strategy_adapter",
 ]
