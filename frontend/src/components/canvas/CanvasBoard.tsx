@@ -25,7 +25,7 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({ cards, edges }) => {
       <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Empty
           description={
-            <span style={{ color: '#8899aa' }}>
+            <span style={{ color: 'var(--cyber-text-secondary)' }}>
               画布还没有卡片。通过 IM 或 CLI（scripts/canvas add-card）写入第一张卡片。
             </span>
           }
@@ -47,18 +47,18 @@ export const CanvasBoard: React.FC<CanvasBoardProps> = ({ cards, edges }) => {
       nodesConnectable={false}
       elementsSelectable={false}
       proOptions={{ hideAttribution: true }}
-      style={{ background: '#02040a' }}
+      style={{ background: 'var(--cyber-bg)' }}
     >
-      <Background color="rgba(0,240,255,0.08)" gap={24} />
+      <Background color="rgba(var(--accent-rgb),0.08)" gap={24} />
       <Controls
         showInteractive={false}
-        style={{ background: '#0a1020', border: '1px solid rgba(0,240,255,0.2)' }}
+        style={{ background: 'var(--cyber-bg-card)', border: '1px solid rgba(var(--accent-rgb),0.2)' }}
       />
       <MiniMap
         pannable
         zoomable
-        style={{ background: '#0a1020', border: '1px solid rgba(0,240,255,0.2)' }}
-        nodeColor={() => '#00f0ff'}
+        style={{ background: 'var(--cyber-bg-card)', border: '1px solid rgba(var(--accent-rgb),0.2)' }}
+        nodeColor={() => 'var(--cyber-neon-cyan)'}
         maskColor="rgba(2,4,10,0.7)"
       />
     </ReactFlow>

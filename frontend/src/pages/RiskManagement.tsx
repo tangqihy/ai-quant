@@ -300,8 +300,8 @@ const RiskManagement: React.FC = () => {
   ];
 
   return (
-    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-      <h2 style={{ marginBottom: 24, color: '#00ff41' }}>
+    <div style={{ fontFamily: 'var(--mono-font)' }}>
+      <h2 style={{ marginBottom: 24, color: 'var(--cyber-neon-cyan)' }}>
         <SafetyOutlined /> 风控管理
       </h2>
 

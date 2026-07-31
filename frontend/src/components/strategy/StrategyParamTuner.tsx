@@ -121,7 +121,7 @@ const StrategyParamTuner: React.FC<StrategyParamTunerProps> = ({
             <div key={p.name}>
               <Row justify="space-between" align="middle" style={{ marginBottom: 4 }}>
                 <Col>
-                  <Text style={{ color: 'rgba(0,240,255,0.85)', fontSize: compact ? 12 : 13 }}>
+                  <Text style={{ color: 'rgba(var(--accent-rgb),0.85)', fontSize: compact ? 12 : 13 }}>
                     {p.description || p.name}
                   </Text>
                 </Col>
@@ -147,8 +147,8 @@ const StrategyParamTuner: React.FC<StrategyParamTunerProps> = ({
                 onChange={(v) => setParam(p.name, v)}
                 tooltip={{ formatter: (v) => `${v}` }}
                 styles={{
-                  track: { background: 'rgba(0,240,255,0.55)' },
-                  rail: { background: 'rgba(0,240,255,0.12)' },
+                  track: { background: 'rgba(var(--accent-rgb),0.55)' },
+                  rail: { background: 'rgba(var(--accent-rgb),0.12)' },
                 }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: -6 }}>

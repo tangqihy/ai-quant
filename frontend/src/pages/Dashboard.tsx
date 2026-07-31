@@ -25,8 +25,8 @@ interface QuoteRow {
 const REFRESH_INTERVAL_MS = 15000;
 
 /** A 股红涨绿跌 - 赛博朋克霓虹青 / 霓虹粉 */
-const COLOR_UP = '#ff00a0';
-const COLOR_DOWN = '#00f0ff';
+const COLOR_UP = 'var(--cyber-neon-pink)';
+const COLOR_DOWN = 'var(--cyber-neon-cyan)';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -124,10 +124,10 @@ const Dashboard: React.FC = () => {
       width: 120,
       render: (_: string, row: QuoteRow) => (
         <div>
-          <div style={{ color: 'rgba(0, 255, 65, 0.9)', fontWeight: 500 }}>
+          <div style={{ color: 'rgba(var(--accent-rgb), 0.9)', fontWeight: 500 }}>
             {row.name || '-'}
           </div>
-          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(0, 255, 65, 0.5)' }}>
+          <div style={{ fontFamily: 'var(--mono-font)', fontSize: 11, color: 'rgba(var(--accent-rgb), 0.5)' }}>
             {row.symbol}
           </div>
         </div>
@@ -202,7 +202,7 @@ const Dashboard: React.FC = () => {
       width: 90,
       align: 'right' as const,
       render: (val?: number) => (
-        <span style={{ color: 'rgba(0, 255, 65, 0.65)', fontSize: 12 }}>
+        <span style={{ color: 'rgba(var(--accent-rgb), 0.65)', fontSize: 12 }}>
           {formatVolume(val)}
         </span>
       ),
@@ -210,12 +210,11 @@ const Dashboard: React.FC = () => {
   ];
 
   const tableWrapStyle: React.CSSProperties = {
-    background: '#050815',
-    borderRadius: 10,
-    border: '1px solid rgba(0, 240, 255, 0.24)',
+    background: 'var(--paper-card)',
+    borderRadius: 'var(--sketch-radius)',
+    border: '1.5px solid var(--line-strong)',
     overflow: 'hidden',
-    boxShadow:
-      '0 0 16px rgba(0, 240, 255, 0.25), 0 0 26px rgba(255,0,160,0.28)',
+    boxShadow: '2px 3px 0 rgba(45, 42, 38, 0.06)',
   };
 
   const renderQuoteList = () => {
@@ -261,11 +260,11 @@ const Dashboard: React.FC = () => {
                   justifyContent: 'space-between',
                   padding: '12px 10px',
                   marginBottom: 8,
-                  background: 'rgba(0, 240, 255, 0.04)',
+                  background: 'rgba(var(--accent-rgb), 0.04)',
                   borderRadius: 10,
-                  border: '1px solid rgba(0, 240, 255, 0.2)',
+                  border: '1px solid rgba(var(--accent-rgb), 0.2)',
                   cursor: 'pointer',
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontFamily: 'var(--mono-font)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
@@ -277,10 +276,10 @@ const Dashboard: React.FC = () => {
                     isUp={isUp}
                   />
                   <div style={{ minWidth: 0 }}>
-                  <div style={{ color: 'rgba(0, 240, 255, 0.9)', fontWeight: 500, fontSize: 13 }}>
+                  <div style={{ color: 'rgba(var(--accent-rgb), 0.9)', fontWeight: 500, fontSize: 13 }}>
                       {row.name || '-'}
                     </div>
-                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'rgba(0, 240, 255, 0.5)' }}>
+                  <div style={{ fontFamily: 'var(--mono-font)', fontSize: 11, color: 'rgba(var(--accent-rgb), 0.5)' }}>
                       {row.symbol}
                     </div>
                   </div>
@@ -310,7 +309,7 @@ const Dashboard: React.FC = () => {
           onClick: () => navigate(`/stocks/${record.symbol}`),
           style: { cursor: 'pointer' },
         })}
-        style={{ background: '#0a0a0a' }}
+        style={{ background: 'var(--paper-card)' }}
         className="futu-table futu-table-compact"
       />
     );
@@ -358,12 +357,12 @@ const Dashboard: React.FC = () => {
                 icon={<ReloadOutlined />}
                 onClick={fetchQuotes}
                 loading={loading}
-                style={{ color: 'rgba(0, 255, 65, 0.65)' }}
+                style={{ color: 'rgba(var(--accent-rgb), 0.65)' }}
               >
                 刷新
               </Button>
             </Space>
-            <span style={{ color: 'rgba(0, 255, 65, 0.45)', fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>
+            <span style={{ color: 'rgba(var(--accent-rgb), 0.45)', fontSize: 12, fontFamily: 'var(--mono-font)' }}>
               共 {quoteRows.length} 只
             </span>
           </div>
@@ -378,40 +377,14 @@ const Dashboard: React.FC = () => {
           <Card
             title="收益曲线"
             size="small"
-            style={{
-              background: '#050815',
-              border: '1px solid rgba(0, 240, 255, 0.24)',
-              marginBottom: 16,
-              boxShadow:
-                '0 0 16px rgba(0, 240, 255, 0.22), 0 0 26px rgba(255,0,160,0.25)',
-            }}
-            styles={{
-              header: {
-                borderBottom: '1px solid rgba(0, 240, 255, 0.24)',
-                color: '#00f0ff',
-                fontFamily: "'Orbitron', system-ui",
-                letterSpacing: '0.12em',
-              },
-            }}
+            style={{ marginBottom: 16 }}
           >
             <RevenueChart dailyValues={dailyValues} />
           </Card>
           <Card
             title="新闻 / 快讯"
             size="small"
-            style={{
-              background: '#050815',
-              border: '1px solid rgba(0, 240, 255, 0.24)',
-              boxShadow:
-                '0 0 16px rgba(0, 240, 255, 0.22), 0 0 26px rgba(255,0,160,0.25)',
-            }}
             styles={{
-              header: {
-                borderBottom: '1px solid rgba(0, 240, 255, 0.24)',
-                color: '#00f0ff',
-                fontFamily: "'Orbitron', system-ui",
-                letterSpacing: '0.12em',
-              },
               body: { padding: '8px 12px 12px' },
             }}
           >

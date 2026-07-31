@@ -9,9 +9,9 @@ export type CanvasCardNodeType = Node<{ card: CanvasCard }, 'canvasCard'>;
 export const CanvasCardNode: React.FC<NodeProps<CanvasCardNodeType>> = ({ data }) => {
   return (
     <>
-      <Handle type="target" position={Position.Left} style={{ background: '#00f0ff', width: 6, height: 6 }} />
+      <Handle type="target" position={Position.Left} style={{ background: 'var(--cyber-neon-cyan)', width: 6, height: 6 }} />
       <CardShell card={data.card} />
-      <Handle type="source" position={Position.Right} style={{ background: '#00f0ff', width: 6, height: 6 }} />
+      <Handle type="source" position={Position.Right} style={{ background: 'var(--cyber-neon-cyan)', width: 6, height: 6 }} />
     </>
   );
 };

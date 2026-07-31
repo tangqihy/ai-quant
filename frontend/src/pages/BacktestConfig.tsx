@@ -101,8 +101,8 @@ const BacktestConfig: React.FC = () => {
   }, [form]);
 
   return (
-    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-      <h2 style={{ marginBottom: 24, color: '#00ff41' }}>回测配置</h2>
+    <div style={{ fontFamily: 'var(--mono-font)' }}>
+      <h2 style={{ marginBottom: 24, color: 'var(--cyber-neon-cyan)' }}>回测配置</h2>
       
       <Spin spinning={loading}>
         <Form
@@ -173,9 +173,9 @@ const BacktestConfig: React.FC = () => {
                   <Row gutter={[16, 16]}>
                     <Col xs={12} md={6}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ color: 'rgba(0, 255, 65, 0.6)', fontSize: 12 }}>总收益率</div>
-                        <div style={{ 
-                          color: result.total_return > 0 ? '#ff0040' : '#00ff41', 
+                        <div style={{ color: 'var(--ink-soft)', fontSize: 12 }}>总收益率</div>
+                        <div style={{
+                          color: result.total_return > 0 ? 'var(--up)' : 'var(--down)',
                           fontSize: 24, 
                           fontWeight: 'bold' 
                         }}>
@@ -185,9 +185,9 @@ const BacktestConfig: React.FC = () => {
                     </Col>
                     <Col xs={12} md={6}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ color: 'rgba(0, 255, 65, 0.6)', fontSize: 12 }}>年化收益率</div>
-                        <div style={{ 
-                          color: result.annual_return > 0 ? '#ff0040' : '#00ff41', 
+                        <div style={{ color: 'var(--ink-soft)', fontSize: 12 }}>年化收益率</div>
+                        <div style={{
+                          color: result.annual_return > 0 ? 'var(--up)' : 'var(--down)',
                           fontSize: 24, 
                           fontWeight: 'bold' 
                         }}>
@@ -197,15 +197,15 @@ const BacktestConfig: React.FC = () => {
                     </Col>
                     <Col xs={12} md={6}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ color: 'rgba(0, 255, 65, 0.6)', fontSize: 12 }}>最大回撤</div>
-                        <div style={{ color: '#ff0040', fontSize: 24, fontWeight: 'bold' }}>
+                        <div style={{ color: 'var(--ink-soft)', fontSize: 12 }}>最大回撤</div>
+                        <div style={{ color: 'var(--accent-warm)', fontSize: 24, fontWeight: 'bold' }}>
                           {result.max_drawdown}%
                         </div>
                       </div>
                     </Col>
                     <Col xs={12} md={6}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ color: 'rgba(0, 255, 65, 0.6)', fontSize: 12 }}>胜率</div>
+                        <div style={{ color: 'rgba(var(--accent-rgb), 0.6)', fontSize: 12 }}>胜率</div>
                         <div style={{ fontSize: 24, fontWeight: 'bold' }}>
                           {result.win_rate}%
                         </div>
@@ -213,7 +213,7 @@ const BacktestConfig: React.FC = () => {
                     </Col>
                   </Row>
                   <Divider />
-                  <div style={{ color: 'rgba(0, 255, 65, 0.5)', fontSize: 12 }}>
+                  <div style={{ color: 'rgba(var(--accent-rgb), 0.5)', fontSize: 12 }}>
                     交易次数: {result.total_trades} |
                     初始资金: {result.initial_capital?.toLocaleString()} |
                     最终资产: {result.final_value?.toLocaleString()}

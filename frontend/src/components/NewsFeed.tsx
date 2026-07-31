@@ -68,7 +68,7 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ limit = 20, maxHeight = 420 }) => {
           icon={<ReloadOutlined />}
           loading={loading}
           onClick={() => load(true)}
-          style={{ color: 'rgba(0, 240, 255, 0.65)' }}
+          style={{ color: 'rgba(var(--accent-rgb), 0.65)' }}
         >
           刷新
         </Button>
@@ -97,8 +97,8 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ limit = 20, maxHeight = 420 }) => {
                     padding: '10px 8px',
                     marginBottom: 6,
                     borderRadius: 8,
-                    border: '1px solid rgba(0, 240, 255, 0.12)',
-                    background: 'rgba(0, 240, 255, 0.03)',
+                    border: '1px solid rgba(var(--accent-rgb), 0.12)',
+                    background: 'rgba(var(--accent-rgb), 0.03)',
                     cursor: item.url ? 'pointer' : 'default',
                     transition: 'border-color 0.2s',
                   }}
@@ -106,15 +106,15 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ limit = 20, maxHeight = 420 }) => {
                     if (item.url) window.open(item.url, '_blank', 'noopener,noreferrer');
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(0, 240, 255, 0.4)';
+                    (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(var(--accent-rgb), 0.4)';
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(0, 240, 255, 0.12)';
+                    (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(var(--accent-rgb), 0.12)';
                   }}
                 >
                   <div
                     style={{
-                      color: 'rgba(0, 240, 255, 0.92)',
+                      color: 'rgba(var(--accent-rgb), 0.92)',
                       fontSize: 13,
                       fontWeight: 500,
                       lineHeight: 1.45,
@@ -130,7 +130,7 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ limit = 20, maxHeight = 420 }) => {
                   {item.summary && item.summary !== item.title && (
                     <div
                       style={{
-                        color: 'rgba(0, 240, 255, 0.5)',
+                        color: 'rgba(var(--accent-rgb), 0.5)',
                         fontSize: 11,
                         lineHeight: 1.4,
                         marginBottom: 6,
@@ -148,9 +148,9 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ limit = 20, maxHeight = 420 }) => {
                       display: 'flex',
                       justifyContent: 'space-between',
                       gap: 8,
-                      color: 'rgba(0, 240, 255, 0.4)',
+                      color: 'rgba(var(--accent-rgb), 0.4)',
                       fontSize: 11,
-                      fontFamily: "'JetBrains Mono', monospace",
+                      fontFamily: 'var(--mono-font)',
                     }}
                   >
                     <span>{item.source || '财经'}</span>

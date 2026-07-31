@@ -76,7 +76,7 @@ export const CanvasList: React.FC = () => {
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ margin: 0, color: '#e8f4ff' }}>
+        <Title level={4} style={{ margin: 0, color: 'var(--cyber-text)' }}>
           研究画布
         </Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
@@ -88,7 +88,7 @@ export const CanvasList: React.FC = () => {
         {canvases.length === 0 && !loading ? (
           <Empty
             description={
-              <span style={{ color: '#8899aa' }}>
+              <span style={{ color: 'var(--cyber-text-secondary)' }}>
                 还没有研究画布。新建一个，或在 IM 里对 Hermes 说"为小米建画布"。
               </span>
             }
@@ -99,15 +99,15 @@ export const CanvasList: React.FC = () => {
               <Col xs={24} sm={12} md={8} key={c.ts_code}>
                 <Card
                   hoverable
-                  style={{ background: '#0a1020', border: '1px solid rgba(0,240,255,0.18)' }}
+                  style={{ background: 'var(--cyber-bg-card)', border: '1px solid rgba(var(--accent-rgb),0.18)' }}
                   onClick={() => navigate(`/stock-canvas/${encodeURIComponent(c.ts_code)}`)}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
-                      <Text strong style={{ color: '#e8f4ff', fontSize: 15 }}>
+                      <Text strong style={{ color: 'var(--cyber-text)', fontSize: 15 }}>
                         {c.name || c.ts_code}
                       </Text>
-                      <div style={{ color: '#556677', fontSize: 12, marginTop: 2 }}>{c.ts_code}</div>
+                      <div style={{ color: 'var(--cyber-text-faint)', fontSize: 12, marginTop: 2 }}>{c.ts_code}</div>
                     </div>
                     <Tag color={CANVAS_STATUS_COLOR[c.status]}>{CANVAS_STATUS_LABEL[c.status]}</Tag>
                   </div>
@@ -117,7 +117,7 @@ export const CanvasList: React.FC = () => {
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       marginTop: 12,
-                      color: '#556677',
+                      color: 'var(--cyber-text-faint)',
                       fontSize: 11,
                     }}
                   >

@@ -70,20 +70,20 @@ export const CanvasSidebar: React.FC<CanvasSidebarProps> = ({ cards, onFocusCard
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: '0 8px 8px' }}>
         {filtered.length === 0 ? (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text style={{ color: '#556677', fontSize: 12 }}>无匹配卡片</Text>} />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={<Text style={{ color: 'var(--cyber-text-faint)', fontSize: 12 }}>无匹配卡片</Text>} />
         ) : (
           <List
             size="small"
             dataSource={filtered}
             renderItem={(card) => (
               <List.Item
-                style={{ padding: '6px 4px', cursor: 'pointer', borderBottom: '1px solid rgba(0,240,255,0.08)' }}
+                style={{ padding: '6px 4px', cursor: 'pointer', borderBottom: '1px solid rgba(var(--accent-rgb),0.08)' }}
                 onClick={() => onFocusCard?.(card.id)}
               >
                 <div style={{ width: '100%', overflow: 'hidden' }}>
                   <Text
                     style={{
-                      color: '#ccd6e0',
+                      color: 'var(--cyber-text)',
                       fontSize: 12,
                       display: 'block',
                       overflow: 'hidden',

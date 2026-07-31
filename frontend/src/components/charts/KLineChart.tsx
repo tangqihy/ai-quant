@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { getStockHistory, getIndicators } from '../../services/api';
+import { cssVar } from '../../utils/chartTheme';
 
 /** 单条 K 线（可能带指标字段） */
 interface KLineData {
@@ -106,19 +107,26 @@ function buildMarkPoints(
   return points;
 }
 
-const LINE_COLORS: Record<string, string> = {
-  MA5: '#00ff41',
-  MA10: '#00f0ff',
-  MA20: '#ff00a0',
+// cssVar 统一从工具引入：canvas 不认 CSS 变量，需渲染时取值
+
+const SERIES_COLORS = {
+  MA5: '#e8590c',
+  MA20: '#7048a8',
   支撑: '#5F8F5F',
   阻力: '#C9B458',
-  强弱: '#8888aa',
+  强弱: '#8a8578',
   快线: '#aa6666',
-  趋势线: '#ffcc00',
-  布林上轨: '#ff00a0',
-  布林中轨: '#00f0ff',
-  布林下轨: '#00ff41',
+  趋势线: '#eab308',
 };
+
+/** 主色/涨跌色随主题解析，需在渲染期调用 */
+const getLineColors = (): Record<string, string> => ({
+  ...SERIES_COLORS,
+  MA10: cssVar('--accent', '#2f5d8a'),
+  布林上轨: cssVar('--up', '#c0392b'),
+  布林中轨: cssVar('--accent', '#2f5d8a'),
+  布林下轨: cssVar('--down', '#2f9e44'),
+});
 
 const KLineChart: React.FC<KLineChartProps> = ({
   symbol = '600519',
@@ -298,10 +306,13 @@ const KLineChart: React.FC<KLineChartProps> = ({
     return { overlayLineSeries: lines, trendSeries: trend, legendNames: legends, markPoints: marks };
   }, [indicatorRows, overlays, hasFenshi, hasCapitalTrend, closeData]);
 
-  const NEON_UP = '#ff0040';
-  const NEON_DOWN = '#00ff41';
-  const NEON_AXIS = 'rgba(0, 255, 65, 0.5)';
-  const NEON_GRID = 'rgba(0, 255, 65, 0.08)';
+  const NEON_UP = cssVar('--up', '#c0392b');
+  const NEON_DOWN = cssVar('--down', '#2f9e44');
+  const NEON_AXIS = cssVar('--ink-faint', '#a39a89');
+  const NEON_GRID = cssVar('--line', '#ddd5c3');
+  const ACCENT = cssVar('--accent', '#2f5d8a');
+  const ACCENT_RGB = cssVar('--accent-rgb', '47, 93, 138');
+  const LINE_COLORS = getLineColors();
 
   const isMinute = period && period !== 'daily';
   const defaultEnd = 100;
@@ -327,7 +338,9 @@ const KLineChart: React.FC<KLineChartProps> = ({
           name: m.action === 'BUY' ? '买' : '卖',
           coord: [m.date, y] as [string, number],
           value: m.action === 'BUY' ? '买' : '卖',
-          itemStyle: { color: m.action === 'BUY' ? '#ff0040' : '#00ff41' },
+          itemStyle: {
+            color: m.action === 'BUY' ? cssVar('--up', '#c0392b') : cssVar('--down', '#2f9e44'),
+          },
         };
       })
       .filter(Boolean) as {
@@ -346,10 +359,10 @@ const KLineChart: React.FC<KLineChartProps> = ({
           label: {
             show: true,
             formatter: '当前',
-            color: '#00f0ff',
+            color: ACCENT,
             fontSize: 11,
           },
-          lineStyle: { color: '#00f0ff', width: 1.5, type: 'dashed' },
+          lineStyle: { color: ACCENT, width: 1.5, type: 'dashed' },
           data: [{ xAxis: cursorDate }],
         }
       : undefined;
@@ -383,7 +396,7 @@ const KLineChart: React.FC<KLineChartProps> = ({
           ? {
               symbol: 'pin',
               symbolSize: 36,
-              label: { color: '#0a0a0a', fontSize: 10, fontWeight: 700 },
+              label: { color: '#ffffff', fontSize: 10, fontWeight: 700 },
               data: allMarkPoints,
             }
           : undefined,
@@ -403,7 +416,7 @@ const KLineChart: React.FC<KLineChartProps> = ({
       xAxisIndex: 1,
       yAxisIndex: 1,
       data: volumes,
-      itemStyle: { color: 'rgba(0, 255, 65, 0.35)' },
+      itemStyle: { color: `rgba(${ACCENT_RGB}, 0.35)` },
     },
   ];
 
@@ -420,7 +433,7 @@ const KLineChart: React.FC<KLineChartProps> = ({
       areaStyle: { color: 'rgba(255, 204, 0, 0.08)' },
       markLine: {
         symbol: 'none',
-        lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.25)' },
+        lineStyle: { type: 'dashed', color: NEON_AXIS },
         data: [{ yAxis: 13 }, { yAxis: 90 }],
       },
     });
@@ -454,7 +467,7 @@ const KLineChart: React.FC<KLineChartProps> = ({
   const yAxes: any[] = [
     {
       scale: true,
-      splitArea: { show: true, areaStyle: { color: [NEON_GRID, 'transparent'] } },
+      splitArea: { show: true, areaStyle: { color: [cssVar('--paper-elevated', '#faf7ee'), 'transparent'] } },
       axisLine: { show: true, lineStyle: { color: NEON_AXIS } },
       axisLabel: { color: NEON_AXIS },
       splitLine: { lineStyle: { color: NEON_GRID } },
@@ -508,9 +521,9 @@ const KLineChart: React.FC<KLineChartProps> = ({
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'cross' },
-      backgroundColor: 'rgba(0, 10, 0, 0.9)',
-      borderColor: NEON_DOWN,
-      textStyle: { color: NEON_DOWN },
+      backgroundColor: cssVar('--paper-card', '#fffdf5'),
+      borderColor: cssVar('--line-strong', '#b5ab94'),
+      textStyle: { color: cssVar('--ink', '#2d2a26') },
     },
     legend: {
       data: legendNames,
@@ -530,8 +543,8 @@ const KLineChart: React.FC<KLineChartProps> = ({
         start: defaultStart,
         end: defaultEnd,
         borderColor: NEON_AXIS,
-        fillerColor: 'rgba(0, 255, 65, 0.2)',
-        handleStyle: { color: NEON_DOWN },
+        fillerColor: `rgba(${ACCENT_RGB}, 0.15)`,
+        handleStyle: { color: ACCENT },
         textStyle: { color: NEON_AXIS },
         labelFormatter: (val: string) => {
           if (!val) return '';
@@ -550,7 +563,7 @@ const KLineChart: React.FC<KLineChartProps> = ({
 
   if (!propData && !loading && dates.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: 40, color: 'rgba(0, 255, 65, 0.5)' }}>
+      <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-faint)' }}>
         暂无 K 线数据
       </div>
     );

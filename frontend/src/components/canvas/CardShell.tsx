@@ -15,17 +15,17 @@ export const CardShell: React.FC<CardShellProps> = ({ card }) => {
     <div
       style={{
         width: 300,
-        background: '#0a1020',
-        border: `1px solid ${borderColorByType(card)}`,
-        borderRadius: 8,
+        background: 'var(--cyber-bg-card)',
+        border: `1.5px solid ${borderColorByType(card)}`,
+        borderRadius: 'var(--sketch-radius-sm)',
         padding: '10px 12px 8px',
         fontSize: 12,
-        color: '#ccd6e0',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
+        color: 'var(--cyber-text)',
+        boxShadow: '2px 3px 0 rgba(45, 42, 38, 0.08)',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <Text strong style={{ color: '#e8f4ff', fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Text strong style={{ color: 'var(--cyber-text)', fontSize: 13, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {card.title}
         </Text>
         <Tag color={CARD_TYPE_COLOR[card.card_type]} style={{ marginRight: 0, fontSize: 11 }}>
@@ -59,7 +59,7 @@ function borderColorByType(card: CanvasCard): string {
     if (dir === 'bearish') return 'rgba(82,196,26,0.55)';
     return 'rgba(0,144,255,0.5)';
   }
-  return 'rgba(0,240,255,0.28)';
+  return 'rgba(var(--accent-rgb),0.28)';
 }
 
 /** 按卡片类型渲染正文 */
@@ -74,10 +74,10 @@ const CardBody: React.FC<{ card: CanvasCard }> = ({ card }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <Tag color={dir.color} style={{ marginRight: 0 }}>{dir.label}</Tag>
             {typeof d.confidence === 'number' && (
-              <Text style={{ color: '#8899aa', fontSize: 11 }}>置信度 {(d.confidence * 100).toFixed(0)}%</Text>
+              <Text style={{ color: 'var(--cyber-text-secondary)', fontSize: 11 }}>置信度 {(d.confidence * 100).toFixed(0)}%</Text>
             )}
           </div>
-          <div style={{ color: '#8899aa', fontSize: 11 }}>
+          <div style={{ color: 'var(--cyber-text-secondary)', fontSize: 11 }}>
             {d.target_price != null && <span style={{ marginRight: 8 }}>目标价 {String(d.target_price)}</span>}
             {d.stop_loss != null && <span>止损 {String(d.stop_loss)}</span>}
           </div>
@@ -111,7 +111,7 @@ const CardBody: React.FC<{ card: CanvasCard }> = ({ card }) => {
     case 'entry_plan':
     case 'exit_plan':
       return (
-        <div style={{ fontSize: 11, color: '#8899aa' }}>
+        <div style={{ fontSize: 11, color: 'var(--cyber-text-secondary)' }}>
           {d.trigger_price != null && <div>触发价 {String(d.trigger_price)}</div>}
           {d.position_pct != null && <div>仓位 {((d.position_pct as number) * 100).toFixed(0)}%</div>}
           {Array.isArray(d.conditions) && d.conditions.length > 0 && (
@@ -122,7 +122,7 @@ const CardBody: React.FC<{ card: CanvasCard }> = ({ card }) => {
       );
     case 'trade_record':
       return (
-        <div style={{ fontSize: 11, color: '#8899aa' }}>
+        <div style={{ fontSize: 11, color: 'var(--cyber-text-secondary)' }}>
           {d.direction != null && (
             <Tag color={d.direction === 'buy' ? 'red' : 'green'}>
               {d.direction === 'buy' ? '买入' : '卖出'}
@@ -134,7 +134,7 @@ const CardBody: React.FC<{ card: CanvasCard }> = ({ card }) => {
       );
     case 'financial':
       return (
-        <div style={{ fontSize: 11, color: '#8899aa', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+        <div style={{ fontSize: 11, color: 'var(--cyber-text-secondary)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
           {d.period != null && <span>期间 {String(d.period)}</span>}
           {d.pe_ttm != null && <span>PE {String(d.pe_ttm)}</span>}
           {d.pb != null && <span>PB {String(d.pb)}</span>}
@@ -149,7 +149,7 @@ const CardBody: React.FC<{ card: CanvasCard }> = ({ card }) => {
 const ContentSnippet: React.FC<{ content: string }> = ({ content }) => (
   <div
     style={{
-      color: '#9fb3c8',
+      color: 'var(--cyber-text-secondary)',
       fontSize: 11,
       lineHeight: 1.5,
       display: '-webkit-box',

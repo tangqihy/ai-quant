@@ -7,6 +7,10 @@ interface CyberCardProps extends React.HTMLAttributes<HTMLDivElement> {
   footer?: React.ReactNode;
 }
 
+/**
+ * 手账卡片（原赛博卡片，保留组件名以兼容存量引用）。
+ * 标题带荧光笔标记方块，页脚为铅笔虚线。
+ */
 export const CyberCard: React.FC<CyberCardProps> = ({
   title,
   extra,
@@ -39,10 +43,9 @@ export const CyberCard: React.FC<CyberCardProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               fontSize: 13,
-              textTransform: 'uppercase',
-              letterSpacing: '0.16em',
-              fontFamily: 'var(--cyber-font-display)',
-              color: 'var(--cyber-neon-cyan)',
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              color: 'var(--ink)',
             }}
           >
             <div
@@ -54,23 +57,23 @@ export const CyberCard: React.FC<CyberCardProps> = ({
             >
               <div
                 style={{
-                  width: 4,
-                  height: 14,
-                  background:
-                    'linear-gradient(180deg, var(--cyber-neon-cyan), var(--cyber-neon-pink))',
-                  borderRadius: 999,
-                  boxShadow:
-                    '0 0 6px rgba(0,240,255,0.7), 0 0 12px rgba(255,0,160,0.6)',
+                  width: 10,
+                  height: 10,
+                  background: 'var(--marker)',
+                  border: '1.5px solid var(--accent-warm)',
+                  borderRadius: '3px 4px 3px 5px / 4px 3px 5px 4px',
+                  transform: 'rotate(-4deg)',
                 }}
               />
-              <span style={{ opacity: 0.96 }}>{title}</span>
+              <span>{title}</span>
             </div>
             {extra && (
               <div
                 style={{
                   fontSize: 11,
-                  color: 'var(--cyber-text-secondary)',
-                  fontFamily: 'var(--cyber-font-mono)',
+                  fontWeight: 400,
+                  color: 'var(--ink-faint)',
+                  fontFamily: 'var(--mono-font)',
                 }}
               >
                 {extra}
@@ -90,12 +93,12 @@ export const CyberCard: React.FC<CyberCardProps> = ({
         {footer && (
           <div
             style={{
-              borderTop: '1px dashed rgba(0, 240, 255, 0.25)',
+              borderTop: '1.5px dashed var(--line)',
               marginTop: 6,
               paddingTop: 6,
               fontSize: 11,
-              color: 'var(--cyber-text-secondary)',
-              fontFamily: 'var(--cyber-font-mono)',
+              color: 'var(--ink-soft)',
+              fontFamily: 'var(--mono-font)',
             }}
           >
             {footer}
@@ -107,4 +110,3 @@ export const CyberCard: React.FC<CyberCardProps> = ({
 };
 
 export default CyberCard;
-

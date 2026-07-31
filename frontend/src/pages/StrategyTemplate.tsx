@@ -174,14 +174,14 @@ const StrategyTemplate: React.FC = () => {
   };
 
   const codeBlockStyle = {
-    background: '#0a0a0a',
-    color: 'rgba(0, 255, 65, 0.9)',
+    background: 'var(--paper-card)',
+    color: 'rgba(var(--accent-rgb), 0.9)',
     padding: 16,
     borderRadius: 4,
     overflow: 'auto' as const,
     fontSize: 13,
     lineHeight: 1.5,
-    border: '1px solid rgba(0, 255, 65, 0.25)',
+    border: '1px solid rgba(var(--accent-rgb), 0.25)',
   };
 
   const items = [
@@ -207,7 +207,7 @@ const StrategyTemplate: React.FC = () => {
               </Button>
             </div>
             <pre style={codeBlockStyle}>
-              <code style={{ color: 'rgba(0, 255, 65, 0.9)' }}>{STRATEGY_TEMPLATES.ma_cross}</code>
+              <code style={{ color: 'rgba(var(--accent-rgb), 0.9)' }}>{STRATEGY_TEMPLATES.ma_cross}</code>
             </pre>
           </Space>
         </Card>
@@ -236,7 +236,7 @@ const StrategyTemplate: React.FC = () => {
               </Button>
             </div>
             <pre style={codeBlockStyle}>
-              <code style={{ color: 'rgba(0, 255, 65, 0.9)' }}>{STRATEGY_TEMPLATES.rsi}</code>
+              <code style={{ color: 'rgba(var(--accent-rgb), 0.9)' }}>{STRATEGY_TEMPLATES.rsi}</code>
             </pre>
           </Space>
         </Card>
@@ -266,7 +266,7 @@ const StrategyTemplate: React.FC = () => {
               </Button>
             </div>
             <pre style={codeBlockStyle}>
-              <code style={{ color: 'rgba(0, 255, 65, 0.9)' }}>{STRATEGY_TEMPLATES.custom}</code>
+              <code style={{ color: 'rgba(var(--accent-rgb), 0.9)' }}>{STRATEGY_TEMPLATES.custom}</code>
             </pre>
           </Space>
         </Card>
@@ -275,12 +275,12 @@ const StrategyTemplate: React.FC = () => {
   ];
 
   return (
-    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-      <Title level={2} style={{ color: '#00ff41' }}>
+    <div style={{ fontFamily: 'var(--mono-font)' }}>
+      <Title level={2} style={{ color: 'var(--cyber-neon-cyan)' }}>
         <BookOutlined /> 策略开发模板
       </Title>
       
-      <Paragraph style={{ color: 'rgba(0, 255, 65, 0.7)' }}>
+      <Paragraph style={{ color: 'rgba(var(--accent-rgb), 0.7)' }}>
         以下是内置策略的完整代码模板，你可以复制并修改来开发自己的策略。
         所有策略都继承自 BaseStrategy 基类，只需实现 generate_signals 方法即可。
       </Paragraph>

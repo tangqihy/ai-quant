@@ -116,7 +116,7 @@ const AddToWatchlistModal: React.FC<AddToWatchlistModalProps> = ({
       width={480}
     >
       <div style={{ marginBottom: 16 }}>
-        <span style={{ color: 'rgba(0, 255, 65, 0.6)' }}>股票：</span>
+        <span style={{ color: 'rgba(var(--accent-rgb), 0.6)' }}>股票：</span>
         <Tag color="green">{stockSymbol}</Tag>
         <span>{stockName}</span>
       </div>

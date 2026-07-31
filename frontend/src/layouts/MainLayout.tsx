@@ -14,11 +14,11 @@ import {
   MenuOutlined,
   RadarChartOutlined,
   AppstoreOutlined,
+  EditOutlined,
 } from '@ant-design/icons';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { SearchBar } from '../components/SearchBar';
 import { VersionDisplay } from '../components/common/VersionDisplay';
-import { GlitchText } from '../components/common/GlitchText';
 
 const { Header, Sider, Content } = Layout;
 
@@ -28,11 +28,24 @@ interface MainLayoutProps {
   onThemeToggle?: () => void;
 }
 
-const SIDER_BG = '#02040a';
-const HEADER_BG = '#050815';
-const CONTENT_BG = '#02040a';
-const NEON_CYAN = '#00f0ff';
-const NEON_BORDER = 'rgba(0, 240, 255, 0.32)';
+/** 手绘风 Logo：手写字 + 波浪下划线 */
+const BrandLogo: React.FC = () => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <EditOutlined style={{ color: 'var(--accent)', fontSize: 18 }} />
+    <span
+      className="hand-font"
+      style={{
+        fontSize: 24,
+        color: 'var(--ink)',
+        lineHeight: 1,
+        textDecoration: 'underline wavy var(--accent-warm) 2px',
+        textUnderlineOffset: 6,
+      }}
+    >
+      AI 量化手账
+    </span>
+  </div>
+);
 
 const MainLayout: React.FC<MainLayoutProps> = ({
   children,
@@ -69,16 +82,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', background: CONTENT_BG }}>
+    <Layout style={{ minHeight: '100vh', background: 'var(--paper)' }}>
       <Sider
         width={200}
         breakpoint="lg"
         collapsedWidth="0"
         trigger={null}
         style={{
-          background: SIDER_BG,
-          borderRight: `1px solid ${NEON_BORDER}`,
-          boxShadow: '0 0 18px rgba(0, 240, 255, 0.18)',
+          background: 'var(--paper-elevated)',
+          borderRight: '1.5px solid var(--line)',
         }}
       >
         <div
@@ -87,18 +99,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 8,
-            borderBottom: `1px solid ${NEON_BORDER}`,
+            borderBottom: '1.5px dashed var(--line)',
           }}
         >
-          <LineChartOutlined style={{ color: NEON_CYAN, fontSize: 20 }} />
-          <GlitchText
-            text="AI-QUANT"
-            className=""
-          />
+          <BrandLogo />
         </div>
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           selectedKeys={[selectedKey]}
           items={menuItems}
@@ -116,9 +123,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             left: 0,
             right: 0,
             textAlign: 'center',
-            color: 'rgba(0, 240, 255, 0.45)',
+            color: 'var(--ink-faint)',
             fontSize: 11,
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: 'var(--mono-font)',
           }}
         >
           Powered by Tushare
@@ -127,16 +134,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({
       <Layout>
         <Header
           style={{
-            background: HEADER_BG,
+            background: 'var(--paper-elevated)',
             padding: '0 12px 0 16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 8,
-            borderBottom: `1px solid ${NEON_BORDER}`,
+            borderBottom: '1.5px solid var(--line)',
             height: 56,
             minHeight: 56,
-            boxShadow: '0 0 12px rgba(0, 255, 65, 0.05)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, gap: 8 }}>
@@ -145,19 +151,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               type="text"
               icon={<MenuOutlined />}
               onClick={() => setDrawerOpen(true)}
-              style={{ color: NEON_CYAN, fontSize: 18 }}
+              style={{ color: 'var(--ink)', fontSize: 18 }}
             />
             <SearchBar />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span
               style={{
-                color: 'rgba(0, 240, 255, 0.65)',
+                color: 'var(--ink-soft)',
                 fontSize: 12,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: 'var(--mono-font)',
               }}
             >
               <UserOutlined />
@@ -173,7 +179,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           style={{
             margin: 0,
             padding: '16px 12px 64px',
-            background: CONTENT_BG,
+            background: 'var(--paper)',
             minHeight: 'calc(100vh - 56px)',
             overflow: 'auto',
           }}
@@ -191,7 +197,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         styles={{
           body: {
             padding: 0,
-            background: SIDER_BG,
+            background: 'var(--paper-elevated)',
           },
           header: { display: 'none' },
         }}
@@ -202,16 +208,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 8,
-            borderBottom: `1px solid ${NEON_BORDER}`,
-            color: NEON_CYAN,
+            borderBottom: '1.5px dashed var(--line)',
           }}
         >
-          <LineChartOutlined style={{ fontSize: 20 }} />
-          <GlitchText text="AI-QUANT" className="" />
+          <BrandLogo />
         </div>
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           selectedKeys={[selectedKey]}
           items={menuItems}
@@ -227,70 +230,44 @@ const MainLayout: React.FC<MainLayoutProps> = ({
           left: 0,
           right: 0,
           height: 48,
-          background: '#050815',
-          borderTop: `1px solid ${NEON_BORDER}`,
+          background: 'var(--paper-elevated)',
+          borderTop: '1.5px solid var(--line)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 32,
           zIndex: 100,
-          boxShadow: '0 -0 14px rgba(0, 240, 255, 0.22)',
         }}
       >
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: location.pathname === '/' ? NEON_CYAN : 'rgba(0, 240, 255, 0.55)',
-            fontSize: 13,
-            fontWeight: location.pathname === '/' ? 600 : 400,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontFamily: "'JetBrains Mono', monospace",
-          }}
-        >
-          <StarFilled /> 自选
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/backtest')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: location.pathname === '/backtest' ? NEON_CYAN : 'rgba(0, 240, 255, 0.55)',
-            fontSize: 13,
-            fontWeight: location.pathname === '/backtest' ? 600 : 400,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontFamily: "'JetBrains Mono', monospace",
-          }}
-        >
-          <ExperimentOutlined /> 回测
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/analysis')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: location.pathname === '/analysis' ? NEON_CYAN : 'rgba(0, 240, 255, 0.55)',
-            fontSize: 13,
-            fontWeight: location.pathname === '/analysis' ? 600 : 400,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontFamily: "'JetBrains Mono', monospace",
-          }}
-        >
-          <LineChartOutlined /> 分析
-        </button>
+        {[
+          { key: '/', icon: <StarFilled />, label: '自选' },
+          { key: '/backtest', icon: <ExperimentOutlined />, label: '回测' },
+          { key: '/analysis', icon: <LineChartOutlined />, label: '分析' },
+        ].map((item) => {
+          const active = location.pathname === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => navigate(item.key)}
+              style={{
+                background: active ? 'var(--marker)' : 'none',
+                border: 'none',
+                borderRadius: 'var(--sketch-radius-sm)',
+                padding: '4px 10px',
+                color: active ? 'var(--ink)' : 'var(--ink-faint)',
+                fontSize: 13,
+                fontWeight: active ? 600 : 400,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              {item.icon} {item.label}
+            </button>
+          );
+        })}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
           <VersionDisplay />
         </div>

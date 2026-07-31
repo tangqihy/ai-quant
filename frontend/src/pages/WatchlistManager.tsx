@@ -219,8 +219,8 @@ export const WatchlistManager: React.FC = () => {
     <div>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Space>
-          <StarFilled style={{ fontSize: 24, color: '#00ff41' }} />
-          <Title level={3} style={{ margin: 0, color: '#00ff41' }}>我的自选</Title>
+          <StarFilled style={{ fontSize: 24, color: 'var(--cyber-neon-cyan)' }} />
+          <Title level={3} style={{ margin: 0, color: 'var(--cyber-neon-cyan)' }}>我的自选</Title>
         </Space>
         <Button
           type="primary"
@@ -239,9 +239,9 @@ export const WatchlistManager: React.FC = () => {
             hoverable
             onClick={() => setSelectedGroupId('all')}
             style={{
-              borderRadius: 4,
-              borderColor: selectedGroupId === 'all' ? '#00ff41' : undefined,
-              boxShadow: selectedGroupId === 'all' ? '0 0 12px rgba(0, 255, 65, 0.25)' : undefined,
+              borderRadius: 'var(--sketch-radius-sm)',
+              borderColor: selectedGroupId === 'all' ? 'var(--accent)' : undefined,
+              background: selectedGroupId === 'all' ? 'var(--marker-soft)' : undefined,
             }}
             styles={{ body: { padding: 16 } }}
           >
@@ -251,13 +251,13 @@ export const WatchlistManager: React.FC = () => {
                   width: 48,
                   height: 48,
                   borderRadius: 4,
-                  backgroundColor: 'rgba(0, 255, 65, 0.12)',
+                  backgroundColor: 'rgba(var(--accent-rgb), 0.12)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <StarFilled style={{ fontSize: 24, color: '#00ff41' }} />
+                <StarFilled style={{ fontSize: 24, color: 'var(--cyber-neon-cyan)' }} />
               </div>
               <div>
                 <Text strong style={{ fontSize: 16, display: 'block' }}>

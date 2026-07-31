@@ -8,7 +8,7 @@ const getSystemTheme = (): Theme => {
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return 'dark';
   }
-  return 'dark'; // 赛博朋克风格默认深色
+  return 'light'; // 纸面手账默认亮色
 };
 
 const getStoredTheme = (): Theme | null => {
@@ -29,89 +29,96 @@ const storeTheme = (theme: Theme) => {
   }
 };
 
-/** 赛博朋克：霓虹绿主色 #00ff41，暗红点缀 #ff0040 */
-const NEON_GREEN = '#00ff41';
-const NEON_RED = '#ff0040';
+const SANS_FONT =
+  "-apple-system, BlinkMacSystemFont, 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', 'Segoe UI', sans-serif";
 
+/**
+ * 纸上手账配色：亮 = 暖纸 + 钢笔蓝黑；暗 = 深夜手账。
+ * CSS 变量由 index.css 按 data-theme 提供，这里只输出 antd token。
+ */
 export const antdThemeConfig = {
   light: {
     token: {
-      colorPrimary: NEON_GREEN,
-      colorError: NEON_RED,
-      colorBgBase: '#0a0a0a',
-      colorBgContainer: '#0d0d0d',
-      colorBgLayout: '#000000',
-      colorTextBase: NEON_GREEN,
-      colorText: 'rgba(0, 255, 65, 0.9)',
-      colorTextSecondary: 'rgba(0, 255, 65, 0.55)',
-      colorBorder: 'rgba(0, 255, 65, 0.25)',
-      fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
+      colorPrimary: '#2f5d8a',
+      colorInfo: '#2f5d8a',
+      colorError: '#c0392b',
+      colorSuccess: '#2f9e44',
+      colorWarning: '#d9480f',
+      colorBgBase: '#f4f0e6',
+      colorBgContainer: '#fffdf5',
+      colorBgElevated: '#faf7ee',
+      colorBgLayout: '#f4f0e6',
+      colorTextBase: '#2d2a26',
+      colorText: '#2d2a26',
+      colorTextSecondary: '#6e675c',
+      colorBorder: '#ddd5c3',
+      colorBorderSecondary: '#e8e2d3',
+      borderRadius: 10,
+      fontFamily: SANS_FONT,
     },
     components: {
       Layout: {
-        siderBg: '#000000',
-        headerBg: '#0a0a0a',
-        bodyBg: '#000000',
+        siderBg: '#faf7ee',
+        headerBg: '#faf7ee',
+        bodyBg: '#f4f0e6',
+      },
+      Menu: {
+        itemColor: '#6e675c',
+        itemSelectedColor: '#2d2a26',
+        itemSelectedBg: 'rgba(250, 204, 21, 0.32)',
+        itemHoverBg: 'rgba(250, 204, 21, 0.15)',
+        itemBg: 'transparent',
+        subMenuItemBg: 'transparent',
       },
     },
   },
   dark: {
     token: {
-      colorPrimary: NEON_GREEN,
-      colorError: NEON_RED,
-      colorBgBase: '#000000',
-      colorBgContainer: '#0a0a0a',
-      colorBgLayout: '#000000',
-      colorTextBase: 'rgba(0, 255, 65, 0.9)',
-      colorText: 'rgba(0, 255, 65, 0.9)',
-      colorTextSecondary: 'rgba(0, 255, 65, 0.55)',
-      colorBorder: 'rgba(0, 255, 65, 0.25)',
-      fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
+      colorPrimary: '#7aa5d1',
+      colorInfo: '#7aa5d1',
+      colorError: '#d4735a',
+      colorSuccess: '#4cba63',
+      colorWarning: '#e8890c',
+      colorBgBase: '#211e19',
+      colorBgContainer: '#2d2921',
+      colorBgElevated: '#28241d',
+      colorBgLayout: '#211e19',
+      colorTextBase: '#e6dfd2',
+      colorText: '#e6dfd2',
+      colorTextSecondary: '#a39a88',
+      colorBorder: '#3f3a2f',
+      colorBorderSecondary: '#363125',
+      borderRadius: 10,
+      fontFamily: SANS_FONT,
     },
     components: {
       Layout: {
-        siderBg: '#000000',
-        headerBg: '#0a0a0a',
-        bodyBg: '#000000',
+        siderBg: '#28241d',
+        headerBg: '#28241d',
+        bodyBg: '#211e19',
+      },
+      Menu: {
+        itemColor: '#a39a88',
+        itemSelectedColor: '#e6dfd2',
+        itemSelectedBg: 'rgba(250, 204, 21, 0.14)',
+        itemHoverBg: 'rgba(250, 204, 21, 0.07)',
+        itemBg: 'transparent',
+        subMenuItemBg: 'transparent',
       },
     },
-  },
-};
-
-export const cssVariables = {
-  light: {
-    '--cyber-bg': '#000000',
-    '--cyber-neon-green': NEON_GREEN,
-    '--cyber-neon-red': NEON_RED,
-    '--cyber-text': 'rgba(0, 255, 65, 0.9)',
-    '--cyber-text-secondary': 'rgba(0, 255, 65, 0.55)',
-    '--cyber-border': 'rgba(0, 255, 65, 0.25)',
-  },
-  dark: {
-    '--cyber-bg': '#000000',
-    '--cyber-neon-green': NEON_GREEN,
-    '--cyber-neon-red': NEON_RED,
-    '--cyber-text': 'rgba(0, 255, 65, 0.9)',
-    '--cyber-text-secondary': 'rgba(0, 255, 65, 0.55)',
-    '--cyber-border': 'rgba(0, 255, 65, 0.25)',
   },
 };
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => getStoredTheme() ?? getSystemTheme());
 
-  const applyCSSVariables = useCallback((t: Theme) => {
-    const root = document.documentElement;
-    const vars = cssVariables[t];
-    Object.entries(vars).forEach(([key, value]) => {
-      root.style.setProperty(key, value);
-    });
-    root.setAttribute('data-theme', t);
+  const applyThemeAttr = useCallback((t: Theme) => {
+    document.documentElement.setAttribute('data-theme', t);
   }, []);
 
   useEffect(() => {
-    applyCSSVariables(theme);
-  }, [theme, applyCSSVariables]);
+    applyThemeAttr(theme);
+  }, [theme, applyThemeAttr]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -119,25 +126,25 @@ export function useTheme() {
       if (!getStoredTheme()) {
         const newTheme = mediaQuery.matches ? 'dark' : 'light';
         setThemeState(newTheme);
-        applyCSSVariables(newTheme);
+        applyThemeAttr(newTheme);
       }
     };
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [applyCSSVariables]);
+  }, [applyThemeAttr]);
 
   const toggleTheme = useCallback(() => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setThemeState(newTheme);
     storeTheme(newTheme);
-    applyCSSVariables(newTheme);
-  }, [theme, applyCSSVariables]);
+    applyThemeAttr(newTheme);
+  }, [theme, applyThemeAttr]);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
     storeTheme(t);
-    applyCSSVariables(t);
-  }, [applyCSSVariables]);
+    applyThemeAttr(t);
+  }, [applyThemeAttr]);
 
   return {
     theme,

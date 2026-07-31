@@ -16,7 +16,7 @@ import {
   updateStockGroups as updateStockGroupsApi,
   updateStockNote as updateStockNoteApi,
 } from '../services/watchlistApi';
-import { getToken } from '../services/auth';
+import { getToken, AUTH_CHANGED_EVENT } from '../services/auth';
 import { message } from 'antd';
 
 const emptyData = (): WatchlistData => ({
@@ -70,6 +70,8 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [data, setData] = useState<WatchlistData>(emptyData);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  // token 在 localStorage 中、非响应式，登录成功（setToken）后需借此触发重新拉取
+  const [authToken, setAuthToken] = useState<string | null>(() => getToken());
   const isLoadedRef = useRef(false);
   // 加载序号：写操作会递增，使进行中的拉取结果失效，避免覆盖本地已提交的变更
   const loadSeqRef = useRef(0);
@@ -126,9 +128,20 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, []);
 
+  // 登录/登出时同步 token 状态；storage 事件覆盖多标签页场景
+  useEffect(() => {
+    const syncAuth = () => setAuthToken(getToken());
+    window.addEventListener(AUTH_CHANGED_EVENT, syncAuth);
+    window.addEventListener('storage', syncAuth);
+    return () => {
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncAuth);
+      window.removeEventListener('storage', syncAuth);
+    };
+  }, []);
+
   useEffect(() => {
     loadFromServer();
-  }, [loadFromServer]);
+  }, [loadFromServer, authToken]);
 
   const createGroup = useCallback(async (params: CreateGroupParams): Promise<WatchlistGroup | null> => {
     if (!ensureReady()) return null;

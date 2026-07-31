@@ -219,7 +219,7 @@ const SimulationTrading: React.FC = () => {
       key: 'unrealized_pnl',
       align: 'right' as const,
       render: (val: number, record: Position) => (
-        <span style={{ color: val >= 0 ? '#ff0040' : '#00ff41' }}>
+        <span style={{ color: val >= 0 ? 'var(--up)' : 'var(--down)' }}>
           {val >= 0 ? '+' : ''}{val.toFixed(2)} ({record.unrealized_pnl_pct >= 0 ? '+' : ''}{record.unrealized_pnl_pct.toFixed(2)}%)
         </span>
       ),
@@ -348,8 +348,8 @@ const SimulationTrading: React.FC = () => {
   const pnlPct = account?.initial_capital ? (pnl / account.initial_capital) * 100 : 0;
 
   return (
-    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-      <h2 style={{ marginBottom: 24, color: '#00ff41' }}>
+    <div style={{ fontFamily: 'var(--mono-font)' }}>
+      <h2 style={{ marginBottom: 24, color: 'var(--cyber-neon-cyan)' }}>
         <LineChartOutlined /> 模拟交易
       </h2>
       <Alert
@@ -368,7 +368,7 @@ const SimulationTrading: React.FC = () => {
               value={account?.total_value || 0}
               prefix="¥"
               precision={2}
-              styles={{ content: { color: isUp ? '#ff0040' : '#00ff41', fontSize: 24 } }}
+              styles={{ content: { color: isUp ? 'var(--up)' : 'var(--down)', fontSize: 24 } }}
             />
           </Card>
         </Col>
@@ -380,7 +380,7 @@ const SimulationTrading: React.FC = () => {
               prefix={pnl >= 0 ? '+' : ''}
               suffix={`(${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(2)}%)`}
               precision={2}
-              styles={{ content: { color: pnl >= 0 ? '#ff0040' : '#00ff41' } }}
+              styles={{ content: { color: pnl >= 0 ? 'var(--up)' : 'var(--down)' } }}
             />
           </Card>
         </Col>

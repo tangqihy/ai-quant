@@ -79,10 +79,10 @@ export function layoutCanvas(cards: CanvasCard[], edges: CanvasEdge[]): { nodes:
       label: e.label || undefined,
       animated: e.edge_type === 'triggers',
       style: {
-        stroke: e.edge_type === 'contradicts' ? '#f5222d' : e.edge_type === 'supports' ? '#52c41a' : '#00f0ff',
+        stroke: e.edge_type === 'contradicts' ? '#f5222d' : e.edge_type === 'supports' ? '#52c41a' : 'var(--cyber-neon-cyan)',
         strokeWidth: 1.5,
       },
-      labelStyle: { fill: '#8899aa', fontSize: 11 },
+      labelStyle: { fill: 'var(--cyber-text-secondary)', fontSize: 11 },
     }));
 
   return { nodes, edges: rfEdges };

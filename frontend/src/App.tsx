@@ -69,7 +69,7 @@ function App() {
     <ConfigProvider
       locale={zhCN}
       theme={{
-        algorithm: antdTheme.darkAlgorithm,
+        algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
         ...antdConfig,
       }}
     >

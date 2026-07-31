@@ -8,6 +8,7 @@ import KLineChart from '../components/charts/KLineChart';
 import StrategyParamTuner from '../components/strategy/StrategyParamTuner';
 import RobustnessPanel from '../components/strategy/RobustnessPanel';
 import SymbolInput from '../components/common/SymbolInput';
+import { accentRgba, chartColors } from '../utils/chartTheme';
 
 const { Text } = Typography;
 
@@ -128,7 +129,8 @@ const Analysis: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveTune, strategy, paramsKey, activeRange.start, activeRange.end, symbol]);
 
-  // 收益曲线 option
+  // 收益曲线 option（canvas 不认 CSS 变量，渲染期解析主题色）
+  const C = chartColors();
   const revenueOption = result?.daily_values
     ? {
         tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
@@ -136,17 +138,17 @@ const Analysis: React.FC = () => {
         xAxis: {
           type: 'category',
           data: result.daily_values.map((d: any) => d.date),
-          axisLabel: { color: 'rgba(0, 255, 65, 0.6)' },
-          axisLine: { lineStyle: { color: 'rgba(0, 255, 65, 0.4)' } },
+          axisLabel: { color: C.inkFaint },
+          axisLine: { lineStyle: { color: C.line } },
         },
         yAxis: {
           type: 'value',
           axisLabel: {
-            color: 'rgba(0, 255, 65, 0.6)',
+            color: C.inkFaint,
             formatter: (v: number) => (v / 10000).toFixed(0) + '万',
           },
-          axisLine: { lineStyle: { color: 'rgba(0, 255, 65, 0.4)' } },
-          splitLine: { lineStyle: { color: 'rgba(0, 255, 65, 0.1)' } },
+          axisLine: { lineStyle: { color: C.line } },
+          splitLine: { lineStyle: { color: C.line } },
         },
         dataZoom: [
           { type: 'inside', start: 0, end: 100 },
@@ -159,14 +161,14 @@ const Analysis: React.FC = () => {
             smooth: true,
             symbol: 'none',
             data: result.daily_values.map((d: any) => d.value),
-            lineStyle: { width: 2, color: '#00ff41' },
+            lineStyle: { width: 2, color: C.accent },
             areaStyle: {
               color: {
                 type: 'linear',
                 x: 0, y: 0, x2: 0, y2: 1,
                 colorStops: [
-                  { offset: 0, color: 'rgba(0, 255, 65, 0.25)' },
-                  { offset: 1, color: 'rgba(0, 255, 65, 0.02)' },
+                  { offset: 0, color: accentRgba(0.25) },
+                  { offset: 1, color: accentRgba(0.02) },
                 ],
               },
             },
@@ -188,7 +190,7 @@ const Analysis: React.FC = () => {
       dataIndex: 'action',
       key: 'action',
       render: (v: string) => (
-        <span style={{ color: v === 'BUY' ? '#ff0040' : '#00ff41', fontWeight: 'bold' }}>
+        <span style={{ color: v === 'BUY' ? 'var(--up)' : 'var(--down)', fontWeight: 'bold' }}>
           {v === 'BUY' ? '买入' : '卖出'}
         </span>
       ),
@@ -218,8 +220,8 @@ const Analysis: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-      <h2 style={{ marginBottom: 24, color: '#00ff41' }}>收益分析</h2>
+    <div style={{ fontFamily: 'var(--mono-font)' }}>
+      <h2 style={{ marginBottom: 24, color: 'var(--cyber-neon-cyan)' }}>收益分析</h2>
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
@@ -268,7 +270,7 @@ const Analysis: React.FC = () => {
 
       <Card
         size="small"
-        title={<span style={{ color: '#00f0ff' }}>策略参数微调</span>}
+        title={<span style={{ color: 'var(--cyber-neon-cyan)' }}>策略参数微调</span>}
         style={{ marginBottom: 16 }}
         extra={
           liveTune && result ? (
@@ -372,7 +374,7 @@ const Analysis: React.FC = () => {
                     value={result.total_return}
                     precision={2}
                     suffix="%"
-                    styles={{ content: { color: result.total_return >= 0 ? '#00ff41' : '#ff0040' } }}
+                    styles={{ content: { color: result.total_return >= 0 ? 'var(--cyber-neon-cyan)' : 'var(--cyber-neon-pink)' } }}
                   />
                 </Card>
               </Col>
@@ -383,7 +385,7 @@ const Analysis: React.FC = () => {
                     value={result.annual_return}
                     precision={2}
                     suffix="%"
-                    styles={{ content: { color: result.annual_return >= 0 ? '#00ff41' : '#ff0040' } }}
+                    styles={{ content: { color: result.annual_return >= 0 ? 'var(--cyber-neon-cyan)' : 'var(--cyber-neon-pink)' } }}
                   />
                 </Card>
               </Col>
@@ -395,18 +397,18 @@ const Analysis: React.FC = () => {
                     precision={2}
                     prefix={<ArrowDownOutlined />}
                     suffix="%"
-                    styles={{ content: { color: '#ff0040' } }}
+                    styles={{ content: { color: 'var(--cyber-neon-pink)' } }}
                   />
                 </Card>
               </Col>
               <Col xs={12} sm={8} lg={4}>
                 <Card>
-                  <Statistic title="胜率" value={result.win_rate} precision={1} suffix="%" styles={{ content: { color: '#00ff41' } }} />
+                  <Statistic title="胜率" value={result.win_rate} precision={1} suffix="%" styles={{ content: { color: 'var(--cyber-neon-cyan)' } }} />
                 </Card>
               </Col>
               <Col xs={12} sm={8} lg={4}>
                 <Card>
-                  <Statistic title="交易次数" value={result.total_trades} styles={{ content: { color: '#00ff41' } }} />
+                  <Statistic title="交易次数" value={result.total_trades} styles={{ content: { color: 'var(--cyber-neon-cyan)' } }} />
                 </Card>
               </Col>
               <Col xs={12} sm={8} lg={4}>
@@ -416,7 +418,7 @@ const Analysis: React.FC = () => {
                     value={result.final_value}
                     precision={0}
                     prefix="¥"
-                    styles={{ content: { color: result.final_value >= result.initial_capital ? '#00ff41' : '#ff0040' } }}
+                    styles={{ content: { color: result.final_value >= result.initial_capital ? 'var(--cyber-neon-cyan)' : 'var(--cyber-neon-pink)' } }}
                   />
                 </Card>
               </Col>
@@ -428,7 +430,7 @@ const Analysis: React.FC = () => {
                   {revenueOption ? (
                     <ReactECharts option={revenueOption} style={{ height: '100%', width: '100%' }} />
                   ) : (
-                    <div style={{ textAlign: 'center', padding: 40, color: 'rgba(0, 255, 65, 0.5)' }}>暂无数据</div>
+                    <div style={{ textAlign: 'center', padding: 40, color: 'rgba(var(--accent-rgb), 0.5)' }}>暂无数据</div>
                   )}
                 </Card>
               </Col>
@@ -465,7 +467,7 @@ const Analysis: React.FC = () => {
                         </Col>
                         <Col xs={24} lg={12}>
                           <Card title="风险指标" size="small">
-                            <Statistic title="最大回撤" value={result.max_drawdown} suffix="%" precision={2} styles={{ content: { color: '#ff0040' } }} />
+                            <Statistic title="最大回撤" value={result.max_drawdown} suffix="%" precision={2} styles={{ content: { color: 'var(--cyber-neon-pink)' } }} />
                             <Statistic title="胜率" value={result.win_rate} suffix="%" precision={1} />
                             <Statistic title="交易次数" value={result.total_trades} />
                           </Card>
@@ -481,7 +483,7 @@ const Analysis: React.FC = () => {
 
         {!result && !loading && (
           <Card style={{ textAlign: 'center', padding: 40 }}>
-            <p style={{ color: 'rgba(0, 255, 65, 0.5)', fontSize: 16 }}>选择股票和策略，点击"运行回测"查看分析结果</p>
+            <p style={{ color: 'rgba(var(--accent-rgb), 0.5)', fontSize: 16 }}>选择股票和策略，点击"运行回测"查看分析结果</p>
           </Card>
         )}
       </Spin>

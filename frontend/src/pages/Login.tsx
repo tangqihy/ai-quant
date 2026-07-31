@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, message } from 'antd';
-import { LockOutlined, LineChartOutlined } from '@ant-design/icons';
+import { Form, Input, Button, message } from 'antd';
+import { LockOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { loginApi } from '../services/api';
 import { setToken } from '../services/auth';
@@ -39,25 +39,46 @@ const Login: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#000000',
+        background: 'var(--paper)',
         padding: 24,
-        fontFamily: "'JetBrains Mono', monospace",
       }}
     >
-      <Card
+      <div
         style={{
           width: '100%',
           maxWidth: 400,
-          borderRadius: 4,
-          border: '1px solid rgba(0, 255, 65, 0.25)',
-          boxShadow: '0 0 24px rgba(0, 255, 65, 0.15)',
-          background: '#0a0a0a',
+          background: 'var(--paper-card)',
+          border: '1.5px solid var(--line-strong)',
+          borderRadius: 'var(--sketch-radius)',
+          boxShadow: '4px 6px 0 rgba(45, 42, 38, 0.1)',
+          padding: '36px 32px 28px',
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <LineChartOutlined style={{ fontSize: 48, color: '#00ff41', marginBottom: 12, textShadow: '0 0 12px rgba(0, 255, 65, 0.5)' }} />
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, color: '#00ff41' }}>AI 量化系统</h1>
-          <p style={{ margin: '8px 0 0', color: 'rgba(0, 255, 65, 0.6)', fontSize: 14 }}>请输入访问密码</p>
+          <EditOutlined style={{ fontSize: 36, color: 'var(--accent)', marginBottom: 8 }} />
+          <h1
+            className="hand-font"
+            style={{
+              margin: 0,
+              fontSize: 34,
+              fontWeight: 400,
+              color: 'var(--ink)',
+              textDecoration: 'underline wavy var(--accent-warm) 2px',
+              textUnderlineOffset: 8,
+            }}
+          >
+            AI 量化手账
+          </h1>
+          <p
+            style={{
+              margin: '12px 0 0',
+              color: 'var(--ink-soft)',
+              fontSize: 13,
+              fontFamily: 'var(--mono-font)',
+            }}
+          >
+            记录你的每一笔研究
+          </p>
         </div>
         <Form
           name="login"
@@ -72,17 +93,17 @@ const Login: React.FC = () => {
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="密码"
+              placeholder="访问密码"
               autoFocus
             />
           </Form.Item>
           <Form.Item style={{ marginBottom: 0 }}>
             <Button type="primary" htmlType="submit" loading={loading} block>
-              登录
+              翻开手账
             </Button>
           </Form.Item>
         </Form>
-      </Card>
+      </div>
     </div>
   );
 };

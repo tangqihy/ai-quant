@@ -56,16 +56,16 @@ import SymbolInput from '../components/common/SymbolInput';
 
 const { Text, Title } = Typography;
 
-const NEON = '#00f0ff';
+const NEON = 'var(--cyber-neon-cyan)';
 const cardStyle: React.CSSProperties = {
   background: 'rgba(5, 12, 24, 0.85)',
-  border: '1px solid rgba(0, 240, 255, 0.28)',
+  border: '1px solid rgba(var(--accent-rgb), 0.28)',
 };
 
 function actionColor(action?: string) {
-  if (action === 'BUY') return '#ff0040';
-  if (action === 'SELL') return '#00ff41';
-  return 'rgba(0, 240, 255, 0.7)';
+  if (action === 'BUY') return 'var(--up)';
+  if (action === 'SELL') return 'var(--down)';
+  return 'var(--accent)';
 }
 
 function barToSignal(
@@ -488,7 +488,7 @@ const SignalMonitor: React.FC = () => {
   ];
 
   return (
-    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+    <div style={{ fontFamily: 'var(--mono-font)' }}>
       <Space style={{ marginBottom: 16 }} align="center">
         <RadarChartOutlined style={{ color: NEON, fontSize: 22 }} />
         <Title level={3} style={{ margin: 0, color: NEON }}>
@@ -500,7 +500,7 @@ const SignalMonitor: React.FC = () => {
       <Alert
         type="info"
         showIcon
-        style={{ marginBottom: 16, background: 'rgba(0,240,255,0.06)', borderColor: 'rgba(0,240,255,0.25)' }}
+        style={{ marginBottom: 16, background: 'rgba(var(--accent-rgb),0.06)', borderColor: 'rgba(var(--accent-rgb),0.25)' }}
         message="允许下单时段：09:35-10:30 / 13:30-14:30。盘后请切「历史回放」加载时间轴后逐根步进自测；日线默认按 10:00 判时段。"
       />
 
@@ -717,7 +717,7 @@ const SignalMonitor: React.FC = () => {
                   {replayChartData.length > 0 && (
                     <div
                       style={{
-                        border: '1px solid rgba(0,240,255,0.2)',
+                        border: '1px solid rgba(var(--accent-rgb),0.2)',
                         borderRadius: 4,
                         padding: '8px 0 0',
                         background: 'rgba(0,0,0,0.25)',
@@ -779,7 +779,7 @@ const SignalMonitor: React.FC = () => {
                       margin: 0,
                       padding: 12,
                       background: 'rgba(0,0,0,0.35)',
-                      color: 'rgba(0,240,255,0.85)',
+                      color: 'rgba(var(--accent-rgb),0.85)',
                       fontSize: 12,
                       overflow: 'auto',
                     }}

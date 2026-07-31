@@ -19,25 +19,26 @@ import {
   FactorSummary,
 } from '../services/api';
 import { GlitchText } from '../components/common/GlitchText';
+import { chartColors } from '../utils/chartTheme';
 
-const NEON_CYAN = '#00f0ff';
-const NEON_PINK = '#ff00a0';
-const NEON_GREEN = '#00ff41';
-const CARD_BG = 'rgba(5, 8, 21, 0.85)';
-const CARD_BORDER = 'rgba(0, 240, 255, 0.18)';
+const NEON_CYAN = 'var(--cyber-neon-cyan)';
+const NEON_PINK = 'var(--cyber-neon-pink)';
+const NEON_GREEN = 'var(--cyber-neon-cyan)';
+const CARD_BG = 'var(--paper-card)';
+const CARD_BORDER = 'rgba(var(--accent-rgb), 0.18)';
 
 const verdictConfig: Record<string, { color: string; text: string }> = {
-  effective: { color: '#00ff41', text: '有效' },
+  effective: { color: 'var(--cyber-neon-cyan)', text: '有效' },
   weak: { color: '#faad14', text: '弱信号' },
   invalid: { color: '#ff4d4f', text: '无效' },
 };
 
 const categoryColors: Record<string, string> = {
-  价值: '#00f0ff',
-  动量: '#ff00a0',
+  价值: 'var(--cyber-neon-cyan)',
+  动量: 'var(--cyber-neon-pink)',
   质量: '#7c3aed',
   波动率: '#faad14',
-  流动性: '#00ff41',
+  流动性: 'var(--cyber-neon-cyan)',
   情绪: '#ff6b6b',
   技术: '#36cfc9',
   事件: '#f759ab',
@@ -90,17 +91,18 @@ const FactorAnalysis: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // ---------- 分组收益图 option ----------
+  // ---------- 分组收益图 option（canvas 不认 CSS 变量，渲染期解析主题色） ----------
   const currentFactor = factorData?.factors.find((f) => f.name === selectedFactor);
+  const C = chartColors();
 
   const groupReturnOption =
     currentFactor && currentFactor.group_returns.length > 0
       ? {
           tooltip: {
             trigger: 'axis',
-            backgroundColor: 'rgba(5, 8, 21, 0.92)',
-            borderColor: NEON_CYAN,
-            textStyle: { color: '#e0e0e0', fontFamily: "'JetBrains Mono', monospace", fontSize: 12 },
+            backgroundColor: C.paperCard,
+            borderColor: C.lineStrong,
+            textStyle: { color: C.ink, fontFamily: 'var(--mono-font)', fontSize: 12 },
             axisPointer: { type: 'shadow' },
           },
           grid: { left: '3%', right: '4%', bottom: '8%', top: '12%', containLabel: true },
@@ -109,19 +111,19 @@ const FactorAnalysis: React.FC = () => {
             data: currentFactor.group_labels.length > 0
               ? currentFactor.group_labels
               : currentFactor.group_returns.map((_, i) => `G${i + 1}`),
-            axisLabel: { color: 'rgba(0, 240, 255, 0.6)', fontFamily: "'JetBrains Mono', monospace" },
-            axisLine: { lineStyle: { color: 'rgba(0, 240, 255, 0.3)' } },
+            axisLabel: { color: C.inkFaint, fontFamily: 'var(--mono-font)' },
+            axisLine: { lineStyle: { color: C.line } },
           },
           yAxis: {
             type: 'value',
             name: '收益率(%)',
-            nameTextStyle: { color: 'rgba(0, 240, 255, 0.5)' },
+            nameTextStyle: { color: C.inkSoft },
             axisLabel: {
-              color: 'rgba(0, 240, 255, 0.6)',
+              color: C.inkFaint,
               formatter: (v: number) => v.toFixed(2) + '%',
             },
-            axisLine: { lineStyle: { color: 'rgba(0, 240, 255, 0.3)' } },
-            splitLine: { lineStyle: { color: 'rgba(0, 240, 255, 0.08)' } },
+            axisLine: { lineStyle: { color: C.line } },
+            splitLine: { lineStyle: { color: C.line } },
           },
           series: [
             {
@@ -131,21 +133,8 @@ const FactorAnalysis: React.FC = () => {
               data: currentFactor.group_returns.map((v) => ({
                 value: v,
                 itemStyle: {
-                  color: v >= 0
-                    ? {
-                        type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                        colorStops: [
-                          { offset: 0, color: 'rgba(0, 255, 65, 0.85)' },
-                          { offset: 1, color: 'rgba(0, 255, 65, 0.15)' },
-                        ],
-                      }
-                    : {
-                        type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-                        colorStops: [
-                          { offset: 0, color: 'rgba(255, 0, 64, 0.15)' },
-                          { offset: 1, color: 'rgba(255, 0, 64, 0.85)' },
-                        ],
-                      },
+                  // A 股红涨绿跌
+                  color: v >= 0 ? C.up : C.down,
                   borderRadius: v >= 0 ? [4, 4, 0, 0] : [0, 0, 4, 4],
                 },
               })),
@@ -153,8 +142,8 @@ const FactorAnalysis: React.FC = () => {
                 show: true,
                 position: 'top',
                 formatter: (p: any) => p.value.toFixed(2) + '%',
-                color: 'rgba(0, 240, 255, 0.8)',
-                fontFamily: "'JetBrains Mono', monospace",
+                color: C.inkSoft,
+                fontFamily: 'var(--mono-font)',
                 fontSize: 11,
               },
             },
@@ -190,7 +179,7 @@ const FactorAnalysis: React.FC = () => {
             background: 'transparent',
             border: `1px solid ${categoryColors[cat] || NEON_CYAN}`,
             color: categoryColors[cat] || NEON_CYAN,
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: 'var(--mono-font)',
           }}
         >
           {cat}
@@ -229,7 +218,7 @@ const FactorAnalysis: React.FC = () => {
                 }}
               />
             </div>
-            <span style={{ color, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 600 }}>
+            <span style={{ color, fontFamily: 'var(--mono-font)', fontSize: 12, fontWeight: 600 }}>
               {v.toFixed(3)}
             </span>
           </div>
@@ -245,8 +234,8 @@ const FactorAnalysis: React.FC = () => {
       render: (v: number) => (
         <span
           style={{
-            color: v >= 0 ? NEON_GREEN : '#ff0040',
-            fontFamily: "'JetBrains Mono', monospace",
+            color: v >= 0 ? 'var(--up)' : 'var(--down)',
+            fontFamily: 'var(--mono-font)',
           }}
         >
           {v.toFixed(4)}
@@ -259,7 +248,7 @@ const FactorAnalysis: React.FC = () => {
       key: 'ic_std',
       width: 100,
       render: (v: number) => (
-        <span style={{ color: 'rgba(0, 240, 255, 0.6)', fontFamily: "'JetBrains Mono', monospace" }}>
+        <span style={{ color: 'rgba(var(--accent-rgb), 0.6)', fontFamily: 'var(--mono-font)' }}>
           {v.toFixed(4)}
         </span>
       ),
@@ -284,7 +273,7 @@ const FactorAnalysis: React.FC = () => {
               border: `1px solid ${cfg.color}`,
               color: cfg.color,
               fontWeight: 600,
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: 'var(--mono-font)',
             }}
           >
             {cfg.text}
@@ -324,7 +313,7 @@ const FactorAnalysis: React.FC = () => {
         const absV = Math.abs(v);
         const color = absV >= 2 ? NEON_GREEN : absV >= 1 ? '#faad14' : '#ff4d4f';
         return (
-          <span style={{ color, fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+          <span style={{ color, fontFamily: 'var(--mono-font)', fontWeight: 600 }}>
             {v.toFixed(3)}
           </span>
         );
@@ -343,7 +332,7 @@ const FactorAnalysis: React.FC = () => {
               background: 'transparent',
               border: `1px solid ${color}`,
               color,
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: 'var(--mono-font)',
             }}
           >
             {v === 'effective' ? '有效' : v === 'weak' ? '弱信号' : '无效'}
@@ -371,7 +360,7 @@ const FactorAnalysis: React.FC = () => {
   };
 
   return (
-    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+    <div style={{ fontFamily: 'var(--mono-font)' }}>
       {/* 页面标题 */}
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
         <FundOutlined style={{ color: NEON_CYAN, fontSize: 24 }} />
@@ -382,7 +371,7 @@ const FactorAnalysis: React.FC = () => {
           </Button>
         </Space>
         {factorData?.updated_at && (
-          <span style={{ color: 'rgba(0, 240, 255, 0.4)', fontSize: 12, marginLeft: 'auto' }}>
+          <span style={{ color: 'rgba(var(--accent-rgb), 0.4)', fontSize: 12, marginLeft: 'auto' }}>
             更新: {factorData.updated_at}
           </span>
         )}
@@ -394,40 +383,40 @@ const FactorAnalysis: React.FC = () => {
           <Col xs={12} sm={6}>
             <Card style={cardStyle} bodyStyle={{ padding: '16px 20px' }}>
               <Statistic
-                title={<span style={{ color: 'rgba(0, 240, 255, 0.5)', fontSize: 12 }}>有效因子</span>}
+                title={<span style={{ color: 'rgba(var(--accent-rgb), 0.5)', fontSize: 12 }}>有效因子</span>}
                 value={summary?.effective_count ?? 0}
                 prefix={<CheckCircleOutlined style={{ color: NEON_GREEN }} />}
-                valueStyle={{ color: NEON_GREEN, fontFamily: "'JetBrains Mono', monospace", fontSize: 28 }}
+                valueStyle={{ color: NEON_GREEN, fontFamily: 'var(--mono-font)', fontSize: 28 }}
               />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} bodyStyle={{ padding: '16px 20px' }}>
               <Statistic
-                title={<span style={{ color: 'rgba(0, 240, 255, 0.5)', fontSize: 12 }}>弱信号因子</span>}
+                title={<span style={{ color: 'rgba(var(--accent-rgb), 0.5)', fontSize: 12 }}>弱信号因子</span>}
                 value={summary?.weak_count ?? 0}
                 prefix={<WarningOutlined style={{ color: '#faad14' }} />}
-                valueStyle={{ color: '#faad14', fontFamily: "'JetBrains Mono', monospace", fontSize: 28 }}
+                valueStyle={{ color: '#faad14', fontFamily: 'var(--mono-font)', fontSize: 28 }}
               />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} bodyStyle={{ padding: '16px 20px' }}>
               <Statistic
-                title={<span style={{ color: 'rgba(0, 240, 255, 0.5)', fontSize: 12 }}>无效因子</span>}
+                title={<span style={{ color: 'rgba(var(--accent-rgb), 0.5)', fontSize: 12 }}>无效因子</span>}
                 value={summary?.invalid_count ?? 0}
                 prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                valueStyle={{ color: '#ff4d4f', fontFamily: "'JetBrains Mono', monospace", fontSize: 28 }}
+                valueStyle={{ color: '#ff4d4f', fontFamily: 'var(--mono-font)', fontSize: 28 }}
               />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
             <Card style={cardStyle} bodyStyle={{ padding: '16px 20px' }}>
               <Statistic
-                title={<span style={{ color: 'rgba(0, 240, 255, 0.5)', fontSize: 12 }}>测试截面数</span>}
+                title={<span style={{ color: 'rgba(var(--accent-rgb), 0.5)', fontSize: 12 }}>测试截面数</span>}
                 value={summary?.cross_sections ?? 0}
                 prefix={<BarChartOutlined style={{ color: NEON_CYAN }} />}
-                valueStyle={{ color: NEON_CYAN, fontFamily: "'JetBrains Mono', monospace", fontSize: 28 }}
+                valueStyle={{ color: NEON_CYAN, fontFamily: 'var(--mono-font)', fontSize: 28 }}
               />
             </Card>
           </Col>
@@ -439,16 +428,16 @@ const FactorAnalysis: React.FC = () => {
             style={{ ...cardStyle, marginBottom: 20 }}
             bodyStyle={{ padding: '10px 20px', display: 'flex', gap: 32, flexWrap: 'wrap' }}
           >
-            <span style={{ color: 'rgba(0, 240, 255, 0.45)', fontSize: 12 }}>
+            <span style={{ color: 'rgba(var(--accent-rgb), 0.45)', fontSize: 12 }}>
               测试周期: <span style={{ color: NEON_CYAN }}>{summary.test_period}</span>
             </span>
-            <span style={{ color: 'rgba(0, 240, 255, 0.45)', fontSize: 12 }}>
+            <span style={{ color: 'rgba(var(--accent-rgb), 0.45)', fontSize: 12 }}>
               前瞻天数: <span style={{ color: NEON_CYAN }}>{summary.forward_days}日</span>
             </span>
-            <span style={{ color: 'rgba(0, 240, 255, 0.45)', fontSize: 12 }}>
+            <span style={{ color: 'rgba(var(--accent-rgb), 0.45)', fontSize: 12 }}>
               中性化: <span style={{ color: NEON_CYAN }}>{summary.neutralization}</span>
             </span>
-            <span style={{ color: 'rgba(0, 240, 255, 0.45)', fontSize: 12 }}>
+            <span style={{ color: 'rgba(var(--accent-rgb), 0.45)', fontSize: 12 }}>
               因子总数: <span style={{ color: NEON_CYAN }}>{summary.total_factors}</span>
             </span>
           </Card>
@@ -457,7 +446,7 @@ const FactorAnalysis: React.FC = () => {
         {/* ========== 因子IC表格 ========== */}
         <Card
           title={
-            <span style={{ color: NEON_CYAN, fontFamily: "'JetBrains Mono', monospace" }}>
+            <span style={{ color: NEON_CYAN, fontFamily: 'var(--mono-font)' }}>
               因子IC检验结果
             </span>
           }
@@ -475,7 +464,7 @@ const FactorAnalysis: React.FC = () => {
             />
           ) : (
             <Empty
-              description={<span style={{ color: 'rgba(0, 240, 255, 0.4)' }}>暂无因子数据</span>}
+              description={<span style={{ color: 'rgba(var(--accent-rgb), 0.4)' }}>暂无因子数据</span>}
               style={{ padding: 40 }}
             />
           )}
@@ -485,7 +474,7 @@ const FactorAnalysis: React.FC = () => {
         <Card
           title={
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <span style={{ color: NEON_CYAN, fontFamily: "'JetBrains Mono', monospace" }}>
+              <span style={{ color: NEON_CYAN, fontFamily: 'var(--mono-font)' }}>
                 分组收益图
               </span>
               <Select
@@ -515,14 +504,14 @@ const FactorAnalysis: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'rgba(0, 240, 255, 0.3)',
+                color: 'rgba(var(--accent-rgb), 0.3)',
               }}
             >
               请选择一个因子查看分组收益
             </div>
           )}
           {currentFactor && (
-            <div style={{ textAlign: 'center', color: 'rgba(0, 240, 255, 0.45)', fontSize: 12, marginTop: 4 }}>
+            <div style={{ textAlign: 'center', color: 'rgba(var(--accent-rgb), 0.45)', fontSize: 12, marginTop: 4 }}>
               {currentFactor.display_name} — {currentFactor.description}
             </div>
           )}
@@ -532,7 +521,7 @@ const FactorAnalysis: React.FC = () => {
         {factorData && factorData.event_factors && factorData.event_factors.length > 0 && (
           <Card
             title={
-              <span style={{ color: NEON_PINK, fontFamily: "'JetBrains Mono', monospace" }}>
+              <span style={{ color: NEON_PINK, fontFamily: 'var(--mono-font)' }}>
                 事件因子
               </span>
             }
@@ -555,11 +544,11 @@ const FactorAnalysis: React.FC = () => {
           <Card style={{ ...cardStyle, textAlign: 'center', padding: 40 }}>
             <Empty
               description={
-                <div style={{ color: 'rgba(0, 240, 255, 0.5)', fontSize: 14, lineHeight: 1.8 }}>
+                <div style={{ color: 'rgba(var(--accent-rgb), 0.5)', fontSize: 14, lineHeight: 1.8 }}>
                   {factorData.needs_generation ? (
                     <>
                       <div>因子IC数据尚未生成</div>
-                      <div style={{ fontSize: 12, marginTop: 8, color: 'rgba(0, 240, 255, 0.35)' }}>
+                      <div style={{ fontSize: 12, marginTop: 8, color: 'rgba(var(--accent-rgb), 0.35)' }}>
                         请在后端运行 <code style={{ color: NEON_GREEN }}>python scripts/run_factor_ic.py</code>
                         <br />
                         该脚本会下载行情数据并计算各因子的IC/ICIR，生成 <code style={{ color: NEON_GREEN }}>data/factor_ic.json</code>
@@ -577,7 +566,7 @@ const FactorAnalysis: React.FC = () => {
           <Card style={{ ...cardStyle, textAlign: 'center', padding: 60 }}>
             <Empty
               description={
-                <span style={{ color: 'rgba(0, 240, 255, 0.4)', fontSize: 14 }}>
+                <span style={{ color: 'rgba(var(--accent-rgb), 0.4)', fontSize: 14 }}>
                   未找到因子数据，请确认后端因子分析服务已运行
                 </span>
               }

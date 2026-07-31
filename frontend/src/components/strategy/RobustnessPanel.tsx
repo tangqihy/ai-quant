@@ -23,6 +23,7 @@ import {
   RobustnessResult,
 } from '../../services/api';
 import { useWatchlist } from '../../hooks/useWatchlist';
+import { accentRgba, chartColors } from '../../utils/chartTheme';
 
 const { Text } = Typography;
 
@@ -154,6 +155,7 @@ const RobustnessPanel: React.FC<RobustnessPanelProps> = ({
       baselineLabel = labels[bestIdx];
     }
 
+    const C = chartColors();
     return {
       tooltip: { trigger: 'axis' },
       grid: { left: 40, right: 16, top: 28, bottom: 40 },
@@ -161,19 +163,19 @@ const RobustnessPanel: React.FC<RobustnessPanelProps> = ({
         type: 'category',
         data: labels,
         name: '收益%',
-        axisLabel: { color: 'rgba(0,255,65,0.55)', fontSize: 10 },
+        axisLabel: { color: C.inkFaint, fontSize: 10 },
       },
       yAxis: {
         type: 'value',
         name: '次数',
-        axisLabel: { color: 'rgba(0,255,65,0.55)' },
-        splitLine: { lineStyle: { color: 'rgba(0,255,65,0.08)' } },
+        axisLabel: { color: C.inkFaint },
+        splitLine: { lineStyle: { color: C.line } },
       },
       series: [
         {
           type: 'bar',
           data: counts,
-          itemStyle: { color: 'rgba(0,240,255,0.65)' },
+          itemStyle: { color: accentRgba(0.65) },
           markLine:
             baselineLabel != null
               ? {
@@ -261,8 +263,8 @@ const RobustnessPanel: React.FC<RobustnessPanelProps> = ({
       size="small"
       title={
         <Space>
-          <ExperimentOutlined style={{ color: '#00f0ff' }} />
-          <span style={{ color: '#00f0ff' }}>参数稳健性检验</span>
+          <ExperimentOutlined style={{ color: 'var(--cyber-neon-cyan)' }} />
+          <span style={{ color: 'var(--cyber-neon-cyan)' }}>参数稳健性检验</span>
         </Space>
       }
       style={{ marginBottom: 16 }}
@@ -353,7 +355,7 @@ const RobustnessPanel: React.FC<RobustnessPanelProps> = ({
                   value={(summary.stability_score ?? 0) * 100}
                   precision={1}
                   suffix="%"
-                  styles={{ content: { color: '#00f0ff', fontSize: 20 } }}
+                  styles={{ content: { color: 'var(--cyber-neon-cyan)', fontSize: 20 } }}
                 />
               </Col>
               <Col xs={12} sm={8} md={4}>
@@ -370,7 +372,7 @@ const RobustnessPanel: React.FC<RobustnessPanelProps> = ({
                   value={(summary.cross_symbol?.stability_ratio ?? 0) * 100}
                   precision={1}
                   suffix="%"
-                  styles={{ content: { color: '#00ff41', fontSize: 20 } }}
+                  styles={{ content: { color: 'var(--cyber-neon-cyan)', fontSize: 20 } }}
                 />
               </Col>
               <Col xs={12} sm={8} md={4}>

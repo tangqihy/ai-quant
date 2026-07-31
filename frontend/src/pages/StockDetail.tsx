@@ -127,7 +127,7 @@ export const StockDetail: React.FC = () => {
 
   if (!isLoaded || loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400, color: '#00ff41' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400, color: 'var(--cyber-neon-cyan)' }}>
         <Spin size="large" description={isLoaded ? '加载中...' : '自选数据加载中...'} />
       </div>
     );
@@ -147,11 +147,11 @@ export const StockDetail: React.FC = () => {
   }
 
   const isUp = quote.change_pct >= 0;
-  const color = isUp ? '#ff0040' : '#00ff41';
-  const neonBorder = '1px solid rgba(0, 255, 65, 0.25)';
+  const color = isUp ? 'var(--up)' : 'var(--down)';
+  const neonBorder = '1.5px solid var(--line)';
 
   return (
-    <div style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+    <div style={{ fontFamily: 'var(--mono-font)' }}>
       <Button
         icon={<ArrowLeftOutlined />}
         onClick={() => navigate(-1)}
@@ -163,9 +163,9 @@ export const StockDetail: React.FC = () => {
       <Card
         style={{
           marginBottom: 24,
-          background: '#0a0a0a',
+          background: 'var(--paper-card)',
           border: neonBorder,
-          boxShadow: '0 0 12px rgba(0, 255, 65, 0.06)',
+          boxShadow: '0 0 12px rgba(var(--accent-rgb), 0.06)',
         }}
       >
         <Row gutter={[24, 16]} align="middle">
@@ -283,8 +283,8 @@ export const StockDetail: React.FC = () => {
       <Card
         title={
           <Space>
-            <LineChartOutlined style={{ color: '#00ff41' }} />
-            <span style={{ color: '#00ff41' }}>K线走势</span>
+            <LineChartOutlined style={{ color: 'var(--cyber-neon-cyan)' }} />
+            <span style={{ color: 'var(--cyber-neon-cyan)' }}>K线走势</span>
           </Space>
         }
         extra={
@@ -315,11 +315,11 @@ export const StockDetail: React.FC = () => {
           </Space>
         }
         style={{
-          background: '#0a0a0a',
+          background: 'var(--paper-card)',
           border: neonBorder,
-          boxShadow: '0 0 12px rgba(0, 255, 65, 0.06)',
+          boxShadow: '0 0 12px rgba(var(--accent-rgb), 0.06)',
         }}
-        styles={{ header: { borderBottom: neonBorder, color: '#00ff41' } }}
+        styles={{ header: { borderBottom: neonBorder, color: 'var(--cyber-neon-cyan)' } }}
       >
         <KLineChart
           symbol={symbol}
