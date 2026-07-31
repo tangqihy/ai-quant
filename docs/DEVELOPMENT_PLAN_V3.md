@@ -133,3 +133,4 @@
 | [04-pit-layer.md](design/04-pit-layer.md) | PIT 层 |
 | [05-backtest-engine.md](design/05-backtest-engine.md) | 回测引擎 |
 | [06-factor-framework.md](design/06-factor-framework.md) | 因子框架 |
+| [07-stock-canvas.md](design/07-stock-canvas.md) | 股票无限画布（结构化研究知识库） |
