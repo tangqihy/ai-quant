@@ -24,8 +24,24 @@ class MACrossStrategy(BaseStrategy):
     @property
     def param_schema(self) -> List[Dict[str, Any]]:
         return [
-            {"name": "short_window", "type": "int", "default": 5, "description": "短期均线周期"},
-            {"name": "long_window", "type": "int", "default": 20, "description": "长期均线周期"},
+            {
+                "name": "short_window",
+                "type": "int",
+                "default": 5,
+                "min": 2,
+                "max": 30,
+                "step": 1,
+                "description": "短期均线周期",
+            },
+            {
+                "name": "long_window",
+                "type": "int",
+                "default": 20,
+                "min": 5,
+                "max": 120,
+                "step": 1,
+                "description": "长期均线周期",
+            },
         ]
 
     def generate_signals(

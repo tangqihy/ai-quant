@@ -34,15 +34,23 @@ export async function getStockHistory(
   return data;
 }
 
-// K 线 + 叠加指标（MA、布林带等），供 K 线图使用
+// K 线 + 叠加指标（MA、布林带、通达信分时T等），供 K 线图使用
 export async function getIndicators(
   symbol: string,
   indicators: string = 'ma',
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  period: string = 'daily',
+  indexSymbol: string = '000001.SH'
 ) {
   const { data } = await api.get(`/indicators/${symbol}`, {
-    params: { indicators, start_date: startDate, end_date: endDate },
+    params: {
+      indicators,
+      start_date: startDate,
+      end_date: endDate,
+      period,
+      index_symbol: indexSymbol,
+    },
   });
   return data;
 }
@@ -105,14 +113,134 @@ export interface BacktestConfig {
   strategy?: string;
   short_window?: number;
   long_window?: number;
+  period?: number;
+  oversold?: number;
+  overbought?: number;
   initial_capital?: number;
   engine?: 'v1' | 'v2';
+}
+
+export interface StrategyMeta {
+  id: string;
+  name: string;
+  description: string;
+  params: string[];
+  param_schema: {
+    name: string;
+    type: string;
+    default?: number | string;
+    description?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+  }[];
+}
+
+export async function getBacktestStrategies(): Promise<StrategyMeta[]> {
+  const { data } = await api.get('/backtest/strategies');
+  return data?.data ?? [];
 }
 
 // 运行回测
 export async function runBacktest(config: BacktestConfig) {
   const { data } = await api.post('/backtest', config);
   return data as BacktestResult;
+}
+
+/** 稳健性检验：参数邻域 / Monte Carlo + 多标的批跑 */
+export interface RobustnessRequest {
+  symbols: string[];
+  strategy: string;
+  baseline_params?: Record<string, number | string>;
+  start_date?: string;
+  end_date?: string;
+  initial_capital?: number;
+  mode?: 'neighborhood' | 'monte_carlo';
+  perturbation_pct?: number;
+  n_steps?: number;
+  n_samples?: number;
+  seed?: number;
+  max_runs?: number;
+  plateau_threshold?: number;
+}
+
+export interface RobustnessRunRow {
+  symbol: string;
+  params: Record<string, number>;
+  is_baseline: boolean;
+  success: boolean;
+  error?: string;
+  total_return?: number | null;
+  annual_return?: number | null;
+  max_drawdown?: number | null;
+  sharpe?: number | null;
+  win_rate?: number | null;
+  total_trades?: number | null;
+  final_value?: number | null;
+}
+
+export interface RobustnessResult {
+  success: boolean;
+  error?: string;
+  mode?: string;
+  strategy?: string;
+  symbols?: string[];
+  n_variants?: number;
+  n_runs?: number;
+  truncated?: boolean;
+  summary?: {
+    baseline_params: Record<string, number>;
+    baseline_metrics: {
+      total_return: number;
+      sharpe: number;
+      max_drawdown: number;
+      win_rate: number;
+      n_symbols: number;
+    } | null;
+    distribution: Record<
+      string,
+      {
+        count: number;
+        mean: number | null;
+        p5: number | null;
+        p50: number | null;
+        p95: number | null;
+        min: number | null;
+        max: number | null;
+      }
+    >;
+    stability_score: number;
+    plateau_fraction: number;
+    baseline_sharpe_percentile: number | null;
+    baseline_return_percentile: number | null;
+    classification: 'robust' | 'moderate' | 'sensitive' | string;
+    cross_symbol: {
+      n_symbols: number;
+      profitable_baseline_count: number;
+      stable_count: number;
+      stability_ratio: number;
+      symbols: {
+        symbol: string;
+        baseline_return: number | null;
+        baseline_sharpe: number | null;
+        median_return: number | null;
+        n_runs: number;
+        stable: boolean;
+      }[];
+    };
+    n_ok: number;
+    n_failed: number;
+  };
+  runs?: RobustnessRunRow[];
+}
+
+export async function runRobustness(config: RobustnessRequest) {
+  const { data } = await api.post('/backtest/robustness', config, { timeout: 180000 });
+  // ok() 包装：{ success, data: RobustnessResult }
+  if (data?.data && typeof data.data === 'object') {
+    return { ...data.data, success: data.success !== false, error: data.error } as RobustnessResult;
+  }
+  return data as RobustnessResult;
 }
 
 // 获取回测结果

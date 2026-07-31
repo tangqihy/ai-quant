@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Table, Select, Input, Button, Space, Tabs, message, Spin, DatePicker, Radio } from 'antd';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Card, Row, Col, Statistic, Table, Select, Button, Space, Tabs, message, Spin, DatePicker, Radio, Switch, Typography } from 'antd';
 import { ArrowDownOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 import ReactECharts from 'echarts-for-react';
-import { runBacktest, BacktestResult } from '../services/api';
+import { runBacktest, BacktestResult, getBacktestStrategies, StrategyMeta } from '../services/api';
 import KLineChart from '../components/charts/KLineChart';
+import StrategyParamTuner from '../components/strategy/StrategyParamTuner';
+import RobustnessPanel from '../components/strategy/RobustnessPanel';
+import SymbolInput from '../components/common/SymbolInput';
 
-const { Option } = Select;
+const { Text } = Typography;
+
 const { RangePicker } = DatePicker;
 
 type RangeKey = '1m' | '3m' | '6m' | '1y' | 'all';
@@ -32,11 +36,44 @@ function rangeToDates(key: RangeKey): { start?: string; end?: string } {
 const Analysis: React.FC = () => {
   const [symbol, setSymbol] = useState('600519');
   const [strategy, setStrategy] = useState('ma_cross');
+  const [strategies, setStrategies] = useState<StrategyMeta[]>([]);
+  const [strategyParams, setStrategyParams] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BacktestResult | null>(null);
   const [rangeKey, setRangeKey] = useState<RangeKey>('6m');
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [klinePeriod, setKlinePeriod] = useState<string>('daily');
+  const [liveTune, setLiveTune] = useState(true);
+  const tuneReadyRef = useRef(false);
+
+  const currentMeta = useMemo(
+    () => strategies.find((s) => s.id === strategy),
+    [strategies, strategy]
+  );
+
+  const applyStrategyDefaults = (meta?: StrategyMeta) => {
+    if (!meta) return;
+    const next: Record<string, number> = {};
+    (meta.param_schema || []).forEach((p) => {
+      if (p.default != null) next[p.name] = Number(p.default);
+    });
+    setStrategyParams(next);
+  };
+
+  useEffect(() => {
+    getBacktestStrategies()
+      .then((list) => {
+        setStrategies(list);
+        const initial = list.find((s) => s.id === strategy) || list[0];
+        if (initial) {
+          setStrategy(initial.id);
+          applyStrategyDefaults(initial);
+        }
+      })
+      .catch(() => {
+        /* 回退硬编码选项 */
+      });
+  }, []);
 
   // K 线与回测使用的日期范围：优先自定义 dateRange，否则用快捷区间
   const activeRange = dateRange && dateRange[0] && dateRange[1]
@@ -46,29 +83,50 @@ const Analysis: React.FC = () => {
       }
     : rangeToDates(rangeKey);
 
-  const handleRunBacktest = async () => {
-    setLoading(true);
-    try {
-      const res = await runBacktest({
-        symbol,
-        strategy,
-        initial_capital: 1000000,
-        start_date: activeRange.start,
-        end_date: activeRange.end,
-        engine: 'v2',
-      });
-      if (res.success) {
-        setResult(res);
-        message.success('回测完成');
-      } else {
-        message.error(res.error || '回测失败');
+  const handleRunBacktest = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      setLoading(true);
+      try {
+        const res = await runBacktest({
+          symbol,
+          strategy,
+          initial_capital: 1000000,
+          start_date: activeRange.start,
+          end_date: activeRange.end,
+          engine: 'v2',
+          ...strategyParams,
+        });
+        if (res.success) {
+          setResult(res);
+          if (!opts?.silent) message.success('回测完成');
+        } else if (!opts?.silent) {
+          message.error(res.error || '回测失败');
+        }
+      } catch (e: any) {
+        if (!opts?.silent) message.error('回测失败: ' + (e.message || ''));
+      } finally {
+        setLoading(false);
       }
-    } catch (e: any) {
-      message.error('回测失败: ' + (e.message || ''));
-    } finally {
-      setLoading(false);
+    },
+    [symbol, strategy, activeRange.start, activeRange.end, strategyParams]
+  );
+
+  const paramsKey = JSON.stringify(strategyParams);
+
+  /** 调参后防抖自动回测，净值/交易点即时更新 */
+  useEffect(() => {
+    if (!tuneReadyRef.current) {
+      tuneReadyRef.current = true;
+      return;
     }
-  };
+    if (!liveTune || !result) return;
+    const timer = window.setTimeout(() => {
+      handleRunBacktest({ silent: true });
+    }, 500);
+    return () => window.clearTimeout(timer);
+    // 仅在参数/策略/区间变化时重跑；result 存在才开启
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveTune, strategy, paramsKey, activeRange.start, activeRange.end, symbol]);
 
   // 收益曲线 option
   const revenueOption = result?.daily_values
@@ -166,22 +224,81 @@ const Analysis: React.FC = () => {
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>
           <span>股票代码:</span>
-          <Input
+          <SymbolInput
             value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
-            style={{ width: 120 }}
+            onChange={setSymbol}
+            style={{ width: 220 }}
+            size="small"
+            compact
             placeholder="600519"
           />
           <span>策略:</span>
-          <Select value={strategy} onChange={setStrategy} style={{ width: 150 }}>
-            <Option value="ma_cross">均线交叉</Option>
-            <Option value="rsi">RSI策略</Option>
-          </Select>
-          <Button type="primary" icon={<PlayCircleOutlined />} onClick={handleRunBacktest} loading={loading}>
+          <Select
+            value={strategy}
+            onChange={(id) => {
+              setStrategy(id);
+              applyStrategyDefaults(strategies.find((s) => s.id === id));
+            }}
+            style={{ width: 150 }}
+            options={
+              strategies.length
+                ? strategies.map((s) => ({ value: s.id, label: s.name }))
+                : [
+                    { value: 'ma_cross', label: '均线交叉' },
+                    { value: 'rsi', label: 'RSI策略' },
+                  ]
+            }
+          />
+          <Space size={4}>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              拖参即回测
+            </Text>
+            <Switch size="small" checked={liveTune} onChange={setLiveTune} />
+          </Space>
+          <Button
+            type="primary"
+            icon={<PlayCircleOutlined />}
+            onClick={() => handleRunBacktest()}
+            loading={loading}
+          >
             运行回测
           </Button>
         </Space>
       </Card>
+
+      <Card
+        size="small"
+        title={<span style={{ color: '#00f0ff' }}>策略参数微调</span>}
+        style={{ marginBottom: 16 }}
+        extra={
+          liveTune && result ? (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              拖动滑条后约 0.5s 自动刷新结果
+            </Text>
+          ) : (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              先运行一次回测后，开启「拖参即回测」可所见即所得
+            </Text>
+          )
+        }
+      >
+        <StrategyParamTuner
+          strategyId={strategy}
+          schema={currentMeta?.param_schema || []}
+          value={strategyParams}
+          onChange={setStrategyParams}
+          disabled={loading}
+          compact
+        />
+      </Card>
+
+      <RobustnessPanel
+        strategy={strategy}
+        baselineParams={strategyParams}
+        primarySymbol={symbol}
+        startDate={activeRange.start}
+        endDate={activeRange.end}
+      />
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap>

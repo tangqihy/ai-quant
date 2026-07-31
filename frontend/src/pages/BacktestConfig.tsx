@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Form, Input, Select, InputNumber, DatePicker, Button, Space, Divider, Row, Col, message, Spin, Dropdown } from 'antd';
-import { PlayCircleOutlined, SaveOutlined, UndoOutlined, DownOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Select, InputNumber, DatePicker, Button, Space, Divider, Row, Col, message, Spin } from 'antd';
+import { PlayCircleOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons';
 import { runBacktest, BacktestResult } from '../services/api';
 import { useWatchlist } from '../hooks/useWatchlist';
+import SymbolInput from '../components/common/SymbolInput';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -124,29 +125,9 @@ const BacktestConfig: React.FC = () => {
                 <Form.Item
                   label="股票代码"
                   name="stockCode"
-                  rules={[{ required: true, message: '请输入或选择股票代码' }]}
+                  rules={[{ required: true, message: '请输入或从自选选择' }]}
                 >
-                  <Input
-                    placeholder="例如 600519，或从自选选择"
-                    addonAfter={
-                      <Dropdown
-                        menu={{
-                          items: stocks.map((s) => ({
-                            key: s.symbol,
-                            label: `${s.symbol} ${s.name}`,
-                            onClick: ({ key }) => {
-                              form.setFieldsValue({ stockCode: key });
-                            },
-                          })),
-                        }}
-                        disabled={stocks.length === 0}
-                      >
-                        <Button type="text" size="small" style={{ padding: '0 4px' }}>
-                          从自选 <DownOutlined />
-                        </Button>
-                      </Dropdown>
-                    }
-                  />
+                  <SymbolInput placeholder="例如 600519" />
                 </Form.Item>
                 
                 <Form.Item label="回测时间范围" name="dateRange" rules={[{ required: true, message: '请选择时间范围' }]}>

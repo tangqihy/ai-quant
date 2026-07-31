@@ -111,3 +111,22 @@ export const getPositions = () => {
 export const matchOrders = () => {
   return request.post('/simulation/match');
 };
+
+// 按策略信号一键模拟下单
+export const executeSignalOrder = (data: {
+  symbol: string;
+  strategy: string;
+  params?: Record<string, number | string>;
+  period?: string;
+  position_pct?: number;
+  force?: boolean;
+  stop_loss_pct?: number;
+  stop_profit_pct?: number;
+}) => {
+  return request.post('/simulation/execute-signal', data);
+};
+
+// 扫描止损止盈并自动平仓
+export const checkStopLosses = () => {
+  return request.post('/simulation/check-stops');
+};

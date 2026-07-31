@@ -38,6 +38,7 @@ import {
   RiskAlert,
   BlacklistItem,
 } from '../services/riskApi';
+import SymbolInput from '../components/common/SymbolInput';
 
 const { TabPane } = Tabs;
 
@@ -385,9 +386,9 @@ const RiskManagement: React.FC = () => {
           <Form.Item
             label="股票代码"
             name="symbol"
-            rules={[{ required: true, message: '请输入股票代码' }]}
+            rules={[{ required: true, message: '请输入或从自选选择' }]}
           >
-            <Input placeholder="如: 000001" />
+            <SymbolInput placeholder="如: 000001" />
           </Form.Item>
 
           <Form.Item

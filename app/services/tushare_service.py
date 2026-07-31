@@ -210,14 +210,25 @@ class TushareService:
         if cached and (time.time() - cached["ts"] < 60):
             return cached["items"]
 
-        # 新浪 symbol: sh600519 / sz000001 / bj830xxx
-        s = symbol.split(".")[0]
-        if s.startswith("6"):
-            sina_sym = f"sh{s}"
-        elif s.startswith("8") or s.startswith("4"):
-            sina_sym = f"bj{s}"
+        # 新浪 symbol: sh600519 / sz000001 / bj830xxx；指数可用 000001.SH / sh000001
+        raw = (symbol or "").strip()
+        low = raw.lower()
+        if low.startswith("sh") or low.startswith("sz") or low.startswith("bj"):
+            sina_sym = low
+        elif ".SH" in raw.upper():
+            sina_sym = f"sh{raw.split('.')[0]}"
+        elif ".SZ" in raw.upper():
+            sina_sym = f"sz{raw.split('.')[0]}"
+        elif ".BJ" in raw.upper():
+            sina_sym = f"bj{raw.split('.')[0]}"
         else:
-            sina_sym = f"sz{s}"
+            s = raw.split(".")[0]
+            if s.startswith("6"):
+                sina_sym = f"sh{s}"
+            elif s.startswith("8") or s.startswith("4"):
+                sina_sym = f"bj{s}"
+            else:
+                sina_sym = f"sz{s}"
 
         # datalen: 取足够多的条数覆盖日期范围；分钟线每天 240 根
         days_span = max((datetime.strptime(end_date, "%Y%m%d") - datetime.strptime(start_date, "%Y%m%d")).days, 1)

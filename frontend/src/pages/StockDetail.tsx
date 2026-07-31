@@ -14,6 +14,7 @@ import {
   Modal,
   Empty,
   Radio,
+  Checkbox,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -24,7 +25,7 @@ import {
 import { useWatchlist } from '../hooks/useWatchlist';
 import AddToWatchlistModal from '../components/watchlist/AddToWatchlistModal';
 import { getRealtimeQuotes } from '../services/api';
-import KLineChart from '../components/charts/KLineChart';
+import KLineChart, { OverlayIndicator } from '../components/charts/KLineChart';
 
 const { Title, Text } = Typography;
 
@@ -54,8 +55,16 @@ export const StockDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [quote, setQuote] = useState<StockQuote | null>(null);
   const [klinePeriod, setKlinePeriod] = useState<string>('daily');
+  const [tdxOverlays, setTdxOverlays] = useState<OverlayIndicator[]>([
+    'fenshi_t0',
+    'capital_trend',
+  ]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const stockGroups = symbol ? getStockGroups(symbol) : [];
+  const isMinutePeriod = klinePeriod !== 'daily';
+  const chartOverlays: OverlayIndicator[] | undefined = isMinutePeriod
+    ? (tdxOverlays.length > 0 ? tdxOverlays : undefined)
+    : ['ma'];
 
   // 检查是否在自选中
   const inWatchlist = symbol ? isInWatchlist(symbol) : false;
@@ -279,19 +288,31 @@ export const StockDetail: React.FC = () => {
           </Space>
         }
         extra={
-          <Radio.Group
-            size="small"
-            value={klinePeriod}
-            onChange={(e) => setKlinePeriod(e.target.value)}
-            optionType="button"
-            buttonStyle="solid"
-          >
-            <Radio.Button value="daily">日线</Radio.Button>
-            <Radio.Button value="60min">60分</Radio.Button>
-            <Radio.Button value="30min">30分</Radio.Button>
-            <Radio.Button value="15min">15分</Radio.Button>
-            <Radio.Button value="5min">5分</Radio.Button>
-          </Radio.Group>
+          <Space wrap>
+            {isMinutePeriod && (
+              <Checkbox.Group
+                value={tdxOverlays}
+                onChange={(vals) => setTdxOverlays(vals as OverlayIndicator[])}
+                options={[
+                  { label: '分时T加0', value: 'fenshi_t0' },
+                  { label: '主力/趋势', value: 'capital_trend' },
+                ]}
+              />
+            )}
+            <Radio.Group
+              size="small"
+              value={klinePeriod}
+              onChange={(e) => setKlinePeriod(e.target.value)}
+              optionType="button"
+              buttonStyle="solid"
+            >
+              <Radio.Button value="daily">日线</Radio.Button>
+              <Radio.Button value="60min">60分</Radio.Button>
+              <Radio.Button value="30min">30分</Radio.Button>
+              <Radio.Button value="15min">15分</Radio.Button>
+              <Radio.Button value="5min">5分</Radio.Button>
+            </Radio.Group>
+          </Space>
         }
         style={{
           background: '#0a0a0a',
@@ -300,7 +321,12 @@ export const StockDetail: React.FC = () => {
         }}
         styles={{ header: { borderBottom: neonBorder, color: '#00ff41' } }}
       >
-        <KLineChart symbol={symbol} period={klinePeriod} height={400} />
+        <KLineChart
+          symbol={symbol}
+          period={klinePeriod}
+          overlays={chartOverlays}
+          height={isMinutePeriod ? 480 : 400}
+        />
       </Card>
 
       {/* 添加到自选弹窗（用于调整分组） */}

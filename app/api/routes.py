@@ -1,8 +1,9 @@
 """
 API routes
 """
+import math
 from fastapi import APIRouter, Query, HTTPException, Depends
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from app.services.stock_service import stock_service
 from app.services.tushare_service import tushare_service
@@ -16,6 +17,18 @@ from app.core.version import get_build_info
 from app.core.response import ok, fail, paginated
 
 router = APIRouter(dependencies=[Depends(require_auth)])
+
+
+def _json_safe_num(v: Any) -> Optional[float]:
+    """指标值转 JSON 安全数字；NaN/Inf → None。"""
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        fv = float(v)
+        if math.isnan(fv) or math.isinf(fv):
+            return None
+        return round(fv, 4)
+    return v
 
 
 # 回测请求模型（兼容旧字段，策略参数可扩展）
@@ -134,31 +147,90 @@ async def get_indicators(
     symbol: str,
     start_date: Optional[str] = Query(None, description="开始日期 YYYYMMDD"),
     end_date: Optional[str] = Query(None, description="结束日期 YYYYMMDD"),
-    indicators: str = Query("ma", description="指标名，逗号分隔，如 ma,boll,rsi,macd"),
+    indicators: str = Query(
+        "ma",
+        description="指标名，逗号分隔，如 ma,boll,rsi,macd,fenshi_t0,capital_trend",
+    ),
+    period: str = Query("daily", description="周期: daily/1min/5min/15min/30min/60min"),
+    index_symbol: str = Query(
+        "000001.SH",
+        description="capital_trend 用的指数代码（新浪/通达信 INDEX*），默认上证指数",
+    ),
 ):
     """
     获取指定股票的 K 线及叠加指标数据，供 K 线图叠加使用。
     返回 data 数组中每项为一条 K 线并附带该日各指标值（如 ma5, ma10, ma20, boll_upper 等）。
+    fenshi_t0 / capital_trend 建议配合 period=1min 或 5min。
     """
     try:
-        klines = stock_service.get_stock_history(
-            symbol=symbol,
-            start_date=start_date,
-            end_date=end_date,
-            adjust="qfq",
-        )
+        if period and period != "daily":
+            klines = tushare_service.get_stock_minutes(
+                symbol=symbol,
+                freq=period,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        else:
+            klines = stock_service.get_stock_history(
+                symbol=symbol,
+                start_date=start_date,
+                end_date=end_date,
+                adjust="qfq",
+            )
         if not klines:
             return ok(data={"symbol": symbol, "klines": [], "total": 0})
         names = [s.strip().lower() for s in indicators.split(",") if s.strip()]
         if not names:
             names = ["ma"]
+
+        index_klines = None
+        if "capital_trend" in names:
+            if period and period != "daily":
+                index_klines = tushare_service.get_stock_minutes(
+                    symbol=index_symbol,
+                    freq=period,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            else:
+                # 日线指数：用 000001.SH → 代码 000001 在 Tushare 需带市场；此处走分钟同源简化用日线股票接口不稳定
+                # 上证日线用 tushare daily(ts_code=000001.SH)
+                try:
+                    ts_code = index_symbol if "." in index_symbol else f"{index_symbol}.SH"
+                    code = ts_code.split(".")[0]
+                    # 复用历史接口：指数在本地可能无缓存，直接 pro.daily
+                    if tushare_service.pro:
+                        start = start_date or (klines[0]["date"].replace("-", "") if klines else None)
+                        end = end_date
+                        if start and "-" in str(start):
+                            start = str(start).replace("-", "")
+                        df = tushare_service.pro.index_daily(
+                            ts_code=ts_code if ts_code.endswith((".SH", ".SZ")) else f"{code}.SH",
+                            start_date=start,
+                            end_date=end,
+                        )
+                        if df is not None and not df.empty:
+                            index_klines = [
+                                {
+                                    "date": tushare_service._format_date(str(r["trade_date"])),
+                                    "open": float(r["open"]),
+                                    "high": float(r["high"]),
+                                    "low": float(r["low"]),
+                                    "close": float(r["close"]),
+                                    "volume": float(r.get("vol") or 0),
+                                }
+                                for _, r in df.sort_values("trade_date").iterrows()
+                            ]
+                except Exception:
+                    index_klines = None
+
         # 为每个指标计算序列，并合并到每行
         result_rows = []
         for i, row in enumerate(klines):
             out = dict(row)
             result_rows.append(out)
         for ind_name in names:
-            if ind_name not in ("ma", "rsi", "macd", "boll"):
+            if ind_name not in ("ma", "rsi", "macd", "boll", "fenshi_t0", "capital_trend"):
                 continue
             params = {}
             if ind_name == "ma":
@@ -169,12 +241,24 @@ async def get_indicators(
                 params = {"fast": 12, "slow": 26, "signal": 9}
             elif ind_name == "boll":
                 params = {"period": 20, "std_mult": 2.0}
+            elif ind_name == "fenshi_t0":
+                params = {"fast": 30, "slow": 900}
+            elif ind_name == "capital_trend":
+                params = {"index_data": index_klines}
             ind_result = indicator_service.get_indicator(klines, ind_name, params)
             for key, values in ind_result.items():
                 for i, v in enumerate(values):
                     if i < len(result_rows):
-                        result_rows[i][key] = round(v, 4) if v is not None and isinstance(v, (int, float)) else v
-        return ok(data={"symbol": symbol, "klines": result_rows, "total": len(result_rows)})
+                        result_rows[i][key] = _json_safe_num(v)
+        return ok(
+            data={
+                "symbol": symbol,
+                "klines": result_rows,
+                "total": len(result_rows),
+                "period": period,
+                "index_symbol": index_symbol if "capital_trend" in names else None,
+            }
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -244,6 +328,11 @@ async def get_strategies():
     return ok(data=get_strategies_list())
 
 
+# 静态路径须在 /backtest/{task_id} 之前注册
+from app.api.robustness_routes import router as robustness_router
+router.include_router(robustness_router)
+
+
 @router.get("/backtest/{task_id}")
 async def get_backtest_result(task_id: str):
     """获取回测结果"""
@@ -285,6 +374,10 @@ router.include_router(risk_router)
 # 导入并包含自选路由
 from app.api.watchlist_routes import router as watchlist_router
 router.include_router(watchlist_router)
+
+# 信号监控与策略会话
+from app.api.signal_routes import router as signal_router
+router.include_router(signal_router)
 
 
 # ==================== 新闻资讯 ====================

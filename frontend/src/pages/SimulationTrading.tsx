@@ -37,25 +37,26 @@ import {
   cancelOrder,
   resetAccount,
   matchOrders,
+  checkStopLosses,
   Order,
   Trade,
   Position,
   Account,
 } from '../services/simulationApi';
-import { useWatchlist } from '../hooks/useWatchlist';
+import { useNavigate } from 'react-router-dom';
+import SymbolInput from '../components/common/SymbolInput';
 
 const { TabPane } = Tabs;
 const { Option } = Select;
 
 const SimulationTrading: React.FC = () => {
-  const { stocks } = useWatchlist();
+  const navigate = useNavigate();
   const [account, setAccount] = useState<Account | null>(null);
   const [positions, setPositions] = useState<Position[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(false);
   const [orderForm] = Form.useForm();
-  const [selectedSymbol, setSelectedSymbol] = useState<string>('');
 
   // 加载数据
   const loadData = async () => {
@@ -161,6 +162,18 @@ const SimulationTrading: React.FC = () => {
       }
     } catch (error) {
       message.error('撮合失败');
+    }
+  };
+
+  const handleCheckStops = async () => {
+    try {
+      const res = await checkStopLosses();
+      if (res.data?.success) {
+        message.info(res.data.message || '止损扫描完成');
+        loadData();
+      }
+    } catch {
+      message.error('止损扫描失败');
     }
   };
 
@@ -401,6 +414,8 @@ const SimulationTrading: React.FC = () => {
             extra={
               <Space>
                 <Button size="small" onClick={handleMatch}>撮合</Button>
+                <Button size="small" onClick={() => navigate('/signals')}>信号监控</Button>
+                <Button size="small" onClick={handleCheckStops}>扫描止损</Button>
                 <Button size="small" danger onClick={handleReset}>重置</Button>
               </Space>
             }
@@ -413,20 +428,9 @@ const SimulationTrading: React.FC = () => {
               <Form.Item
                 label="股票代码"
                 name="symbol"
-                rules={[{ required: true, message: '请选择股票' }]}
+                rules={[{ required: true, message: '请输入或从自选选择' }]}
               >
-                <Select
-                  placeholder="选择股票"
-                  showSearch
-                  optionFilterProp="children"
-                  onChange={(val) => setSelectedSymbol(val)}
-                >
-                  {stocks.map((s) => (
-                    <Option key={s.symbol} value={s.symbol}>
-                      {s.symbol} {s.name}
-                    </Option>
-                  ))}
-                </Select>
+                <SymbolInput placeholder="输入代码或从自选选择" />
               </Form.Item>
 
               <Form.Item

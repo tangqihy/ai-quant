@@ -36,9 +36,33 @@ class RSIStrategy(BaseStrategy):
     @property
     def param_schema(self) -> List[Dict[str, Any]]:
         return [
-            {"name": "period", "type": "int", "default": 14, "description": "RSI 周期"},
-            {"name": "oversold", "type": "int", "default": 30, "description": "超卖线，低于此值买入"},
-            {"name": "overbought", "type": "int", "default": 70, "description": "超买线，高于此值卖出"},
+            {
+                "name": "period",
+                "type": "int",
+                "default": 14,
+                "min": 5,
+                "max": 30,
+                "step": 1,
+                "description": "RSI 周期",
+            },
+            {
+                "name": "oversold",
+                "type": "int",
+                "default": 30,
+                "min": 10,
+                "max": 40,
+                "step": 1,
+                "description": "超卖线（上穿触发买入）",
+            },
+            {
+                "name": "overbought",
+                "type": "int",
+                "default": 70,
+                "min": 60,
+                "max": 90,
+                "step": 1,
+                "description": "超买线（下穿触发卖出）",
+            },
         ]
 
     def generate_signals(

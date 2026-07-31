@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { getStockHistory, getIndicators } from '../../services/api';
 
@@ -10,7 +10,6 @@ interface KLineData {
   high: number;
   low: number;
   volume: number;
-  /** 叠加指标字段（由后端 /indicators 返回） */
   ma5?: number | null;
   ma10?: number | null;
   ma20?: number | null;
@@ -21,26 +20,45 @@ interface KLineData {
   dif?: number | null;
   dea?: number | null;
   macd?: number | null;
+  support?: number | null;
+  resistance?: number | null;
+  grxy01?: number | null;
+  strength?: number | null;
+  buy_signal?: number | null;
+  resist_cross?: number | null;
+  trend?: number | null;
+  prepare_cash?: number | null;
+  buy_stock?: number | null;
+  sell_edge?: number | null;
   [key: string]: number | string | null | undefined;
 }
 
-export type OverlayIndicator = 'ma' | 'boll' | 'rsi' | 'macd';
+export type OverlayIndicator = 'ma' | 'boll' | 'rsi' | 'macd' | 'fenshi_t0' | 'capital_trend';
+
+export type ChartSignalMark = {
+  date: string;
+  action: 'BUY' | 'SELL' | string;
+  price?: number | null;
+};
 
 interface KLineChartProps {
   symbol?: string;
   data?: KLineData[];
   height?: number;
-  /** 起始日期 YYYYMMDD */
   startDate?: string;
-  /** 结束日期 YYYYMMDD */
   endDate?: string;
   /** K线周期: daily / 1min / 5min / 15min / 30min / 60min */
   period?: string;
-  /** 要在 K 线上叠加的指标，如 ['ma', 'boll']；不传则使用 data 或历史接口并默认画 MA5/10/20 */
+  /** 叠加指标；不传则默认 MA5/10/20 */
   overlays?: OverlayIndicator[];
+  /** 回放游标：当前 as_of 日期，画竖线 */
+  cursorDate?: string | null;
+  /** 策略买卖点标注 */
+  signalMarks?: ChartSignalMark[];
+  /** 数据缩放默认贴右（回放步进用） */
+  zoomToEnd?: boolean;
 }
 
-/** 客户端计算 MA（无 overlays 或仅用 history 数据时兼容使用） */
 function calcMA(data: number[], period: number): (number | null)[] {
   const result: (number | null)[] = [];
   for (let i = 0; i < data.length; i++) {
@@ -55,7 +73,6 @@ function calcMA(data: number[], period: number): (number | null)[] {
   return result;
 }
 
-/** 从数据行中提取指标序列，用于 ECharts series */
 function getOverlaySeries(
   rows: KLineData[],
   keys: { key: string; name: string }[]
@@ -66,6 +83,43 @@ function getOverlaySeries(
   }));
 }
 
+function buildMarkPoints(
+  rows: KLineData[],
+  flagKey: string,
+  name: string,
+  color: string,
+  yKey: 'close' | 'support' | 'resistance' = 'close'
+): { name: string; coord: [string, number]; value: string; itemStyle: { color: string } }[] {
+  const points: { name: string; coord: [string, number]; value: string; itemStyle: { color: string } }[] = [];
+  rows.forEach((r) => {
+    if (Number(r[flagKey]) === 1) {
+      const y = Number(r[yKey] ?? r.close);
+      if (!Number.isFinite(y)) return;
+      points.push({
+        name,
+        coord: [r.date, y],
+        value: name,
+        itemStyle: { color },
+      });
+    }
+  });
+  return points;
+}
+
+const LINE_COLORS: Record<string, string> = {
+  MA5: '#00ff41',
+  MA10: '#00f0ff',
+  MA20: '#ff00a0',
+  支撑: '#5F8F5F',
+  阻力: '#C9B458',
+  强弱: '#8888aa',
+  快线: '#aa6666',
+  趋势线: '#ffcc00',
+  布林上轨: '#ff00a0',
+  布林中轨: '#00f0ff',
+  布林下轨: '#00ff41',
+};
+
 const KLineChart: React.FC<KLineChartProps> = ({
   symbol = '600519',
   data: propData,
@@ -74,12 +128,17 @@ const KLineChart: React.FC<KLineChartProps> = ({
   endDate,
   period = 'daily',
   overlays,
+  cursorDate,
+  signalMarks,
+  zoomToEnd = false,
 }) => {
   const [dates, setDates] = useState<string[]>([]);
   const [ohlcData, setOhlcData] = useState<number[][]>([]);
   const [volumes, setVolumes] = useState<number[]>([]);
   const [indicatorRows, setIndicatorRows] = useState<KLineData[] | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const overlayKey = overlays?.join(',') ?? '';
 
   useEffect(() => {
     if (propData && propData.length > 0) {
@@ -103,7 +162,7 @@ const KLineChart: React.FC<KLineChartProps> = ({
       setLoading(true);
       try {
         if (overlays && overlays.length > 0) {
-          const res = await getIndicators(symbol, overlays.join(','), startDate, endDate);
+          const res = await getIndicators(symbol, overlays.join(','), startDate, endDate, period);
           if (cancelled) return;
           const rows: KLineData[] = res?.data?.klines ?? (Array.isArray(res?.data) ? res.data : []);
           if (res.success && rows.length > 0) {
@@ -153,57 +212,91 @@ const KLineChart: React.FC<KLineChartProps> = ({
     };
     fetch();
     return () => { cancelled = true; };
-  }, [symbol, propData, overlays?.join(','), startDate, endDate, period]);
+  }, [symbol, propData, overlayKey, startDate, endDate, period]);
 
   const closeData = ohlcData.map((d) => d[1]);
+  const hasCapitalTrend = overlays?.includes('capital_trend');
+  const hasFenshi = overlays?.includes('fenshi_t0');
 
-  // 叠加线：优先用后端返回的指标数据，否则用客户端 MA
-  const overlayLineSeries: { name: string; data: (number | null)[] }[] = [];
-  const legendNames: string[] = ['K线'];
+  const { overlayLineSeries, trendSeries, legendNames, markPoints } = useMemo(() => {
+    const lines: { name: string; data: (number | null)[]; yAxisIndex?: number }[] = [];
+    const legends: string[] = ['K线'];
+    let trend: { name: string; data: (number | null)[] } | null = null;
+    const marks: { name: string; coord: [string, number]; value: string; itemStyle: { color: string } }[] = [];
 
-  if (indicatorRows && indicatorRows.length > 0) {
-    if (overlays?.includes('ma') || (!overlays && indicatorRows[0].ma5 != null)) {
-      const maSeries = getOverlaySeries(indicatorRows, [
-        { key: 'ma5', name: 'MA5' },
-        { key: 'ma10', name: 'MA10' },
-        { key: 'ma20', name: 'MA20' },
-      ]);
-      overlayLineSeries.push(...maSeries);
-      legendNames.push('MA5', 'MA10', 'MA20');
+    if (indicatorRows && indicatorRows.length > 0) {
+      if (overlays?.includes('ma') || (!overlays && indicatorRows[0].ma5 != null)) {
+        const maSeries = getOverlaySeries(indicatorRows, [
+          { key: 'ma5', name: 'MA5' },
+          { key: 'ma10', name: 'MA10' },
+          { key: 'ma20', name: 'MA20' },
+        ]);
+        lines.push(...maSeries);
+        legends.push('MA5', 'MA10', 'MA20');
+      }
+      if (overlays?.includes('boll') && indicatorRows[0].boll_upper != null) {
+        const bollSeries = getOverlaySeries(indicatorRows, [
+          { key: 'boll_upper', name: '布林上轨' },
+          { key: 'boll_mid', name: '布林中轨' },
+          { key: 'boll_lower', name: '布林下轨' },
+        ]);
+        lines.push(...bollSeries);
+        legends.push('布林上轨', '布林中轨', '布林下轨');
+      }
+      if (overlays?.includes('rsi') && indicatorRows[0].rsi != null) {
+        lines.push(...getOverlaySeries(indicatorRows, [{ key: 'rsi', name: 'RSI' }]));
+        legends.push('RSI');
+      }
+      if (overlays?.includes('macd') && indicatorRows[0].dif != null) {
+        lines.push(
+          ...getOverlaySeries(indicatorRows, [
+            { key: 'dif', name: 'DIF' },
+            { key: 'dea', name: 'DEA' },
+            { key: 'macd', name: 'MACD' },
+          ])
+        );
+        legends.push('DIF', 'DEA', 'MACD');
+      }
+      if (hasFenshi && indicatorRows[0].support != null) {
+        lines.push(
+          ...getOverlaySeries(indicatorRows, [
+            { key: 'support', name: '支撑' },
+            { key: 'resistance', name: '阻力' },
+            { key: 'strength', name: '强弱' },
+            { key: 'grxy01', name: '快线' },
+          ])
+        );
+        legends.push('支撑', '阻力', '强弱', '快线');
+        marks.push(
+          ...buildMarkPoints(indicatorRows, 'buy_signal', '★B', '#C9B458', 'support'),
+          ...buildMarkPoints(indicatorRows, 'resist_cross', '★', '#B35C5C', 'close')
+        );
+      }
+      if (hasCapitalTrend && indicatorRows[0].trend != null) {
+        trend = {
+          name: '趋势线',
+          data: indicatorRows.map((r) => (r.trend != null ? Number(r.trend) : null)),
+        };
+        legends.push('趋势线');
+        marks.push(
+          ...buildMarkPoints(indicatorRows, 'prepare_cash', '准备', '#CC9900', 'close'),
+          ...buildMarkPoints(indicatorRows, 'buy_stock', '买入', '#0099FF', 'close'),
+          ...buildMarkPoints(indicatorRows, 'sell_edge', '卖临界', '#FFFF00', 'close')
+        );
+      }
     }
-    if (overlays?.includes('boll') && indicatorRows[0].boll_upper != null) {
-      const bollSeries = getOverlaySeries(indicatorRows, [
-        { key: 'boll_upper', name: '布林上轨' },
-        { key: 'boll_mid', name: '布林中轨' },
-        { key: 'boll_lower', name: '布林下轨' },
-      ]);
-      overlayLineSeries.push(...bollSeries);
-      legendNames.push('布林上轨', '布林中轨', '布林下轨');
-    }
-    if (overlays?.includes('rsi') && indicatorRows[0].rsi != null) {
-      const rsiSeries = getOverlaySeries(indicatorRows, [{ key: 'rsi', name: 'RSI' }]);
-      overlayLineSeries.push(...rsiSeries);
-      legendNames.push('RSI');
-    }
-    if (overlays?.includes('macd') && indicatorRows[0].dif != null) {
-      const macdSeries = getOverlaySeries(indicatorRows, [
-        { key: 'dif', name: 'DIF' },
-        { key: 'dea', name: 'DEA' },
-        { key: 'macd', name: 'MACD' },
-      ]);
-      overlayLineSeries.push(...macdSeries);
-      legendNames.push('DIF', 'DEA', 'MACD');
-    }
-  }
 
-  if (overlayLineSeries.length === 0 && closeData.length > 0) {
-    legendNames.push('MA5', 'MA10', 'MA20');
-    overlayLineSeries.push(
-      { name: 'MA5', data: calcMA(closeData, 5) },
-      { name: 'MA10', data: calcMA(closeData, 10) },
-      { name: 'MA20', data: calcMA(closeData, 20) }
-    );
-  }
+    if (lines.length === 0 && !trend && closeData.length > 0 && !overlays?.length) {
+      legends.push('MA5', 'MA10', 'MA20');
+      lines.push(
+        { name: 'MA5', data: calcMA(closeData, 5) },
+        { name: 'MA10', data: calcMA(closeData, 10) },
+        { name: 'MA20', data: calcMA(closeData, 20) }
+      );
+    }
+
+    return { overlayLineSeries: lines, trendSeries: trend, legendNames: legends, markPoints: marks };
+  }, [indicatorRows, overlays, hasFenshi, hasCapitalTrend, closeData]);
 
   const NEON_UP = '#ff0040';
   const NEON_DOWN = '#00ff41';
@@ -211,20 +304,68 @@ const KLineChart: React.FC<KLineChartProps> = ({
   const NEON_GRID = 'rgba(0, 255, 65, 0.08)';
 
   const isMinute = period && period !== 'daily';
-  // 分钟线数据量大，默认显示最近一段；日线默认显示全量
-  const defaultStart = isMinute ? 60 : 0;
   const defaultEnd = 100;
+  // 回放步进：默认显示最近约 60 根，贴右侧
+  const defaultStart = zoomToEnd
+    ? dates.length <= 60
+      ? 0
+      : Math.round((1 - 60 / dates.length) * 100)
+    : isMinute
+      ? 60
+      : 0;
+  const chartHeight = hasCapitalTrend ? Math.max(height, 480) : height;
 
-  // x 轴标签格式化：日线显示 MM-DD，分钟线显示 MM-DD HH:mm
+  const signalMarkPoints = useMemo(() => {
+    if (!signalMarks?.length || !dates.length) return [];
+    const closeByDate = new Map(dates.map((d, i) => [d, ohlcData[i]?.[1]]));
+    return signalMarks
+      .filter((m) => m.action === 'BUY' || m.action === 'SELL')
+      .map((m) => {
+        const y = Number(m.price ?? closeByDate.get(m.date));
+        if (!Number.isFinite(y)) return null;
+        return {
+          name: m.action === 'BUY' ? '买' : '卖',
+          coord: [m.date, y] as [string, number],
+          value: m.action === 'BUY' ? '买' : '卖',
+          itemStyle: { color: m.action === 'BUY' ? '#ff0040' : '#00ff41' },
+        };
+      })
+      .filter(Boolean) as {
+      name: string;
+      coord: [string, number];
+      value: string;
+      itemStyle: { color: string };
+    }[];
+  }, [signalMarks, dates, ohlcData]);
+
+  const allMarkPoints = [...markPoints, ...signalMarkPoints];
+  const cursorMarkLine =
+    cursorDate && dates.includes(cursorDate)
+      ? {
+          symbol: 'none',
+          label: {
+            show: true,
+            formatter: '当前',
+            color: '#00f0ff',
+            fontSize: 11,
+          },
+          lineStyle: { color: '#00f0ff', width: 1.5, type: 'dashed' },
+          data: [{ xAxis: cursorDate }],
+        }
+      : undefined;
+
   const axisLabelFormatter = (val: string) => {
     if (!val) return '';
     if (isMinute) {
-      // '2026-07-03 09:35:00' -> '07-03 09:35'
       const m = val.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/);
       return m ? `${m[2]}-${m[3]} ${m[4]}` : val.slice(5, 16);
     }
     return val.length >= 10 ? val.slice(5, 10) : val;
   };
+
+  const priceGridHeight = hasCapitalTrend ? '42%' : '55%';
+  const volTop = hasCapitalTrend ? '58%' : '72%';
+  const trendTop = '78%';
 
   const series: any[] = [
     {
@@ -237,13 +378,23 @@ const KLineChart: React.FC<KLineChartProps> = ({
         borderColor: NEON_UP,
         borderColor0: NEON_DOWN,
       },
+      markPoint:
+        allMarkPoints.length > 0
+          ? {
+              symbol: 'pin',
+              symbolSize: 36,
+              label: { color: '#0a0a0a', fontSize: 10, fontWeight: 700 },
+              data: allMarkPoints,
+            }
+          : undefined,
+      markLine: cursorMarkLine,
     },
     ...overlayLineSeries.map((s) => ({
       name: s.name,
       type: 'line',
       data: s.data,
       smooth: true,
-      lineStyle: { color: NEON_DOWN, opacity: 0.7 },
+      lineStyle: { color: LINE_COLORS[s.name] || NEON_DOWN, opacity: 0.85, width: 1.5 },
       symbol: 'none',
     })),
     {
@@ -255,6 +406,102 @@ const KLineChart: React.FC<KLineChartProps> = ({
       itemStyle: { color: 'rgba(0, 255, 65, 0.35)' },
     },
   ];
+
+  if (trendSeries) {
+    series.push({
+      name: trendSeries.name,
+      type: 'line',
+      xAxisIndex: 2,
+      yAxisIndex: 2,
+      data: trendSeries.data,
+      smooth: true,
+      lineStyle: { color: LINE_COLORS['趋势线'], width: 1.5 },
+      symbol: 'none',
+      areaStyle: { color: 'rgba(255, 204, 0, 0.08)' },
+      markLine: {
+        symbol: 'none',
+        lineStyle: { type: 'dashed', color: 'rgba(255,255,255,0.25)' },
+        data: [{ yAxis: 13 }, { yAxis: 90 }],
+      },
+    });
+  }
+
+  const xAxes: any[] = [
+    {
+      type: 'category',
+      data: dates,
+      boundaryGap: false,
+      axisLine: { lineStyle: { color: NEON_AXIS } },
+      axisLabel: { color: NEON_AXIS, formatter: axisLabelFormatter },
+      splitLine: { show: false },
+      min: 'dataMin',
+      max: 'dataMax',
+    },
+    {
+      type: 'category',
+      gridIndex: 1,
+      data: dates,
+      boundaryGap: false,
+      axisLine: { onZero: false },
+      axisTick: { show: false },
+      axisLabel: { show: false },
+      splitLine: { show: false },
+      min: 'dataMin',
+      max: 'dataMax',
+    },
+  ];
+
+  const yAxes: any[] = [
+    {
+      scale: true,
+      splitArea: { show: true, areaStyle: { color: [NEON_GRID, 'transparent'] } },
+      axisLine: { show: true, lineStyle: { color: NEON_AXIS } },
+      axisLabel: { color: NEON_AXIS },
+      splitLine: { lineStyle: { color: NEON_GRID } },
+    },
+    {
+      scale: true,
+      gridIndex: 1,
+      splitNumber: 2,
+      axisLabel: { show: false },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+    },
+  ];
+
+  const grids: any[] = [
+    { left: '10%', right: '10%', height: priceGridHeight },
+    { left: '10%', right: '10%', top: volTop, height: hasCapitalTrend ? '12%' : '15%' },
+  ];
+
+  const zoomAxes = [0, 1];
+
+  if (hasCapitalTrend) {
+    grids.push({ left: '10%', right: '10%', top: trendTop, height: '12%' });
+    xAxes.push({
+      type: 'category',
+      gridIndex: 2,
+      data: dates,
+      boundaryGap: false,
+      axisLabel: { show: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      min: 'dataMin',
+      max: 'dataMax',
+    });
+    yAxes.push({
+      scale: true,
+      gridIndex: 2,
+      min: 0,
+      max: 100,
+      splitNumber: 2,
+      axisLabel: { color: NEON_AXIS, fontSize: 10 },
+      axisLine: { show: false },
+      splitLine: { lineStyle: { color: NEON_GRID } },
+    });
+    zoomAxes.push(2);
+  }
 
   const option = {
     backgroundColor: 'transparent',
@@ -270,59 +517,16 @@ const KLineChart: React.FC<KLineChartProps> = ({
       bottom: 0,
       textStyle: { color: NEON_AXIS },
     },
-    grid: [
-      { left: '10%', right: '10%', height: '55%' },
-      { left: '10%', right: '10%', top: '72%', height: '15%' },
-    ],
-    xAxis: [
-      {
-        type: 'category',
-        data: dates,
-        boundaryGap: false,
-        axisLine: { lineStyle: { color: NEON_AXIS } },
-        axisLabel: { color: NEON_AXIS, formatter: axisLabelFormatter },
-        splitLine: { show: false },
-        min: 'dataMin',
-        max: 'dataMax',
-      },
-      {
-        type: 'category',
-        gridIndex: 1,
-        data: dates,
-        boundaryGap: false,
-        axisLine: { onZero: false },
-        axisTick: { show: false },
-        axisLabel: { show: false },
-        splitLine: { show: false },
-        min: 'dataMin',
-        max: 'dataMax',
-      },
-    ],
-    yAxis: [
-      {
-        scale: true,
-        splitArea: { show: true, areaStyle: { color: [NEON_GRID, 'transparent'] } },
-        axisLine: { show: true, lineStyle: { color: NEON_AXIS } },
-        axisLabel: { color: NEON_AXIS },
-        splitLine: { lineStyle: { color: NEON_GRID } },
-      },
-      {
-        scale: true,
-        gridIndex: 1,
-        splitNumber: 2,
-        axisLabel: { show: false },
-        axisLine: { show: false },
-        axisTick: { show: false },
-        splitLine: { show: false },
-      },
-    ],
+    grid: grids,
+    xAxis: xAxes,
+    yAxis: yAxes,
     dataZoom: [
-      { type: 'inside', xAxisIndex: [0, 1], start: defaultStart, end: defaultEnd },
+      { type: 'inside', xAxisIndex: zoomAxes, start: defaultStart, end: defaultEnd },
       {
         show: true,
-        xAxisIndex: [0, 1],
+        xAxisIndex: zoomAxes,
         type: 'slider',
-        bottom: 60,
+        bottom: 50,
         start: defaultStart,
         end: defaultEnd,
         borderColor: NEON_AXIS,
@@ -352,7 +556,7 @@ const KLineChart: React.FC<KLineChartProps> = ({
     );
   }
 
-  return <ReactECharts option={option} style={{ height, width: '100%' }} />;
+  return <ReactECharts option={option} style={{ height: chartHeight, width: '100%' }} notMerge />;
 };
 
 export default KLineChart;
