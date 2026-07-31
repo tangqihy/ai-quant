@@ -14,6 +14,8 @@ import RiskManagement from './pages/RiskManagement';
 import StrategyTemplate from './pages/StrategyTemplate';
 import FactorAnalysis from './pages/FactorAnalysis';
 import SignalMonitor from './pages/SignalMonitor';
+import CanvasList from './pages/CanvasList';
+import StockCanvas from './pages/StockCanvas';
 import Login from './pages/Login';
 import { PageTransition } from './components/common/PageTransition';
 import { useTheme } from './hooks/useTheme';
@@ -44,6 +46,8 @@ const AppRoutes: React.FC<{ isDark: boolean; onThemeToggle: () => void }> = ({ i
                   <Route path="/backtest" element={<PageTransition><BacktestConfig /></PageTransition>} />
                   <Route path="/analysis" element={<PageTransition><Analysis /></PageTransition>} />
                   <Route path="/signals" element={<PageTransition><SignalMonitor /></PageTransition>} />
+                  <Route path="/stock-canvas" element={<PageTransition><CanvasList /></PageTransition>} />
+                  <Route path="/stock-canvas/:ts_code" element={<PageTransition><StockCanvas /></PageTransition>} />
                   <Route path="/simulation" element={<PageTransition><SimulationTrading /></PageTransition>} />
                   <Route path="/risk" element={<PageTransition><RiskManagement /></PageTransition>} />
                   <Route path="/strategy-template" element={<PageTransition><StrategyTemplate /></PageTransition>} />

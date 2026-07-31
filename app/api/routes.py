@@ -379,6 +379,10 @@ router.include_router(watchlist_router)
 from app.api.signal_routes import router as signal_router
 router.include_router(signal_router)
 
+# 研究画布（Stock Canvas）
+from app.api.canvas_routes import router as canvas_router
+router.include_router(canvas_router)
+
 
 # ==================== 新闻资讯 ====================
 

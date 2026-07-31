@@ -13,6 +13,7 @@ import {
   FundOutlined,
   MenuOutlined,
   RadarChartOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 import { SearchBar } from '../components/SearchBar';
@@ -49,12 +50,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     { key: '/analysis', icon: <LineChartOutlined />, label: '分析' },
     { key: '/factors', icon: <FundOutlined />, label: '因子分析' },
     { key: '/signals', icon: <RadarChartOutlined />, label: '信号监控' },
+    { key: '/stock-canvas', icon: <AppstoreOutlined />, label: '研究画布' },
     { key: '/simulation', icon: <DollarOutlined />, label: '模拟交易' },
     { key: '/risk', icon: <SafetyOutlined />, label: '风控管理' },
     { key: '/strategy-template', icon: <BookOutlined />, label: '策略模板' },
   ];
 
-  const selectedKey = location.pathname === '/' ? '/' : location.pathname;
+  const selectedKey = (() => {
+    if (location.pathname === '/') return '/';
+    // 子路径归并到父菜单，如 /stock-canvas/01810.HK → /stock-canvas
+    const match = menuItems.find((m) => m.key !== '/' && location.pathname.startsWith(m.key + '/'));
+    return match ? match.key : location.pathname;
+  })();
 
   const go = (key: string) => {
     navigate(key);
