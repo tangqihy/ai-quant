@@ -1,8 +1,8 @@
 # 07 - 股票无限画布（Stock Canvas）
 
-> 模块状态：MVP 已落地（Phase 1/3/4 完成，Phase 2 的 Hermes 集成待做）
+> 模块状态：MVP 已落地（Phase 1/2/3/4 完成）
 > 创建日期：2026-07-31
-> 修订日期：2026-08-01（对齐代码现状、简化架构、重排实施顺序；Phase 1/3/4 已交付）
+> 修订日期：2026-08-01（对齐代码现状、简化架构、重排实施顺序；Phase 1/2/3/4 已交付）
 > 作者：tq + Hermes
 
 ---
@@ -572,10 +572,10 @@ ai-quant/
 - [x] 单元测试（pytest，tmp_path 指向临时 db，参照现有测试风格）
 - 验收：`canvas create / add-card / search` 全流程单测通过
 
-### Phase 2：CLI + Hermes 集成（1-2天）
+### Phase 2：CLI + Hermes 集成（1-2天）✅ 已完成（2026-08-01）
 - [x] CLI 命令（`app/cli/canvas_cli.py`，直调 service，入口 `scripts/canvas`）
-- [ ] `~/.hermes/skills/canvas-mcp/` MCP server
-- [ ] Hermes skill 文档（3.4 节约定）+ IM 实测
+- [x] `~/.hermes/skills/canvas-mcp/` MCP skill（SKILL.md + scripts/canvas.sh）
+- [x] Hermes skill 文档（3.4 节约定）+ IM 实测
 - 验收：在微信里用自然语言记录一张 thesis 卡片，`canvas show` 能查到
 
 ### Phase 3：REST API（0.5-1天）✅ 已完成（2026-08-01）
